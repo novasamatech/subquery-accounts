@@ -1,0 +1,36 @@
+specVersion: 1.0.0
+name: subquery-proxy-polkadot
+version: 1.0.0
+runner:
+  node:
+    name: "@subql/node"
+    version: "*"
+  query:
+    name: "@subql/query"
+    version: v1.5.0
+description: Nova SubQuery project
+repository: https://github.com/nova-wallet/subquery-proxy
+schema:
+  file: ./schema.graphql
+network:
+  chainId: "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+  endpoint: >-
+    wss://polkadot.api.onfinality.io/public-ws
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
+dataSources:
+  - name: main
+    kind: substrate/Runtime
+    startBlock: 220000
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - handler: handlePureCreated
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+        - handler: handlePureProxy
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated

@@ -1,0 +1,6 @@
+type PureProxy @entity {
+  id: ID! # pure proxied accountId
+  proxyAccountId: String!
+  proxyType: String!
+  delay: Int!
+}
