@@ -18,6 +18,7 @@ services:
       retries: 5
 
   subquery-node:
+    container_name: "node-${PROJECT_PATH}"
     image: subquerynetwork/subql-node-substrate:latest
     depends_on:
       "postgres":
@@ -33,11 +34,9 @@ services:
       - ./:/app
     command:
       - ${SUB_COMMAND:-} # set SUB_COMMAND env variable to "test" to run tests
-      - -f=/app
+      - -f=/app/${PROJECT_PATH}
       - --db-schema=app
-      - --workers=4
       - --batch-size=30
-      - --unfinalized-blocks=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://subquery-node:3000/ready"]
       interval: 3s
@@ -46,6 +45,7 @@ services:
 
   graphql-engine:
     image: subquerynetwork/subql-query:latest
+    container_name: "query-${PROJECT_PATH}"
     ports:
       - 3000:3000
     depends_on:
