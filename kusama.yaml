@@ -23,12 +23,12 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
-        - handler: handlePureCreated
+        - handler: handleEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: PureCreated
-        - handler: handlePureProxy
+        - handler: handleEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
