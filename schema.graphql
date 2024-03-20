@@ -1,0 +1,3 @@
+type PureProxy @entity {
+  id: ID! # pure proxied accountId
+}
