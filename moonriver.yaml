@@ -1,0 +1,38 @@
+specVersion: 1.0.0
+name: subquery-proxy-moonriver
+version: 1.0.0
+runner:
+  node:
+    name: "@subql/node"
+    version: "*"
+  query:
+    name: "@subql/query"
+    version: v1.5.0
+description: Nova SubQuery project
+repository: https://github.com/nova-wallet/subquery-proxy
+schema:
+  file: ./schema.graphql
+network:
+  chainId: "0x401a1f9dca3da46f5c4091016c8a2f26dcea05865116b286f60f668207d1474b"
+  endpoint: >-
+    wss://moonriver-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/moonriver-dictionary
+  chaintypes:
+    file: ./dist/moonbeamChaintypes.js
+dataSources:
+  - name: main
+    kind: substrate/Runtime
+    startBlock: 150000
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - handler: handleEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+        - handler: handleEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
