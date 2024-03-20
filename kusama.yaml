@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 15193748 # first PureCreated https://kusama.subscan.io/block/15193748
+    startBlock: 2672216 # first AnonymousCreated https://kusama.subscan.io/block/2672216
     mapping:
       file: ./dist/index.js
       handlers:

@@ -20,7 +20,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 12845708 # first PureCreated https://westend.subscan.io/block/12845708
+    startBlock: 2248322 # first AnonymousCreated https://westend.subscan.io/block/2248322
     mapping:
       file: ./dist/index.js
       handlers:
