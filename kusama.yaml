@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 15193748 # first PureCreated https://kusama.subscan.io/block/15193748
     mapping:
       file: ./dist/index.js
       handlers:
