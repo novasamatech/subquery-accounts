@@ -12,7 +12,21 @@ export async function handleEvent(event: SubstrateEvent): Promise<void> {
 
   const pureProxy = PureProxy.create({
     id: accountId.toHex(),
+    blockNumber: blockNumber(event),
+    extrinsicIndex: extrinsicIndex(event),
   });
 
   await pureProxy.save();
+}
+
+function extrinsicIndex(event: SubstrateEvent): string {
+  const idx: string = event.extrinsic
+    ? event.extrinsic.idx.toString()
+    : event.idx.toString();
+
+  return idx;
+}
+
+function blockNumber(event: SubstrateEvent): string {
+  return event.block.block.header.number.toString();
 }
