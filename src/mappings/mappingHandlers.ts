@@ -27,6 +27,6 @@ function extrinsicIndex(event: SubstrateEvent): string {
   return idx;
 }
 
-function blockNumber(event: SubstrateEvent): string {
-  return event.block.block.header.number.toString();
+function blockNumber(event: SubstrateEvent): number {
+  return event.block.block.header.number.toNumber();
 }
