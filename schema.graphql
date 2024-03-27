@@ -1,5 +1,5 @@
 type PureProxy @entity {
   id: ID! # pure proxied accountId
   blockNumber: Int!
-  extrinsicIndex: String!
+  extrinsicIndex: Int!
 }

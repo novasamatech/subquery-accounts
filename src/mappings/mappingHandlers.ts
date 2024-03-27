@@ -19,12 +19,8 @@ export async function handleEvent(event: SubstrateEvent): Promise<void> {
   await pureProxy.save();
 }
 
-function extrinsicIndex(event: SubstrateEvent): string {
-  const idx: string = event.extrinsic
-    ? event.extrinsic.idx.toString()
-    : event.idx.toString();
-
-  return idx;
+function extrinsicIndex(event: SubstrateEvent): number {
+  return event.extrinsic ? event.extrinsic.idx : event.idx;
 }
 
 function blockNumber(event: SubstrateEvent): number {
