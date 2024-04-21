@@ -57,6 +57,7 @@ For this project, you can try to query with the following GraphQL code to get a 
 ```graphql
 {
   query {
+<<<<<<< HEAD
     accounts(first: 5) {
       nodes {
         id
@@ -89,6 +90,13 @@ query {
             }
           }
         }
+=======
+    pureProxies(first: 5) {
+      nodes {
+        blockNumber
+        id
+        extrinsicIndex
+>>>>>>> 09c1a00 (fix: readme)
       }
     }
   }
