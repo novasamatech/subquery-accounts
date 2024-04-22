@@ -8,6 +8,19 @@ First, install SubQuery CLI globally on your terminal by using NPM `npm install 
 
 Install dependencies with `pnpm install` or `yarn install`, or `npm install`!
 
+## Cleanup the project
+
+To make sure you start from a clean plate, make sure you have no previous docker running or older db
+
+```bash
+# delete any docker
+docker rm -f $(docker-compose ps -a -q);
+
+# delete the local DB files and build
+sudo rm -rf .data/;
+sudo rm -rf dist/;
+```
+
 ## Run this project
 
 Copy one of the chain files into `project.yaml`: e.g for polkadot `cp polkadot.yaml project.yaml`
@@ -19,6 +32,10 @@ Then the simplest way to run your project is by running `pnpm dev`, `yarn dev` o
 3.  `docker-compose pull && docker-compose up` - Runs a Docker container with an indexer, PostgeSQL DB, and a query service. This requires [Docker to be installed](https://docs.docker.com/engine/install) and running locally. The configuration for this container is set from your `docker-compose.yml`
 
 You can observe the three services start, and once all are running (it may take a few minutes on your first start), please open your browser and head to [http://localhost:3000](http://localhost:3000) - you should see a GraphQL playground showing with the schemas ready to query. [Read the docs for more information](https://academy.subquery.network/run_publish/run.html) or [explore the possible service configuration for running SubQuery](https://academy.subquery.network/run_publish/references.html).
+
+## Helper script
+
+You can also use `local-runner.sh` that will perform the above steps for you. Make sure it's executable with `chmod u+u ./local-runner.sh`.
 
 ## Query your project
 
