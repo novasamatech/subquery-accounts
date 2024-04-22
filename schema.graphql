@@ -3,3 +3,23 @@ type PureProxy @entity {
   blockNumber: Int!
   extrinsicIndex: Int!
 }
+
+# An account can be a multisig, or a normal account (like a signatory)
+type Account @entity {
+  id: ID!
+  address: String!
+  # if this account is the signatory on one or many multisigs, this will link to an array of multisigs
+  multisigs: [AccountMultisig] @derivedFrom(field: "signatory")
+  isMultisig: Boolean
+  # if this account is a multisig, this will link to an array of signatories
+  signatories: [AccountMultisig!] @derivedFrom(field: "multisig")
+  # this is only needed in the case of a multisig
+  threshold: Int
+}
+
+# entity for linking accounts and multisigs
+type AccountMultisig @entity {
+  id: ID!
+  multisig: Account!
+  signatory: Account!
+}

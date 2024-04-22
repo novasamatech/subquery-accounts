@@ -1,5 +1,4 @@
-import assert from "assert";
-import { SubstrateEvent } from "@subql/types";
+import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
 
 import { PureProxy } from "../types";
 
@@ -25,4 +24,13 @@ function extrinsicIndex(event: SubstrateEvent): number {
 
 function blockNumber(event: SubstrateEvent): number {
   return event.block.block.header.number.toNumber();
+}
+
+export async function handleMultisigCall(
+  extrinsic: SubstrateExtrinsic
+): Promise<void> {
+  console.log(extrinsic.block.toJSON());
+  // const record = new CallEntity(extrinsic.block.block.header.hash.toString());
+  // record.field4 = extrinsic.block.timestamp;
+  // await record.save();
 }
