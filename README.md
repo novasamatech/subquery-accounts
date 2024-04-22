@@ -74,6 +74,25 @@ For this project, you can try to query with the following GraphQL code to get a 
       }
     }
   }
+query {
+      accounts(first: 5) {
+      nodes {
+        id
+        address
+        threshold
+        isMultisig
+        signatories {
+          nodes {
+            signatory {
+              id
+              address
+            }
+          }
+        }
+>>>>>>> 336c2fd (feat: multisigs)
+      }
+    }
+  }
 }
 ```
 
