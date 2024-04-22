@@ -7,5 +7,5 @@ subqlTest(
   191, // Block height to test at
   [], // Dependent entities
   [], // Expected entities
-  "handleEvent", // handler name
+  "handlePureProxyEvent" // handler name
 );

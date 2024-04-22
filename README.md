@@ -44,11 +44,20 @@ For this project, you can try to query with the following GraphQL code to get a 
 ```graphql
 {
   query {
-    pureProxies(first: 5) {
+    accounts(first: 5) {
       nodes {
-        blockNumber
         id
-        extrinsicIndex
+        address
+        threshold
+        isMultisig
+        signatories {
+          nodes {
+            signatory {
+              id
+              address
+            }
+          }
+        }
       }
     }
   }
