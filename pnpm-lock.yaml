@@ -21,8 +21,8 @@ importers:
         specifier: ^12.6.2
         version: 12.6.2(@polkadot/util@12.6.2)
       '@subql/types-core':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.7.0
+        version: 0.7.0
       tslib:
         specifier: ^2.6.2
         version: 2.6.2
@@ -1536,6 +1536,9 @@ packages:
 
   '@subql/types-core@0.5.0':
     resolution: {integrity: sha512-vDGyGHKYzmC9AZXE8nFKTjgBJSr7l4orAj54IPTq1e6CsYNYWw+sAr8yD09rxUEzDhZEuKZdN8N7/IbhpvqJ0Q==}
+
+  '@subql/types-core@0.7.0':
+    resolution: {integrity: sha512-/Is7bqy9x769N3BnRLUQJPx1q4QQZqYt9VwqYJguOEKmPLMFjChlr988hIDwvRCxN6SmemzZvFFnKH0Vmj7gEw==}
 
   '@subql/types-cosmos@3.2.3':
     resolution: {integrity: sha512-Vf1k3G1R4Jr4EWhpDbqjCunlt74EiBARASrBGjpjUCfnfdvdY3tfOaBcEwZjZvVRIi6O5NEZVsMq25VtlBWo0Q==}
@@ -7080,6 +7083,10 @@ snapshots:
       package-json-type: 1.0.3
 
   '@subql/types-core@0.5.0':
+    dependencies:
+      package-json-type: 1.0.3
+
+  '@subql/types-core@0.7.0':
     dependencies:
       package-json-type: 1.0.3
 

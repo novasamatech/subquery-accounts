@@ -35,7 +35,7 @@
     "@polkadot/api-augment": "^10.12.1",
     "@polkadot/util": "^12.6.2",
     "@polkadot/util-crypto": "^12.6.2",
-    "@subql/types-core": "^0.5.0",
+    "@subql/types-core": "^0.7.0",
     "tslib": "^2.6.2"
   },
   "exports": {
