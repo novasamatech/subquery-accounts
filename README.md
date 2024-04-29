@@ -89,7 +89,6 @@ query {
             }
           }
         }
->>>>>>> 336c2fd (feat: multisigs)
       }
     }
   }
