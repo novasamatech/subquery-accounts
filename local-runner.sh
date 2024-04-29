@@ -18,7 +18,7 @@ sudo rm -rf dist/
 # If any command bellow will fail - script will stop
 set -e
 
-yarn
-yarn codegen
-yarn build
-yarn start:docker
+pnpm install
+pnpm codegen
+pnpm build
+pnpm start:docker
