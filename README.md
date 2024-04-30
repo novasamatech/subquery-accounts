@@ -21,6 +21,19 @@ sudo rm -rf .data/;
 sudo rm -rf dist/;
 ```
 
+## Cleanup the project
+
+To make sure you start from a clean plate, make sure you have no previous docker running or older db
+
+```bash
+# delete any docker
+docker rm -f $(docker-compose ps -a -q);
+
+# delete the local DB files and build
+sudo rm -rf .data/;
+sudo rm -rf dist/;
+```
+
 ## Run this project
 
 Copy one of the chain files into `project.yaml`: e.g for polkadot `cp polkadot.yaml project.yaml`
@@ -43,6 +56,24 @@ For this project, you can try to query with the following GraphQL code to get a 
 
 ```graphql
 {
+  query {
+    accounts(first: 5) {
+      nodes {
+        id
+        address
+        threshold
+        isMultisig
+        signatories {
+          nodes {
+            signatory {
+              id
+              address
+            }
+          }
+        }
+      }
+    }
+  }
   query {
     pureProxies(first: 5) {
       nodes {

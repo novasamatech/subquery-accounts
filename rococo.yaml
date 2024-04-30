@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-moonbeam
+name: subquery-spektr
 version: 1.0.0
 runner:
   node:
@@ -13,16 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xfe58ea77779b7abda7da4ec526d14db9b1e9cd40a217c34892af80a9b332b76d"
+  chainId: "0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e"
   endpoint: >-
-    wss://moonbeam-rpc.dwellir.com
-  dictionary: https://api.subquery.network/sq/subquery/moonbeam-dictionary
-  chaintypes:
-    file: ./dist/moonbeamChaintypes.js
+    wss://rococo-rpc.polkadot.io
+  dictionary: https://api.subquery.network/sq/subquery/rococo-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 150000
+    startBlock: 3152590
     mapping:
       file: ./dist/index.js
       handlers:

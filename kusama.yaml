@@ -23,13 +23,41 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
-        - handler: handleEvent
+        - handler: handlePureProxyEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: PureCreated
-        - handler: handleEvent
+        - handler: handlePureProxyEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: AnonymousCreated
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: approveAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: cancelAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMultiThreshold1
+            success: true
+            isSigned: true
