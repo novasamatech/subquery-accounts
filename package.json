@@ -15,7 +15,8 @@
     "deploy:moonbeam": "subql publish -f moonbeam.yaml",
     "deploy:moonriver": "subql publish -f moonriver.yaml",
     "deploy:rococo": "subql publish -f rococo.yaml",
-    "deploy:westend": "subql publish -f westend.yaml"
+    "deploy:westend": "subql publish -f westend.yaml",
+    "deploy:hydradx": "subql publish -f hydradx.yaml"
   },
   "homepage": "https://github.com/subquery/subql-starter",
   "repository": "github:subquery/subql-starter",
