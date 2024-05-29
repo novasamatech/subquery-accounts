@@ -22,7 +22,7 @@ export async function handleMultisigCall(
     checkAndGetAccount(u8aToHex(decodeAddress(signatory)))
   );
   const allSignatoriesAccounts = await Promise.all(signatoriesAccountsPromises);
-  const mulisigPubKey = createKeyMulti(other_signatories, threshold);
+  const mulisigPubKey = createKeyMulti(allSignatories, threshold);
   const multisigAddress = encodeAddress(mulisigPubKey);
   const multisigAccount = await checkAndGetAccount(
     u8aToHex(decodeAddress(multisigAddress)),
