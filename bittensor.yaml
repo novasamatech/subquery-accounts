@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot
+name: subquery-proxy-bittensor
 version: 1.0.0
 runner:
   node:
