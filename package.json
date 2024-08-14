@@ -46,6 +46,7 @@
     "tslib": "^2.6.2"
   },
   "exports": {
-    "moonbeamChaintypes": "./chainTypes/moonbeamChaintypes.ts"
+    "moonbeamChaintypes": "./chainTypes/moonbeamChaintypes.ts",
+    "bittensorChaintypes": "./chainTypes/bittensorChainTypes.ts"
   }
 }
