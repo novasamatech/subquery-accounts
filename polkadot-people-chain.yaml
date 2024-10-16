@@ -1,0 +1,63 @@
+specVersion: 1.0.0
+name: subquery-proxy-polkadot
+version: 1.0.0
+runner:
+  node:
+    name: "@subql/node"
+    version: "*"
+  query:
+    name: "@subql/query"
+    version: v1.5.0
+description: Nova SubQuery project
+repository: https://github.com/nova-wallet/subquery-proxy
+schema:
+  file: ./schema.graphql
+network:
+  chainId: "0x67fa177a097bfa18f77ea95ab56e9bcdfeb0e5b8a40e46298bb93e16b6fc5008"
+  endpoint: >-
+    wss://polkadot-people-rpc.polkadot.io
+dataSources:
+  - name: main
+    kind: substrate/Runtime
+    startBlock: 1
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: approveAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: cancelAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMultiThreshold1
+            success: true
+            isSigned: true
