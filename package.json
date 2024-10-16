@@ -47,6 +47,8 @@
   },
   "exports": {
     "moonbeamChaintypes": "./chainTypes/moonbeamChaintypes.ts",
-    "bittensorChaintypes": "./chainTypes/bittensorChainTypes.ts"
+    "bittensorChaintypes": "./chainTypes/bittensorChainTypes.ts",
+    "alephZeroChaintypes": "./chainTypes/alephZeroChaintypes.ts",
+    "kusamaAssetHubChaintypes": "./chainTypes/kusamaAssetHubChaintypes.ts"
   }
 }
