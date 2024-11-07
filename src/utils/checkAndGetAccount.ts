@@ -1,4 +1,4 @@
-import { encodeAddress } from "@polkadot/util-crypto";
+import { encodeAddress } from "../utils";
 import { Account } from "../types";
 
 export async function checkAndGetAccount(
