@@ -1,13 +1,9 @@
-import {
-  createKeyMulti,
-  decodeAddress,
-  encodeAddress,
-} from "@polkadot/util-crypto";
 import { MultisigArgs } from "../types";
 import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { u8aToHex } from "@polkadot/util";
+import { decodeAddress, createKeyMultiAddress } from "../../utils";
 
 export async function handleMultisigCall(
   extrinsic: SubstrateExtrinsic
@@ -22,8 +18,7 @@ export async function handleMultisigCall(
     checkAndGetAccount(u8aToHex(decodeAddress(signatory)))
   );
   const allSignatoriesAccounts = await Promise.all(signatoriesAccountsPromises);
-  const mulisigPubKey = createKeyMulti(allSignatories, threshold);
-  const multisigAddress = encodeAddress(mulisigPubKey);
+  const multisigAddress = createKeyMultiAddress(allSignatories, threshold);
   const multisigAccount = await checkAndGetAccount(
     u8aToHex(decodeAddress(multisigAddress)),
     true,
