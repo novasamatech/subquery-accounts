@@ -28,7 +28,7 @@
   "author": "Novasama Technlogies",
   "license": "MIT",
   "devDependencies": {
-    "@polkadot/api": "^10",
+    "@polkadot/api": "^11",
     "@subql/cli": "latest",
     "@subql/testing": "latest",
     "@subql/types": "latest",
@@ -49,6 +49,7 @@
     "moonbeamChaintypes": "./chainTypes/moonbeamChaintypes.ts",
     "bittensorChaintypes": "./chainTypes/bittensorChainTypes.ts",
     "alephZeroChaintypes": "./chainTypes/alephZeroChaintypes.ts",
-    "kusamaAssetHubChaintypes": "./chainTypes/kusamaAssetHubChaintypes.ts"
+    "kusamaAssetHubChaintypes": "./chainTypes/kusamaAssetHubChaintypes.ts",
+    "availChainTypes": "./chainTypes/availChainTypes.ts"
   }
 }
