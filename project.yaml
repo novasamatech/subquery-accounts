@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-spektr
+name: subquery-proxy-westend
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e"
+  chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
   endpoint: >-
-    wss://rococo-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/rococo-dictionary
+    wss://westend-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 3152590
+    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
     mapping:
       file: ./dist/index.js
       handlers:
