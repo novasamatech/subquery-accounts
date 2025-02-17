@@ -21,7 +21,7 @@ services:
     build:
       context: .
     container_name: "node-${PROJECT_PATH}"
-    image: subquerynetwork/subql-node-substrate:latest
+    image: subquerynetwork/subql-node-substrate:v5.6.0
     depends_on:
       "postgres":
         condition: service_healthy
