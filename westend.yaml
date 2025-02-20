@@ -20,7 +20,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 2248322 # first AnonymousCreated https://westend.subscan.io/block/2248322
+    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
     mapping:
       file: ./dist/index.js
       handlers:
