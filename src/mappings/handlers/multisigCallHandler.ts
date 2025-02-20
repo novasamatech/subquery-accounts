@@ -1,19 +1,26 @@
-import { CancelMultisigArgs, MultisigArgs } from "../types";
+import { MultisigArgs } from "../types";
 import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { u8aToHex } from "@polkadot/util";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
-import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
+import { CreateCallVisitorBuilder, CreateCallWalk, DefaultKnownNodes, VisitedCall } from "subquery-call-visitor";
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../../types";
-import { formatStringToNumber, generateEventId, generateOperationId, getBlockCreated, getIndexCreated, timestamp } from "../../utils/operations";
-import { DispatchResult } from "@polkadot/types/interfaces";
+import { generateEventId, generateOperationId, getBlockCreated, getDataFromCall, getDataFromEvent, getIndexCreated, timestamp } from "../../utils/operations";
+import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
+import { Option } from "@polkadot/types";
+import { AnyTuple, CallBase } from "@polkadot/types/types";
 
-const callWalk = CreateCallWalk()
+export const Nodes = DefaultKnownNodes.filter((_, index) => {
+  // Exclude asMulti and asMultiThreshold1 node
+  return ![4, 5].includes(index)
+})
+
+const callWalk = CreateCallWalk(Nodes)
 const multisigVisitor = CreateCallVisitorBuilder()
   .on('multisig', 'asMulti', handleApproveMultisigCall)
-  .on('multisig', 'approveAsMulti', handleApproveMultisigCall)
   .on('multisig', 'asMultiThreshold1', handleApproveMultisigCall)
+  .on('multisig', 'approveAsMulti', handleApproveMultisigCall)
   .on('multisig', 'cancelAsMulti', handleCancelMultisigCall)
   .ignoreFailedCalls(true)
   .build();
@@ -48,33 +55,37 @@ export async function handleMultisigCall(
     accountMultisig.map((accountMultisig) => accountMultisig.save())
   );
 
-  await handleNewMultisigCall(extrinsic);
   await callWalk.walk(extrinsic, multisigVisitor)
 }
 
-async function getTransaction(extrinsic: SubstrateExtrinsic): Promise<MultisigOperation | undefined> {
-  const { args } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigArgs;
-  const { threshold, other_signatories, maybe_timepoint: timepoint, call_hash } = args;
-
-  const callIndex = extrinsic.extrinsic.method.meta.args.findIndex(arg =>
-    arg.name.toLowerCase() === 'call'
-  );
-  const call = extrinsic.extrinsic.args[callIndex];
-  const callHash = call_hash || extrinsic.extrinsic.args[callIndex]?.hash?.toHex();
+async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperation | undefined> {
+  const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, 'call');
+  const call_hash = getDataFromCall<Uint8Array>(visitedCall.call, 'callHash');
+  const callHash = call_hash ? u8aToHex(call_hash) : call?.hash?.toHex();
+  const timepoint = getDataFromCall<Option<Timepoint>>(visitedCall.call, 'maybeTimepoint')?.unwrapOr(undefined) ||
+    getDataFromCall<Option<Timepoint>>(visitedCall.call, 'timepoint')?.unwrapOr(undefined);
 
   if (!callHash) return;
 
-  const signer = extrinsic.extrinsic.signer.toString();
-  const multisigAddress = createKeyMultiAddress([...other_signatories, signer], threshold);
+  const multisigEvent = visitedCall.events.find(e => ['MultisigExecuted', 'NewMultisig', 'MultisigApproval'].includes(e.method));
+  if (!multisigEvent) return;
 
-  const blockCreated = timepoint ? formatStringToNumber(timepoint.height) : getBlockCreated(extrinsic);
-  const indexCreated = timepoint ? formatStringToNumber(timepoint.index) : getIndexCreated(extrinsic);
+
+  const possibleIndex = multisigEvent.method === 'NewMultisig' ? 1 : 2
+  const multisig = getDataFromEvent<AccountId>(multisigEvent, 'multisig', possibleIndex)
+
+  if (!multisig) return;
+
+  const multisigAddress = multisig.toHex()
+
+  const blockCreated = timepoint ? timepoint.height.toNumber() : getBlockCreated(visitedCall.extrinsic);
+  const indexCreated = timepoint ? timepoint.index.toNumber() : getIndexCreated(visitedCall.extrinsic);
 
   const [existingOperation] = await MultisigOperation.getByFields([
     ['callHash', '=', callHash],
     ['blockCreated', '=', blockCreated],
     ['indexCreated', '=', indexCreated],
-    ['address', '=', multisigAddress]
+    ['accountId', '=', multisigAddress]
   ], { limit: 1 });
 
   const operationId = existingOperation?.id || generateOperationId(callHash, multisigAddress, blockCreated, indexCreated);
@@ -83,14 +94,13 @@ async function getTransaction(extrinsic: SubstrateExtrinsic): Promise<MultisigOp
     id: operationId,
     callHash,
     status: OperationStatus.pending,
-    address: multisigAddress,
-    deposit: 1,
-    depositor: extrinsic.extrinsic.signer.toHex(),
+    accountId: multisigAddress,
+    depositor: u8aToHex(decodeAddress(visitedCall.origin)),
     blockCreated,
     indexCreated,
     callData: call?.toHex(),
     ...(call ? call.toHuman() as {} : {}),
-    timestamp: timestamp(extrinsic.block)
+    timestamp: timestamp(visitedCall.extrinsic.block)
   });
 
   await newOperation.save();
@@ -106,58 +116,54 @@ async function updateOperationStatus(operation: MultisigOperation, status: Opera
   return updatedOperation;
 }
 
-async function createMultisigEvent(extrinsic: SubstrateExtrinsic, operation: MultisigOperation, status: EventStatus) {
-  const signer = extrinsic.extrinsic.signer.toString();
+async function createMultisigEvent(visitedCall: VisitedCall, operation: MultisigOperation, status: EventStatus) {
+  const signer = u8aToHex(decodeAddress(visitedCall.origin))
 
   await MultisigEvent.create({
     id: generateEventId(operation.id, signer, status),
-    address: signer,
+    accountId: signer,
     status,
-    blockCreated: getBlockCreated(extrinsic),
-    indexCreated: getIndexCreated(extrinsic),
+    blockCreated: getBlockCreated(visitedCall.extrinsic),
+    indexCreated: getIndexCreated(visitedCall.extrinsic),
     multisigId: operation.id,
-    timestamp: timestamp(extrinsic.block)
+    timestamp: timestamp(visitedCall.extrinsic.block)
   }).save();
 }
 
 export async function handleApproveMultisigCall(call: VisitedCall): Promise<void> {
-  const operation = await getTransaction(call.extrinsic);
+  const operation = await getTransaction(call);
   if (!operation) return;
 
-  await createMultisigEvent(call.extrinsic, operation, EventStatus.approve);
+  await createMultisigEvent(call, operation, EventStatus.approve);
 
   const finalEvent = call.events.find(e => e.method === 'MultisigExecuted');
   if (!finalEvent) return;
 
-  const resultIndex = finalEvent.data.names?.indexOf('result');
-  if (resultIndex === undefined || resultIndex === -1) return;
-
-  const result = finalEvent.data[resultIndex] as DispatchResult;
-  const status = result.isOk ? OperationStatus.executed : OperationStatus.error;
+  const result = getDataFromEvent<DispatchResult>(finalEvent, 'result', 4);
+  const status = result?.isOk ? OperationStatus.executed : OperationStatus.error;
   await updateOperationStatus(operation, status);
 }
 
-export async function handleCancelMultisigCall(call: VisitedCall): Promise<void> {
-  const { args } = call.extrinsic.extrinsic.method.toHuman() as unknown as CancelMultisigArgs;
-  const { threshold, other_signatories, timepoint, call_hash: callHash } = args;
+export async function handleCancelMultisigCall(visitedCall: VisitedCall): Promise<void> {
+  const timepoint = getDataFromCall<Timepoint>(visitedCall.call, 'timepoint')
+  const callHash = getDataFromCall<Uint8Array>(visitedCall.call, 'callHash')
 
-  const signer = call.extrinsic.extrinsic.signer.toString();
-  const multisigAddress = createKeyMultiAddress([...other_signatories, signer], threshold);
+  if (!timepoint || !callHash) return;
+
+  const multisigEvent = visitedCall.events.find(e => ['MultisigCancelled'].includes(e.method));
+  if (!multisigEvent) return;
+
+  const multisig = getDataFromEvent<AccountId>(multisigEvent, 'multisig', 2)
 
   const [operation] = await MultisigOperation.getByFields([
-    ['callHash', '=', callHash],
-    ['blockCreated', '=', formatStringToNumber(timepoint!.height)],
-    ['indexCreated', '=', formatStringToNumber(timepoint!.index)],
-    ['address', '=', multisigAddress]
+    ['callHash', '=', u8aToHex(callHash)],
+    ['blockCreated', '=', timepoint!.height.toNumber()],
+    ['indexCreated', '=', timepoint!.index.toNumber()],
+    ['accountId', '=', multisig?.toHex()]
   ], { limit: 1 });
 
   if (!operation) return;
 
   const updatedOperation = await updateOperationStatus(operation, OperationStatus.cancelled);
-  await createMultisigEvent(call.extrinsic, updatedOperation, EventStatus.reject);
-}
-
-export async function handleNewMultisigCall(extrinsic: SubstrateExtrinsic): Promise<void> {
-  const operation = await getTransaction(extrinsic);
-  if (operation) await createMultisigEvent(extrinsic, operation, EventStatus.approve);
+  await createMultisigEvent(visitedCall, updatedOperation, EventStatus.reject);
 }

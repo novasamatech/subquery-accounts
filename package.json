@@ -44,7 +44,7 @@
     "@polkadot/util": "^13.3.1",
     "@polkadot/util-crypto": "^13.3.1",
     "@subql/types-core": "^2.0.1",
-    "subquery-call-visitor": "^1.2.7",
+    "subquery-call-visitor": "^1.2.10",
     "tslib": "^2.6.2"
   },
   "exports": {

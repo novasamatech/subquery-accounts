@@ -11,6 +11,8 @@
     "rootDir": ".",
     "target": "es2021",
     "strict": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true  
   },
   "include": [
     "src/**/*",

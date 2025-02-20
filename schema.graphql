@@ -31,7 +31,7 @@ enum EventStatus {
 
 type MultisigEvent @entity {
   id: ID!
-  address: String!
+  accountId: String!
   status: EventStatus!
   blockCreated: Int!
   indexCreated: Int!
@@ -54,10 +54,9 @@ type MultisigArgs @jsonField {
 type MultisigOperation @entity {
   id: ID!
   status: OperationStatus!
-  address: String! @index
+  accountId: String! @index
   callHash: String! @index
   callData: String
-  deposit: Int!
   depositor: String!
   blockCreated: Int! @index
   indexCreated: Int! @index
@@ -65,5 +64,5 @@ type MultisigOperation @entity {
   args: MultisigArgs
   method: String
   section: String
-  events: [MultisigEvent!] @derivedFrom(field: "multisig")
+  events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
 }

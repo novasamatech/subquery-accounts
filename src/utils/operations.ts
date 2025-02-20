@@ -1,5 +1,7 @@
 import { SubstrateBlock, SubstrateExtrinsic } from "@subql/types";
 import { EventStatus } from "../types";
+import { AnyEvent } from "subquery-call-visitor";
+import { AnyTuple, CallBase } from "@polkadot/types/types";
 
 export const timestamp = (block: SubstrateBlock): bigint => {
   return BigInt(
@@ -19,3 +21,22 @@ export const generateOperationId = (callHash: string, address: string, block: nu
 
 export const generateEventId = (operationId: string, signer: string, status: EventStatus): string =>
   `${operationId}-${signer}-${status}`;
+
+export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleIndex?: number): T | undefined => {
+  let index = possibleIndex;
+
+  if (event.data.names) {
+    index = event.data.names?.indexOf(field);
+  }
+
+  if (index === undefined || index === -1) return;
+  
+  return event.data[index] as T;  
+}
+
+export const getDataFromCall = <T>(call: CallBase<AnyTuple>, field: string): T | undefined => {
+  const index = call.meta.args.findIndex(arg => arg.name.toString() === field);
+  if (index === undefined || index === -1) return;
+
+  return call.args[index] as T;
+}
