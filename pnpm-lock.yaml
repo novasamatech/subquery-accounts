@@ -27,8 +27,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       subquery-call-visitor:
-        specifier: ^1.2.10
-        version: 1.2.10
+        specifier: ^1.2.11
+        version: 1.2.11
       tslib:
         specifier: ^2.6.2
         version: 2.6.2
@@ -1970,8 +1970,8 @@ packages:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
 
-  subquery-call-visitor@1.2.10:
-    resolution: {integrity: sha512-WAQ3AuB/lPXCn9rnpLGpFr/CD2J8a0+azgMVWxpq5l80gDpMs+dYqsyC86ZoF+IWqpBDKbcHEPLka48UtJag+A==}
+  subquery-call-visitor@1.2.11:
+    resolution: {integrity: sha512-On31n+uvDZbdrbwtZW3pOxFbPMWhz32cbxzjlPlNvRfUJ2fn8qEE5zB26+6IUtJgKRdFX5zn4fBOfIwmz0UAOg==}
 
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
@@ -4594,7 +4594,7 @@ snapshots:
 
   strip-json-comments@2.0.1: {}
 
-  subquery-call-visitor@1.2.10:
+  subquery-call-visitor@1.2.11:
     dependencies:
       '@types/big.js': 6.2.2
       big.js: 6.2.1

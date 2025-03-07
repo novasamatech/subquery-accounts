@@ -8,7 +8,6 @@ import { CreateCallVisitorBuilder, CreateCallWalk, DefaultKnownNodes, VisitedCal
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../../types";
 import { generateEventId, generateOperationId, getBlockCreated, getDataFromCall, getDataFromEvent, getIndexCreated, timestamp } from "../../utils/operations";
 import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
-import { Option } from "@polkadot/types";
 import { AnyTuple, CallBase } from "@polkadot/types/types";
 
 export const Nodes = DefaultKnownNodes.filter((_, index) => {
@@ -62,8 +61,8 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
   const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, 'call');
   const call_hash = getDataFromCall<Uint8Array>(visitedCall.call, 'callHash');
   const callHash = call_hash ? u8aToHex(call_hash) : call?.hash?.toHex();
-  const timepoint = getDataFromCall<Option<Timepoint>>(visitedCall.call, 'maybeTimepoint')?.unwrapOr(undefined) ||
-    getDataFromCall<Option<Timepoint>>(visitedCall.call, 'timepoint')?.unwrapOr(undefined);
+  const timepoint = getDataFromCall<Timepoint>(visitedCall.call, 'maybeTimepoint') ||
+    getDataFromCall<Timepoint>(visitedCall.call, 'timepoint')
 
   if (!callHash) return;
 
@@ -89,13 +88,13 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
     ...existingOperation,
     id: operationId,
     callHash,
-    status: OperationStatus.pending,
+    status: existingOperation?.status || OperationStatus.pending,
     accountId: multisigAddress,
     depositor: u8aToHex(decodeAddress(visitedCall.origin)),
     blockCreated,
     indexCreated,
     ...(call ? {
-      callData: call?.toHex(),
+      callData: call.toHex(),
       ...call.toHuman() as {}
     } : {}),
     timestamp: timestamp(visitedCall.extrinsic.block)
@@ -148,14 +147,7 @@ export async function handleCancelMultisigCall(visitedCall: VisitedCall): Promis
 
   if (!timepoint || !callHash) return;
 
-  const multisig = getMultisigAddressFromEvents(visitedCall);
-
-  const [operation] = await MultisigOperation.getByFields([
-    ['callHash', '=', u8aToHex(callHash)],
-    ['blockCreated', '=', timepoint!.height.toNumber()],
-    ['indexCreated', '=', timepoint!.index.toNumber()],
-    ['accountId', '=', multisig?.toHex()]
-  ], { limit: 1 });
+  const operation = await getTransaction(visitedCall);
 
   if (!operation) return;
 

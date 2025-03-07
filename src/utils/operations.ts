@@ -2,6 +2,7 @@ import { SubstrateBlock, SubstrateExtrinsic } from "@subql/types";
 import { EventStatus } from "../types";
 import { AnyEvent } from "subquery-call-visitor";
 import { AnyTuple, CallBase } from "@polkadot/types/types";
+import { Option } from "@polkadot/types";
 
 export const timestamp = (block: SubstrateBlock): bigint => {
   return BigInt(
@@ -37,6 +38,10 @@ export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleInde
 export const getDataFromCall = <T>(call: CallBase<AnyTuple>, field: string): T | undefined => {
   const index = call.meta.args.findIndex(arg => arg.name.toString() === field);
   if (index === undefined || index === -1) return;
+  
+  if ('unwrapOr' in (call.args[index] as Option<any>)) {
+    return (call.args[index] as Option<any>)?.unwrapOr(undefined) as T
+  }
 
   return call.args[index] as T;
 }
