@@ -66,11 +66,11 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
 
   if (!callHash) return;
 
-  const multisig = getMultisigAddressFromEvents(visitedCall);
+  const multisig = getMultisigAccountIdFromEvents(visitedCall);
 
   if (!multisig) return;
 
-  const multisigAddress = multisig.toHex()
+  const multisigAccountId = multisig.toHex()
 
   const blockCreated = timepoint ? timepoint.height.toNumber() : getBlockCreated(visitedCall.extrinsic);
   const indexCreated = timepoint ? timepoint.index.toNumber() : getIndexCreated(visitedCall.extrinsic);
@@ -79,23 +79,38 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
     ['callHash', '=', callHash],
     ['blockCreated', '=', blockCreated],
     ['indexCreated', '=', indexCreated],
-    ['accountId', '=', multisigAddress]
+    ['accountId', '=', multisigAccountId]
   ], { limit: 1 });
 
-  const operationId = generateOperationId(callHash, multisigAddress, blockCreated, indexCreated);
+  const operationId = generateOperationId(callHash, multisigAccountId, blockCreated, indexCreated);
+
+  let operationData = {}
+
+  if (call) {
+    try {
+      operationData = call.toHuman() as {} | string;
+
+      if (typeof operationData === 'string') {
+        const tx = api.tx(call.toHex())
+        operationData = tx.method.toHuman() as {};
+      }
+    } catch (error) {
+      logger.info(error)
+    }
+  }
 
   const newOperation = await MultisigOperation.create({
     ...existingOperation,
     id: operationId,
     callHash,
     status: existingOperation?.status || OperationStatus.pending,
-    accountId: multisigAddress,
+    accountId: multisigAccountId,
     depositor: u8aToHex(decodeAddress(visitedCall.origin)),
     blockCreated,
     indexCreated,
     ...(call ? {
       callData: call.toHex(),
-      ...call.toHuman() as {}
+      ...operationData
     } : {}),
     timestamp: timestamp(visitedCall.extrinsic.block)
   });
@@ -110,6 +125,7 @@ async function updateOperationStatus(operation: MultisigOperation, status: Opera
     status,
   });
   await updatedOperation.save();
+
   return updatedOperation;
 }
 
@@ -155,7 +171,7 @@ export async function handleCancelMultisigCall(visitedCall: VisitedCall): Promis
   await createMultisigEvent(visitedCall, updatedOperation, EventStatus.reject);
 }
 
-function getMultisigAddressFromEvents(visitedCall: VisitedCall): AccountId | undefined {
+function getMultisigAccountIdFromEvents(visitedCall: VisitedCall): AccountId | undefined {
   const multisigEvent = visitedCall.events.find(e => {
     return ['MultisigExecuted', 'NewMultisig', 'MultisigApproval', 'MultisigCancelled'].includes(e.method)
   });

@@ -35,13 +35,15 @@ export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleInde
   return event.data[index] as T;  
 }
 
-export const getDataFromCall = <T>(call: CallBase<AnyTuple>, field: string): T | undefined => {
-  const index = call.meta.args.findIndex(arg => arg.name.toString() === field);
+export const getDataFromCall = <T>(call: any, field: string): T | undefined => {
+  // TODO: Fix TS2345 yarn Argument of type is not assignable to parameter of type
+  const typedCall = call as unknown as CallBase<AnyTuple>;
+  const index = typedCall.meta.args.findIndex(arg => arg.name.toString() === field);
   if (index === undefined || index === -1) return;
   
-  if ('unwrapOr' in (call.args[index] as Option<any>)) {
-    return (call.args[index] as Option<any>)?.unwrapOr(undefined) as T
+  if ('unwrapOr' in (typedCall.args[index] as Option<any>)) {
+    return (typedCall.args[index] as Option<any>)?.unwrapOr(undefined) as T
   }
 
-  return call.args[index] as T;
+  return typedCall.args[index] as T;
 }
