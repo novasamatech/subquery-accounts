@@ -36,7 +36,7 @@ type MultisigEvent @entity {
   blockCreated: Int!
   indexCreated: Int!
   multisig: MultisigOperation!
-  timestamp: BigInt!
+  timestamp: Int!
 }
 
 enum OperationStatus {
@@ -60,7 +60,7 @@ type MultisigOperation @entity {
   depositor: String!
   blockCreated: Int! @index
   indexCreated: Int! @index
-  timestamp: BigInt!
+  timestamp: Int!
   args: MultisigArgs
   method: String
   section: String

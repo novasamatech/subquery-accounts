@@ -4,13 +4,9 @@ import { AnyEvent } from "subquery-call-visitor";
 import { AnyTuple, CallBase } from "@polkadot/types/types";
 import { Option } from "@polkadot/types";
 
-export const timestamp = (block: SubstrateBlock): bigint => {
-  return BigInt(
-    Math.round(block.timestamp ? block.timestamp.getTime() / 1000 : -1),
-  );
+export const timestamp = (block: SubstrateBlock) => {
+  return block.timestamp ? block.timestamp.getTime() / 1000 : -1;
 }
-
-export const formatStringToNumber = (value: string): number => Number(value.replaceAll(',', ''));
 
 export const getBlockCreated = (extrinsic: SubstrateExtrinsic): number => 
   extrinsic.block.block.header.number.toNumber();
