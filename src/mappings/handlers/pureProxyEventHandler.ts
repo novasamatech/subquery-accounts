@@ -11,6 +11,8 @@ export async function handlePureProxyEvent(
     },
   } = event;
 
+  if (!accountId) return;
+
   const pureProxy = PureProxy.create({
     id: accountId.toHex(),
     blockNumber: blockNumber(event),

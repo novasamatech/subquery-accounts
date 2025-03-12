@@ -28,10 +28,10 @@
   "author": "Novasama Technlogies",
   "license": "MIT",
   "devDependencies": {
-    "@polkadot/api": "^11",
-    "@subql/cli": "latest",
-    "@subql/testing": "latest",
-    "@subql/types": "latest",
+    "@polkadot/api": "15.5.2",
+    "@subql/cli": "5.5.2",
+    "@subql/testing": "2.2.3",
+    "@subql/types": "3.11.5",
     "moonbeam-types-bundle": "^2.0.8",
     "typescript": "^5.2.2"
   },
@@ -39,10 +39,12 @@
     "ipfs-unixfs": "6.0.6"
   },
   "dependencies": {
-    "@polkadot/api-augment": "^10.12.1",
-    "@polkadot/util": "^12.6.2",
-    "@polkadot/util-crypto": "^12.6.2",
-    "@subql/types-core": "^0.7.0",
+    "@polkadot/api-augment": "^15.5.2",
+    "@polkadot/types": "^15.5.2",
+    "@polkadot/util": "^13.3.1",
+    "@polkadot/util-crypto": "^13.3.1",
+    "@subql/types-core": "^2.0.1",
+    "subquery-call-visitor": "^1.2.11",
     "tslib": "^2.6.2"
   },
   "exports": {

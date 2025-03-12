@@ -23,3 +23,46 @@ type AccountMultisig @entity {
   multisig: Account!
   signatory: Account!
 }
+
+enum EventStatus {
+  approve
+  reject
+}
+
+type MultisigEvent @entity {
+  id: ID!
+  accountId: String!
+  status: EventStatus!
+  blockCreated: Int!
+  indexCreated: Int!
+  multisig: MultisigOperation!
+  timestamp: Int!
+}
+
+enum OperationStatus {
+  pending
+  cancelled
+  executed
+  error
+}
+
+# Not correct structure for args
+type MultisigArgs @jsonField {
+  value: String
+}
+
+type MultisigOperation @entity {
+  id: ID!
+  status: OperationStatus!
+  accountId: String! @index
+  callHash: String! @index
+  callData: String
+  depositor: String!
+  blockCreated: Int! @index
+  indexCreated: Int! @index
+  timestamp: Int!
+  args: MultisigArgs
+  method: String
+  section: String
+  events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
+}
