@@ -1,4 +1,4 @@
-import { CancelMultisigArgs, MultisigArgs } from "../types";
+import { MultisigArgs } from "../types";
 import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
