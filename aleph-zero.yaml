@@ -21,7 +21,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 1011242 # First multisig https://alephzero.subscan.io/extrinsic/1011242-1
     mapping:
       file: ./dist/index.js
       handlers:

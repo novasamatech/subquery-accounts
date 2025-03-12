@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 64347 # First proxy https://people-kusama.subscan.io/extrinsic/64347-2?event=64347-5
     mapping:
       file: ./dist/index.js
       handlers:

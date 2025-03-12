@@ -21,7 +21,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 318927 # First multisig https://assethub-kusama.subscan.io/extrinsic/318927-2
     mapping:
       file: ./dist/index.js
       handlers:

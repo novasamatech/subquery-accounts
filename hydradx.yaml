@@ -20,7 +20,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 1448827 # First multisig https://hydration.subscan.io/extrinsic/1448827-2
     mapping:
       file: ./dist/index.js
       handlers:
