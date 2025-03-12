@@ -22,7 +22,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 150000
+    startBlock: 4893 # First proxy https://moonbeam.subscan.io/extrinsic/4893-3?event=4893-3
     mapping:
       file: ./dist/index.js
       handlers:

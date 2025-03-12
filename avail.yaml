@@ -21,7 +21,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 62106 # First multisig https://avail.subscan.io/extrinsic/62106-1
     mapping:
       file: ./dist/index.js
       handlers:

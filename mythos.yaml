@@ -21,7 +21,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 1078220 # Create proxy https://mythos.subscan.io/extrinsic/1078220-2?event=1078220-5
     mapping:
       file: ./dist/index.js
       handlers:

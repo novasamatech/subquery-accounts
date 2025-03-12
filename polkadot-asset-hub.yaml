@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 1317999 # First multisig https://assethub-polkadot.subscan.io/extrinsic/1317999-2?event=1317999-4
     mapping:
       file: ./dist/index.js
       handlers:
