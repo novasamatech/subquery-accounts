@@ -1,2 +1,2 @@
-export { handleMultisigCall } from "./multisigCallHandler";
+export { handleMultisigCall, handleMultisigInProxy } from "./multisigCallHandler";
 export { handlePureProxyEvent } from "./pureProxyEventHandler";

@@ -1,1 +1,1 @@
-export { handlePureProxyEvent, handleMultisigCall } from "./handlers";
+export { handlePureProxyEvent, handleMultisigCall, handleMultisigInProxy } from "./handlers";

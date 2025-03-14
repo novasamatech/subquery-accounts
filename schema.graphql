@@ -46,23 +46,17 @@ enum OperationStatus {
   error
 }
 
-# Not correct structure for args
-type MultisigArgs @jsonField {
-  value: String
-}
-
 type MultisigOperation @entity {
   id: ID!
   status: OperationStatus!
   accountId: String! @index
+  section: String
+  method: String
   callHash: String! @index
   callData: String
   depositor: String!
   blockCreated: Int! @index
   indexCreated: Int! @index
   timestamp: Int!
-  args: MultisigArgs
-  method: String
-  section: String
   events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
 }

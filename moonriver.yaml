@@ -36,6 +36,14 @@ dataSources:
           filter:
             module: proxy
             method: AnonymousCreated
+
+        - handler: handleMultisigInProxy
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxy
+            success: true
+            isSigned: true
         - handler: handleMultisigCall
           kind: substrate/CallHandler
           filter:

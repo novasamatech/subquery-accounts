@@ -4,18 +4,13 @@ import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { u8aToHex } from "@polkadot/util";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
-import { CreateCallVisitorBuilder, CreateCallWalk, DefaultKnownNodes, VisitedCall } from "subquery-call-visitor";
+import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../../types";
 import { generateEventId, generateOperationId, getBlockCreated, getDataFromCall, getDataFromEvent, getIndexCreated, timestamp } from "../../utils/operations";
 import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
 import { AnyTuple, CallBase } from "@polkadot/types/types";
 
-export const Nodes = DefaultKnownNodes.filter((_, index) => {
-  // Exclude asMulti and asMultiThreshold1 node
-  return ![4, 5].includes(index)
-})
-
-const callWalk = CreateCallWalk(Nodes)
+const callWalk = CreateCallWalk()
 const multisigVisitor = CreateCallVisitorBuilder()
   .on('multisig', 'asMulti', handleApproveMultisigCall)
   .on('multisig', 'asMultiThreshold1', handleApproveMultisigCall)
@@ -23,6 +18,10 @@ const multisigVisitor = CreateCallVisitorBuilder()
   .on('multisig', 'cancelAsMulti', handleCancelMultisigCall)
   .ignoreFailedCalls(true)
   .build();
+
+export async function handleMultisigInProxy(extrinsic: SubstrateExtrinsic) {
+  callWalk.walk(extrinsic, multisigVisitor)
+}
 
 export async function handleMultisigCall(
   extrinsic: SubstrateExtrinsic
@@ -59,18 +58,18 @@ export async function handleMultisigCall(
 
 async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperation | undefined> {
   const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, 'call');
+
   const call_hash = getDataFromCall<Uint8Array>(visitedCall.call, 'callHash');
   const callHash = call_hash ? u8aToHex(call_hash) : call?.hash?.toHex();
-  const timepoint = getDataFromCall<Timepoint>(visitedCall.call, 'maybeTimepoint') ||
-    getDataFromCall<Timepoint>(visitedCall.call, 'timepoint')
-
   if (!callHash) return;
 
   const multisig = getMultisigAccountIdFromEvents(visitedCall);
-
   if (!multisig) return;
 
   const multisigAccountId = multisig.toHex()
+
+  const timepoint = getDataFromCall<Timepoint>(visitedCall.call, 'maybeTimepoint') ||
+      getDataFromCall<Timepoint>(visitedCall.call, 'timepoint')
 
   const blockCreated = timepoint ? timepoint.height.toNumber() : getBlockCreated(visitedCall.extrinsic);
   const indexCreated = timepoint ? timepoint.index.toNumber() : getIndexCreated(visitedCall.extrinsic);
@@ -84,34 +83,18 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
 
   const operationId = generateOperationId(callHash, multisigAccountId, blockCreated, indexCreated);
 
-  let operationData = {}
-
-  if (call) {
-    try {
-      operationData = call.toHuman() as {} | string;
-
-      if (typeof operationData === 'string') {
-        const tx = api.tx(call.toHex())
-        operationData = tx.method.toHuman() as {};
-      }
-    } catch (error) {
-      logger.info(error)
-    }
-  }
-
   const newOperation = await MultisigOperation.create({
     ...existingOperation,
     id: operationId,
+    section: call?.section,
+    method: call?.method,
+    callData: call?.toHex(),
     callHash,
     status: existingOperation?.status || OperationStatus.pending,
     accountId: multisigAccountId,
     depositor: u8aToHex(decodeAddress(visitedCall.origin)),
     blockCreated,
     indexCreated,
-    ...(call ? {
-      callData: call.toHex(),
-      ...operationData
-    } : {}),
     timestamp: timestamp(visitedCall.extrinsic.block)
   });
 
