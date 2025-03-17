@@ -28,6 +28,7 @@
   "author": "Novasama Technlogies",
   "license": "MIT",
   "devDependencies": {
+    "cross-env": "7.0.3",
     "@polkadot/api": "15.5.2",
     "@subql/cli": "5.5.2",
     "@subql/testing": "2.2.3",
@@ -44,7 +45,7 @@
     "@polkadot/util": "^13.3.1",
     "@polkadot/util-crypto": "^13.3.1",
     "@subql/types-core": "^2.0.1",
-    "subquery-call-visitor": "^1.2.11",
+    "subquery-call-visitor": "1.3.2",
     "tslib": "^2.6.2"
   },
   "exports": {
