@@ -1,0 +1,71 @@
+specVersion: 1.0.0
+name: subquery-proxy-kusama-coretime
+version: 1.0.0
+runner:
+  node:
+    name: "@subql/node"
+    version: "*"
+  query:
+    name: "@subql/query"
+    version: v1.5.0
+description: Nova SubQuery project
+repository: https://github.com/nova-wallet/subquery-proxy
+schema:
+  file: ./schema.graphql
+network:
+  chainId: "0x638cd2b9af4b3bb54b8c1f0d22711fc89924ca93300f0caf25a580432b29d050"
+  endpoint: wss://kusama-coretime-rpc.polkadot.io
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-kusama
+dataSources:
+  - name: main
+    kind: substrate/Runtime
+    startBlock: 777701 # first proxyAdded https://coretime-kusama.subscan.io/block/777701?tab=event&event=777701-2
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
+
+        - handler: handleMultisigInProxy
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxy
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: approveAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: cancelAsMulti
+            success: true
+            isSigned: true
+        - handler: handleMultisigCall
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMultiThreshold1
+            success: true
+            isSigned: true
