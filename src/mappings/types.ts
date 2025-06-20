@@ -1,3 +1,5 @@
+import { AccountId } from "@polkadot/types/interfaces";
+
 export interface MultisigArgs {
   args: {
     threshold: number;
@@ -20,4 +22,11 @@ export interface CancelMultisigArgs {
     },    
     call_hash: `0x${string}`;
   };
+}
+
+
+export interface MultisigRemarkArgs {
+  threshold: number;
+  signatories: string[];
+  text: string;
 }

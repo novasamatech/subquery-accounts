@@ -60,3 +60,10 @@ type MultisigOperation @entity {
   timestamp: Int!
   events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
 }
+
+type MultisigRemark @entity {
+  id: ID!
+  signatories: [String!]!
+  text: String!
+  threshold: Int!
+}
