@@ -1,5 +1,4 @@
 import { SubstrateEvent } from "@subql/types";
-import { MultisigRemark } from "../../types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
