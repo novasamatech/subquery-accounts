@@ -70,3 +70,9 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleMultisigRemarkEventHandler
+          kind: substrate/EventHandler
+          filter:
+            module: system
+            method: Remarked
+            
