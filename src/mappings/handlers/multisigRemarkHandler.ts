@@ -22,7 +22,7 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
     return;
   }
 
-  if (!parsedArgs || !parsedArgs.signatories || !parsedArgs.text || !parsedArgs.threshold) return;
+  if (!parsedArgs || !parsedArgs.signatories || !parsedArgs.threshold) return;
 
   const signer = extrinsic?.signer.toString();
 
@@ -40,15 +40,6 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
     true,
     parsedArgs.threshold
   );
-
-  const multisigRemark = MultisigRemark.create({
-    id: multisigPubKey,
-    signatories: parsedArgs.signatories,
-    text: parsedArgs.text,
-    threshold: parsedArgs.threshold,
-  });
-
-  await multisigRemark.save();
 
   const accountMultisigsPromise = allSignatoriesAccounts.map((member) =>
     checkAndGetAccountMultisig(multisigAccount.id, member.id)
