@@ -46,8 +46,11 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
   );
   const accountMultisig = await Promise.all(accountMultisigsPromise);
 
-  await Promise.all(allSignatoriesAccounts.map((member) => member.save()));
-  await multisigAccount.save();
+  await Promise.all([
+    Promise.all(allSignatoriesAccounts.map((member) => member.save())),
+    multisigAccount.save()
+  ]);
+
   await Promise.all(
     accountMultisig.map((accountMultisig) => accountMultisig.save())
   );
