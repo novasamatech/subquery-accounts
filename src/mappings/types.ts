@@ -10,6 +10,13 @@ export interface MultisigArgs {
   };
 }
 
+export interface MultisigThreshold1Args {
+  args: {
+    other_signatories: string[];
+    call: unknown
+  }
+}
+
 export interface CancelMultisigArgs {
   args: {
     threshold: number;

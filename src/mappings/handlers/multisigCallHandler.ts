@@ -1,4 +1,4 @@
-import { MultisigArgs } from "../types";
+import {MultisigArgs, MultisigThreshold1Args} from "../types";
 import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
@@ -26,9 +26,7 @@ export async function handleMultisigInProxy(extrinsic: SubstrateExtrinsic) {
 export async function handleMultisigCall(
   extrinsic: SubstrateExtrinsic
 ): Promise<void> {
-  const {
-    args: { threshold, other_signatories },
-  } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigArgs;
+  let [threshold, other_signatories] = extractThresholdAndOtherSignatories(extrinsic)
 
   const signer = extrinsic.extrinsic.signer.toString();
   const allSignatories = [...other_signatories, signer];
@@ -100,6 +98,30 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
 
   await newOperation.save();
   return newOperation;
+}
+
+function validateThreshold(threshold: number) {
+  if (threshold < 1) {
+    throw new Error(`Invalid threshold: ${threshold}`);
+  }
+}
+
+function extractThresholdAndOtherSignatories(extrinsic: SubstrateExtrinsic): [number, string[]] {
+  if (extrinsic.extrinsic.method.method == "asMultiThreshold1") {
+    const {
+      args: { other_signatories },
+    } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigThreshold1Args;
+
+    return [1, other_signatories];
+  } else {
+    const {
+      args: { threshold, other_signatories },
+    } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigArgs;
+
+    validateThreshold(threshold)
+
+    return [threshold, other_signatories];
+  }
 }
 
 async function updateOperationStatus(operation: MultisigOperation, status: OperationStatus) {
