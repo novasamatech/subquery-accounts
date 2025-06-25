@@ -4,7 +4,7 @@ import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultis
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
 import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
-import { validateSubstrateAddress } from "../../utils/validateAddress";
+import { validateAddress } from "../../utils/validateAddress";
 
 
 export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): Promise<void> {
@@ -23,12 +23,23 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
     return;
   }
 
-  if (!parsedArgs || !parsedArgs.signatories || !parsedArgs.threshold) return;
+  if (!parsedArgs) {
+    logger.error(`Invalid parsed args: ${JSON.stringify(parsedArgs)}`);
+    return;
+  };
 
-  logger.info(`Multisig Remark Event: ${JSON.stringify(parsedArgs)}`)
+  if (!parsedArgs.signatories || !Array.isArray(parsedArgs.signatories) || parsedArgs.signatories.length === 0) {
+    logger.error(`Invalid signatories: ${JSON.stringify(parsedArgs.signatories)}`);
+    return;
+  }
+
+  if (typeof parsedArgs.threshold !== 'number' || parsedArgs.threshold < 1) {
+    logger.error(`Invalid threshold: ${parsedArgs.threshold}`);
+    return;
+  }
 
   for (const signatory of parsedArgs.signatories) {
-    if (!validateSubstrateAddress(signatory)) {
+    if (!validateAddress(signatory)) {
       logger.error(`Invalid signatory address: ${signatory}`);
       return;
     }
@@ -39,10 +50,7 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
     return;
   }
 
-  if (parsedArgs.threshold < 1) {
-    logger.error(`Threshold is less than 1: ${parsedArgs.threshold}`);
-    return;
-  }
+  logger.info(`Multisig Remark Event: ${JSON.stringify(parsedArgs)}`)
 
   const signatoriesAccountsPromises = parsedArgs.signatories.map((signatory) =>
     checkAndGetAccount(u8aToHex(decodeAddress(signatory)))

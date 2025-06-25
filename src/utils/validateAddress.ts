@@ -1,8 +1,9 @@
 import { isHex, isU8a, u8aToU8a } from "@polkadot/util";
-import { base58Decode, checkAddressChecksum } from "@polkadot/util-crypto";
+import { base58Decode, checkAddressChecksum, isEthereumAddress } from "@polkadot/util-crypto";
 
 export const PUBLIC_KEY_LENGTH_BYTES = 32;
 export const ADDRESS_ALLOWED_ENCODED_LENGTHS = [35, 36, 37, 38];
+export const ETHEREUM_PUBLIC_KEY_LENGTH_BYTES = 20;
 
 export const validateSubstrateAddress = (address: string): boolean => {
   if (isU8a(address) || isHex(address)) {
@@ -20,3 +21,19 @@ export const validateSubstrateAddress = (address: string): boolean => {
     return false;
   }
 };
+
+
+export const validateEvmAddress = (address: string): boolean => {
+  if (!isU8a(address) && !isHex(address)) return false;
+
+  return u8aToU8a(address).length === ETHEREUM_PUBLIC_KEY_LENGTH_BYTES;
+};
+
+export const validateAddress = (address: string): boolean => {
+  if (isEthereumAddress(address)) {
+    return validateEvmAddress(address);
+  }
+
+  return validateSubstrateAddress(address);
+};
+
