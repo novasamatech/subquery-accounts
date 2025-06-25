@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 11990129 # first multisig remark with data
+    startBlock: 2429801 # first proxy event https://assethub-polkadot.subscan.io/extrinsic/2429801-2?event=2429801-4
     mapping:
       file: ./dist/index.js
       handlers:

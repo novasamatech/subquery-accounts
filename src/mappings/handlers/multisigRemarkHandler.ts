@@ -4,6 +4,8 @@ import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultis
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
 import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
+import { validateSubstrateAddress } from "../../utils/validateAddress";
+
 
 export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): Promise<void> {
   if (!event) return;
@@ -23,14 +25,34 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
 
   if (!parsedArgs || !parsedArgs.signatories || !parsedArgs.threshold) return;
 
-  const signer = extrinsic?.signer.toString();
+  logger.info(`Multisig Remark Event: ${JSON.stringify(parsedArgs)}`)
 
-  const allSignatories = [...parsedArgs.signatories, signer];
-  const signatoriesAccountsPromises = allSignatories.map((signatory) =>
+  for (const signatory of parsedArgs.signatories) {
+    if (!validateSubstrateAddress(signatory)) {
+      logger.error(`Invalid signatory address: ${signatory}`);
+      return;
+    }
+  }
+
+  if (parsedArgs.threshold > parsedArgs.signatories.length) {
+    logger.error(`Threshold is greater than the number of signatories: ${parsedArgs.threshold} > ${parsedArgs.signatories.length}`);
+    return;
+  }
+
+  if (parsedArgs.threshold < 1) {
+    logger.error(`Threshold is less than 1: ${parsedArgs.threshold}`);
+    return;
+  }
+
+  const signatoriesAccountsPromises = parsedArgs.signatories.map((signatory) =>
     checkAndGetAccount(u8aToHex(decodeAddress(signatory)))
   );
+
   const allSignatoriesAccounts = await Promise.all(signatoriesAccountsPromises);
-  const multisigAddress = createKeyMultiAddress(allSignatories, parsedArgs.threshold);
+
+  logger.info(`Signatories Accounts: ${JSON.stringify(allSignatoriesAccounts)}`)
+
+  const multisigAddress = createKeyMultiAddress(parsedArgs.signatories, parsedArgs.threshold);
 
   const multisigPubKey = u8aToHex(decodeAddress(multisigAddress));
 
@@ -40,17 +62,22 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
     parsedArgs.threshold
   );
 
-  const accountMultisigsPromise = allSignatoriesAccounts.map((member) =>
+  logger.info(`Multisig Account: ${JSON.stringify(multisigAccount)}`)
+
+  const accountMultisigsRelationsPromises = allSignatoriesAccounts.map((member) =>
     checkAndGetAccountMultisig(multisigAccount.id, member.id)
   );
-  const accountMultisig = await Promise.all(accountMultisigsPromise);
+  const accountMultisigsRelations = await Promise.all(accountMultisigsRelationsPromises);
 
-  await Promise.all([
-    Promise.all(allSignatoriesAccounts.map((member) => member.save())),
-    multisigAccount.save()
-  ]);
+  logger.info(`Account Multisigs Relations: ${JSON.stringify(accountMultisigsRelations)}`)
 
-  await Promise.all(
-    accountMultisig.map((accountMultisig) => accountMultisig.save())
-  );
+  for (const account of allSignatoriesAccounts) {
+    await account.save();
+  }
+
+  await multisigAccount.save();
+
+  for (const accountMultisigRelation of accountMultisigsRelations) {
+    await accountMultisigRelation.save()
+  }
 }
