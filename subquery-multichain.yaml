@@ -1,0 +1,24 @@
+specVersion: 1.0.0
+query:
+  name: '@subql/query'
+  version: '*'
+projects:
+  - project-aleph-zero.yaml
+  - project-avail.yaml
+  - project-bittensor.yaml
+  - project-hydradx.yaml
+  - project-kusama-asset-hub.yaml
+  - project-kusama-coretime.yaml
+  - project-kusama-people-chain.yaml
+  - project-kusama.yaml
+  - project-moonbeam.yaml
+  - project-moonriver.yaml
+  - project-mythos.yaml
+  - project-polkadot-asset-hub.yaml
+  - project-polkadot-coretime.yaml
+  - project-polkadot-people-chain.yaml
+  - project-polkadot.yaml
+  - project-rococo.yaml
+  - project-testnet.yaml
+  - project-westend-asset-hub.yaml
+  - project-westend.yaml

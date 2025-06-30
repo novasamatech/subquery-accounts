@@ -13,15 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a"
+  chainId: "0x68d56f15f85d3136970ec16946040bc1752654e906147f7e43e9d539d7c3de2f"
   endpoint: >-
-    wss://asset-hub-kusama-rpc.dwellir.com
-  chaintypes:
-    file: ./dist/kusamaAssetHubChaintypes.js
+    wss://statemint-rpc.dwellir.com
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 318927 # First multisig https://assethub-kusama.subscan.io/extrinsic/318927-2
+    startBlock: 1317999 # First multisig https://assethub-polkadot.subscan.io/extrinsic/1317999-2?event=1317999-4
     mapping:
       file: ./dist/index.js
       handlers:
@@ -76,3 +74,13 @@ dataSources:
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved        

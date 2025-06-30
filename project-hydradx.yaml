@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot
+name: subquery-proxy-hydradx
 version: 1.0.0
 runner:
   node:
@@ -13,13 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x67fa177a097bfa18f77ea95ab56e9bcdfeb0e5b8a40e46298bb93e16b6fc5008"
+  chainId: "0xafdc188f45c71dacbaa0b62e16a91f726c7b8699a9748cdf715459de6b7f366d"
   endpoint: >-
-    wss://polkadot-people-rpc.polkadot.io
+    wss://hydradx-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-hydradx
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 9895 # First multisig https://people-polkadot.subscan.io/extrinsic/9895-2?event=9895-4
+    startBlock: 1448827 # First multisig https://hydration.subscan.io/extrinsic/1448827-2
     mapping:
       file: ./dist/index.js
       handlers:
@@ -73,4 +74,14 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: system
-            method: Remarked
+            method: Remarked    
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    

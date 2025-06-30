@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-kusama-coretime
+name: subquery-spektr
 version: 1.0.0
 runner:
   node:
@@ -13,13 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x638cd2b9af4b3bb54b8c1f0d22711fc89924ca93300f0caf25a580432b29d050"
-  endpoint: wss://kusama-coretime-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/dictionary-kusama
+  chainId: "0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e"
+  endpoint: >-
+    wss://rococo-rpc.polkadot.io
+  dictionary: https://api.subquery.network/sq/subquery/rococo-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 777701 # first proxyAdded https://coretime-kusama.subscan.io/block/777701?tab=event&event=777701-2
+    startBlock: 3152590
     mapping:
       file: ./dist/index.js
       handlers:
@@ -69,3 +70,13 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    

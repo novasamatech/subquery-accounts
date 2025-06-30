@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-avail
+name: subquery-proxy-moonbeam
 version: 1.0.0
 runner:
   node:
@@ -13,15 +13,16 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xb91746b45e0346cc2f815a520b9c6cb4d5c0902af848db0a80f85932d2e8276a"
+  chainId: "0xfe58ea77779b7abda7da4ec526d14db9b1e9cd40a217c34892af80a9b332b76d"
   endpoint: >-
-    wss://avail-mainnet.public.blastapi.io/
+    wss://moonbeam-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/moonbeam-dictionary
   chaintypes:
-    file: ./dist/availChainTypes.js
+    file: ./dist/moonbeamChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 62106 # First multisig https://avail.subscan.io/extrinsic/62106-1
+    startBlock: 4893 # First proxy https://moonbeam.subscan.io/extrinsic/4893-3?event=4893-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -76,3 +77,13 @@ dataSources:
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    

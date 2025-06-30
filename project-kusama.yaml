@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot
+name: subquery-proxy-kusama
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
-  endpoint: >-
-    wss://polkadot-rpc.dwellir.com
-  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
+  chainId: "0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"
+  endpoint: wss://kusama-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-kusama
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
+    startBlock: 2713627 # first Multisig https://kusama.subscan.io/extrinsic/2713627-4?event=2713627-7
     mapping:
       file: ./dist/index.js
       handlers:
@@ -75,4 +74,13 @@ dataSources:
           filter:
             module: system
             method: Remarked
-            
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    

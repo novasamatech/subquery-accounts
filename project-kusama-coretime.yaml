@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-mythos
+name: subquery-proxy-kusama-coretime
 version: 1.0.0
 runner:
   node:
@@ -13,15 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xf6ee56e9c5277df5b4ce6ae9983ee88f3cbed27d31beeb98f9f84f997a1ab0b9"
-  endpoint: >-
-    wss://polkadot-mythos-rpc.polkadot.io
-  chaintypes:
-    file: ./dist/kusamaAssetHubChaintypes.js
+  chainId: "0x638cd2b9af4b3bb54b8c1f0d22711fc89924ca93300f0caf25a580432b29d050"
+  endpoint: wss://kusama-coretime-rpc.polkadot.io
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-kusama
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1078220 # Create proxy https://mythos.subscan.io/extrinsic/1078220-2?event=1078220-5
+    startBlock: 777701 # first proxyAdded https://coretime-kusama.subscan.io/block/777701?tab=event&event=777701-2
     mapping:
       file: ./dist/index.js
       handlers:
@@ -71,8 +69,13 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
-        - handler: handleMultisigRemarkEventHandler
+        - handler: handleProxyEvent
           kind: substrate/EventHandler
           filter:
-            module: system
-            method: Remarked
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved        

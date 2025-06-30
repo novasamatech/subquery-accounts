@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-spektr
+name: subquery-proxy-polkadot
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e"
+  chainId: "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
   endpoint: >-
-    wss://rococo-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/rococo-dictionary
+    wss://polkadot-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 3152590
+    startBlock: 26631911 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -70,3 +70,19 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleMultisigRemarkEventHandler
+          kind: substrate/EventHandler
+          filter:
+            module: system
+            method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    
+            

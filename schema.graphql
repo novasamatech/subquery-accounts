@@ -4,6 +4,15 @@ type PureProxy @entity {
   extrinsicIndex: Int!
 }
 
+type Proxy @entity {
+  id: ID!
+  chainId: String!
+  type: String!
+  delegator: String!
+  delegatee: String!
+  delay: Int!
+}
+
 # An account can be a multisig, or a normal account (like a signatory)
 type Account @entity {
   id: ID!

@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-moonriver
+name: subquery-proxy-westend
 version: 1.0.0
 runner:
   node:
@@ -13,16 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x401a1f9dca3da46f5c4091016c8a2f26dcea05865116b286f60f668207d1474b"
+  chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
   endpoint: >-
-    wss://moonriver-rpc.dwellir.com
-  dictionary: https://api.subquery.network/sq/subquery/moonriver-dictionary
-  chaintypes:
-    file: ./dist/moonbeamChaintypes.js
+    wss://westend.api.onfinality.io/public-ws
+  dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 935140 # First proxy https://moonriver.subscan.io/extrinsic/935140-3?event=935140-4
+    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -77,3 +75,13 @@ dataSources:
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    
