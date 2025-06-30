@@ -66,7 +66,7 @@ export async function handleProxyEvent(
 
   const { delegator, delegatee, type, delay } = proxyData;
 
-  logger.info(`Proxy Event: ${JSON.stringify({
+  logger.info(`Proxy Add Event: ${JSON.stringify({
     type,
     delegator,
     delegatee,
@@ -96,7 +96,7 @@ export async function handleProxyRemovedEvent(
 
   const { delegator, delegatee, type, delay } = proxyData;
 
-  logger.info(`Proxy Event: ${JSON.stringify({
+  logger.info(`Proxy Remove Event: ${JSON.stringify({
     chainId,
     type,
     delegator,
