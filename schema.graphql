@@ -4,11 +4,11 @@ type PureProxy @entity {
   extrinsicIndex: Int!
 }
 
-type Proxy @entity {
+type Proxied @entity {
   id: ID!
   chainId: String!
   type: String!
-  proxiedAccountId: String!
+  proxyAccountId: String!
   accountId: String!
   delay: Int!
   blockNumber: Int!

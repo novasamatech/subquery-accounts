@@ -1,6 +1,6 @@
 import { SubstrateEvent } from "@subql/types";
 
-import { PureProxy, Proxy } from "../../types";
+import { PureProxy, Proxied } from "../../types";
 import { extractProxyEventData } from "../../utils/extractProxyEventData";
 
 export async function handlePureProxyEvent(
@@ -10,21 +10,21 @@ export async function handlePureProxyEvent(
 
   if (!proxyData) return;
 
-  const { proxiedAccountId, accountId, type, delay, blockNumber, extrinsicIndex } = proxyData;
+  const { proxyAccountId, accountId, type, delay, blockNumber, extrinsicIndex } = proxyData;
 
   const pureProxy = PureProxy.create({
-    id: proxiedAccountId,
+    id: proxyAccountId,
     blockNumber,
     extrinsicIndex,
   });
 
   await pureProxy.save();
 
-  const proxy = Proxy.create({
-    id: `${chainId}-${proxiedAccountId}-${accountId}-${type}-${delay}`,
+  const proxy = Proxied.create({
+    id: `${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`,
     chainId,
     type,
-    proxiedAccountId,
+    proxyAccountId,
     accountId,
     delay,
     blockNumber: proxyData.blockNumber,

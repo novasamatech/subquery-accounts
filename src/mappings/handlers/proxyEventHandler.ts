@@ -1,6 +1,6 @@
 import { SubstrateEvent } from "@subql/types";
 
-import { Proxy } from "../../types";
+import { Proxied } from "../../types";
 import { extractProxyEventData } from "../../utils/extractProxyEventData";
 
 export async function handleProxyEvent(
@@ -12,20 +12,20 @@ export async function handleProxyEvent(
     return;
   }
 
-  const { proxiedAccountId, accountId, type, delay } = proxyData;
+  const { proxyAccountId, accountId, type, delay } = proxyData;
 
   logger.info(`Proxy Add Event: ${JSON.stringify({
     type,
-    proxiedAccountId,
+    proxyAccountId,
     accountId,
     delay,
   })}`);
 
-  const proxy = Proxy.create({
-    id: `${chainId}-${proxiedAccountId}-${accountId}-${type}-${delay}`,
+  const proxy = Proxied.create({
+    id: `${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`,
     chainId,
     type,
-    proxiedAccountId,
+    proxyAccountId,
     accountId,
     delay,
     blockNumber: proxyData.blockNumber,
@@ -45,15 +45,15 @@ export async function handleProxyRemovedEvent(
     return;
   }
 
-  const { proxiedAccountId, accountId, type, delay } = proxyData;
+  const { proxyAccountId, accountId, type, delay } = proxyData;
 
   logger.info(`Proxy Remove Event: ${JSON.stringify({
     chainId,
     type,
-    proxiedAccountId,
+    proxyAccountId,
     accountId,
     delay,
   })}`);
 
-  await Proxy.remove(`${chainId}-${proxiedAccountId}-${accountId}-${type}-${delay}`);
+  await Proxied.remove(`${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`);
 }

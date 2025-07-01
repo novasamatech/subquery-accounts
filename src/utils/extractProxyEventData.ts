@@ -7,9 +7,8 @@ function extrinsicIndex(event: SubstrateEvent): number {
 function blockNumber(event: SubstrateEvent): number {
   return event.block.block.header.number.toNumber();
 }
-
 interface ProxyEventData {
-  proxiedAccountId: string;
+  proxyAccountId: string;
   accountId: string;
   type: string;
   delay: number;
@@ -32,13 +31,13 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  const proxiedAccountId = data.at(0)?.toHuman() as string;
-  const accountId = data.at(1)?.toHuman() as string;
+  const accountId = data.at(0)?.toHuman() as string;
+  const proxyAccountId = data.at(1)?.toHuman() as string;
   const type = data.at(2)?.toHuman() as string;
   const delay = parseInt(data.at(3)?.toHuman() as string);
 
-  if (!proxiedAccountId) {
-    logger.error(`Invalid proxiedAccountId: ${JSON.stringify(proxiedAccountId)}`);
+  if (!proxyAccountId) {
+    logger.error(`Invalid proxyAccountId: ${JSON.stringify(proxyAccountId)}`);
     return null;
   }
 
@@ -57,5 +56,5 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  return { proxiedAccountId, accountId, type, delay, blockNumber: blockNumber(event), extrinsicIndex: extrinsicIndex(event) };
+  return { proxyAccountId, accountId, type, delay, blockNumber: blockNumber(event), extrinsicIndex: extrinsicIndex(event) };
 }
