@@ -1,59 +1,7 @@
 import { SubstrateEvent } from "@subql/types";
 
 import { Proxy } from "../../types";
-
-const logger = console;
-const chainId = "substrate";
-
-interface ProxyEventData {
-  delegator: string;
-  delegatee: string;
-  type: string;
-  delay: number;
-}
-
-/**
- * Extracts and validates proxy event data
- */
-function extractProxyEventData(event: SubstrateEvent): ProxyEventData | null {
-  const {
-    event: {
-      data,
-    },
-  } = event;
-
-  if (!data || !Array.isArray(data)) {
-    logger.error(`Invalid data: ${JSON.stringify(data)}`);
-    return null;
-  }
-
-  const delegator = data.at(0)?.toHuman() as string;
-  const delegatee = data.at(1)?.toHuman() as string;
-  const type = data.at(2)?.toHuman() as string;
-  const delay = parseInt(data.at(3)?.toHuman() as string);
-
-  if (!delegator) {
-    logger.error(`Invalid delegator: ${JSON.stringify(delegator)}`);
-    return null;
-  }
-
-  if (!delegatee) {
-    logger.error(`Invalid delegatee: ${JSON.stringify(delegatee)}`);
-    return null;
-  }
-
-  if (!type) {
-    logger.error(`Invalid type: ${JSON.stringify(type)}`);
-    return null;
-  }
-
-  if (typeof delay !== 'number') {
-    logger.error(`Invalid delay: ${JSON.stringify(delay)}`);
-    return null;
-  }
-
-  return { delegator, delegatee, type, delay };
-}
+import { extractProxyEventData } from "../../utils/extractProxyEventData";
 
 export async function handleProxyEvent(
   event: SubstrateEvent
@@ -64,22 +12,25 @@ export async function handleProxyEvent(
     return;
   }
 
-  const { delegator, delegatee, type, delay } = proxyData;
+  const { proxiedAccountId, accountId, type, delay } = proxyData;
 
   logger.info(`Proxy Add Event: ${JSON.stringify({
     type,
-    delegator,
-    delegatee,
+    proxiedAccountId,
+    accountId,
     delay,
   })}`);
 
   const proxy = Proxy.create({
-    id: `${chainId}-${delegator}-${delegatee}-${type}-${delay}`,
+    id: `${chainId}-${proxiedAccountId}-${accountId}-${type}-${delay}`,
     chainId,
     type,
-    delegator,
-    delegatee,
+    proxiedAccountId,
+    accountId,
     delay,
+    blockNumber: proxyData.blockNumber,
+    extrinsicIndex: proxyData.extrinsicIndex,
+    isPureProxy: false,
   });
 
   await proxy.save();
@@ -94,15 +45,15 @@ export async function handleProxyRemovedEvent(
     return;
   }
 
-  const { delegator, delegatee, type, delay } = proxyData;
+  const { proxiedAccountId, accountId, type, delay } = proxyData;
 
   logger.info(`Proxy Remove Event: ${JSON.stringify({
     chainId,
     type,
-    delegator,
-    delegatee,
+    proxiedAccountId,
+    accountId,
     delay,
   })}`);
 
-  await Proxy.remove(`${chainId}-${delegator}-${delegatee}-${type}-${delay}`);
+  await Proxy.remove(`${chainId}-${proxiedAccountId}-${accountId}-${type}-${delay}`);
 }
