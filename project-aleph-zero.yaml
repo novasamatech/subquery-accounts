@@ -85,4 +85,9 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: proxy
-            method: ProxyRemoved    
+            method: ProxyRemoved
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureRemoved            
