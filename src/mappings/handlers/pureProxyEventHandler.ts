@@ -2,8 +2,6 @@ import { SubstrateEvent } from "@subql/types";
 
 import { Proxied, PureProxy } from "../../types";
 import { extractProxyEventData } from "../../utils/extractProxyEventData";
-import { u8aToHex } from "@polkadot/util";
-import { decodeAddress } from "../../utils";
 
 export async function handlePureProxyEvent(
   event: SubstrateEvent
@@ -27,8 +25,8 @@ export async function handlePureProxyEvent(
     id: `${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`,
     chainId,
     type,
-    proxyAccountId: u8aToHex(decodeAddress(proxyAccountId)),
-    accountId: u8aToHex(decodeAddress(accountId)),
+    proxyAccountId,
+    accountId,
     delay,
     blockNumber,
     extrinsicIndex,

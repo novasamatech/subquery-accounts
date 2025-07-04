@@ -1,6 +1,7 @@
 import { u8aToHex } from "@polkadot/util";
 import { SubstrateEvent } from "@subql/types";
 import { decodeAddress } from "./addressesDecode";
+import { HexString } from "@polkadot/util/types";
 
 function extrinsicIndex(event: SubstrateEvent): number {
   return event.extrinsic ? event.extrinsic.idx : event.idx;
@@ -10,8 +11,8 @@ function blockNumber(event: SubstrateEvent): number {
   return event.block.block.header.number.toNumber();
 }
 interface ProxyEventData {
-  proxyAccountId: string;
-  accountId: string;
+  proxyAccountId: HexString;
+  accountId: HexString;
   type: string;
   delay: number;
   blockNumber: number;
