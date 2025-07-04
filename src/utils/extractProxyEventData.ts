@@ -3,10 +3,6 @@ import { SubstrateEvent } from "@subql/types";
 import { decodeAddress } from "./addressesDecode";
 import { HexString } from "@polkadot/util/types";
 
-export function getProxiedId({ chainId, accountId, proxyAccountId, type, delay }: { chainId: string, accountId: string, proxyAccountId: string, type: string, delay: number }) {
-  return `${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`;
-}
-
 function extrinsicIndex(event: SubstrateEvent): number {
   return event.extrinsic ? event.extrinsic.idx : event.idx;
 }
@@ -21,6 +17,10 @@ interface ProxyEventData {
   delay: number;
   blockNumber: number;
   extrinsicIndex: number;
+}
+
+export function getProxiedId(params: Pick<ProxyEventData, "accountId" | "proxyAccountId" | "type" | "delay"> & { chainId: string }) {
+  return `${params.chainId}-${params.accountId}-${params.proxyAccountId}-${params.type}-${params.delay}`;
 }
 
 /**
