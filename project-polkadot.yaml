@@ -20,7 +20,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 26631911 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
+    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
     mapping:
       file: ./dist/index.js
       handlers:
