@@ -4,5 +4,6 @@ export {
   handleMultisigInProxy,
   handleMultisigRemarkEventHandler,
   handleProxyEvent,
-  handleProxyRemovedEvent
+  handleProxyRemovedEvent,
+  handlePureProxyKiledEvent,
 } from "./handlers";
