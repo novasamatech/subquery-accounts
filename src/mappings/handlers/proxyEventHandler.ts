@@ -1,7 +1,7 @@
 import { SubstrateEvent } from "@subql/types";
 
 import { Proxied, PureProxy } from "../../types";
-import { extractProxyEventData } from "../../utils/extractProxyEventData";
+import { extractProxyEventData, getProxiedId } from "../../utils/extractProxyEventData";
 
 export async function handleProxyEvent(
   event: SubstrateEvent
@@ -23,8 +23,8 @@ export async function handleProxyEvent(
 
   const pureProxy = await PureProxy.get(accountId);
 
-  const proxy = Proxied.create({
-    id: `${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`,
+  const proxied = Proxied.create({
+    id: getProxiedId({ chainId, accountId, proxyAccountId, type, delay }),
     chainId,
     type,
     proxyAccountId,
@@ -35,7 +35,7 @@ export async function handleProxyEvent(
     isPureProxy: !!pureProxy,
   });
 
-  await proxy.save();
+  await proxied.save();
 }
 
 export async function handleProxyRemovedEvent(
@@ -57,36 +57,5 @@ export async function handleProxyRemovedEvent(
     delay,
   })}`);
 
-  await Proxied.remove(`${chainId}-${accountId}-${proxyAccountId}-${type}-${delay}`);
-}
-
-export async function handlePureProxyKiledEvent(
-  event: SubstrateEvent
-): Promise<void> {
-  const proxyData = extractProxyEventData(event);
-  
-  if (!proxyData) {
-    return;
-  }
-
-  const { proxyAccountId, accountId, type, delay } = proxyData;
-
-  logger.info(`Pure Proxy Killed Event: ${JSON.stringify({
-    chainId,
-    type,
-    proxyAccountId,
-    accountId,
-    delay,
-  })}`);
-
-  await PureProxy.remove(accountId);
-
-  // Remove all proxied entities where accountId matches the killed pure proxy
-  const proxiedRecords = await Proxied.getByFields([
-    ["accountId", "=", accountId],
-  ], { limit: 1337 });
-
-  for (const proxied of proxiedRecords) {
-    await Proxied.remove(proxied.id);
-  }
+  await Proxied.remove(getProxiedId({ chainId, accountId, proxyAccountId, type, delay }));
 }
