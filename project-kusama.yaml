@@ -74,3 +74,18 @@ dataSources:
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled    

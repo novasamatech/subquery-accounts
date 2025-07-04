@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot-coretime
+name: subquery-proxy-westend
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xefb56e30d9b4a24099f88820987d0f45fb645992416535d87650d98e00f46fc4"
+  chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
   endpoint: >-
-    wss://polkadot-coretime-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
+    wss://westend.api.onfinality.io/public-ws
+  dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1569365 # first proxyAdded
+    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -70,3 +70,23 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleMultisigRemarkEventHandler
+          kind: substrate/EventHandler
+          filter:
+            module: system
+            method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled

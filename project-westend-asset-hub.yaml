@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-westend
+name: subquery-proxy-westend-asset-hub
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
+  chainId: "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9"
   endpoint: >-
-    wss://westend.api.onfinality.io/public-ws
-  dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
+    wss://sys.ibp.network/asset-hub-westend
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
+    startBlock: 1404005 # first proxy event https://assethub-westend.subscan.io/extrinsic/0x63fbce8961e8aa94c66a9fb419e0f8c28a1d49b165de4702bb45876bff119c98
     mapping:
       file: ./dist/index.js
       handlers:
@@ -69,10 +68,24 @@ dataSources:
             module: multisig
             method: asMultiThreshold1
             success: true
-            isSigned: true
-
+            isSigned: true        
         - handler: handleMultisigRemarkEventHandler
           kind: substrate/EventHandler
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled    

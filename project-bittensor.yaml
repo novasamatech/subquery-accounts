@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-testnet
+name: subquery-proxy-bittensor
 version: 1.0.0
 runner:
   node:
@@ -13,9 +13,10 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x3dbb473ae9b2b77ecf077c03546f0f8670c020e453dddb457da155e6cc7cba42"
-  endpoint: >-
-    wss://rpc-test-network-1.novasama-tech.org
+  chainId: "0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03"
+  endpoint: wss://archive.chain.opentensor.ai:443
+  chaintypes:
+    file: ./dist/bittensorChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
@@ -69,3 +70,23 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleMultisigRemarkEventHandler
+          kind: substrate/EventHandler
+          filter:
+            module: system
+            method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled    

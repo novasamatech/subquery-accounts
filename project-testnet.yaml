@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-mythos
+name: subquery-proxy-testnet
 version: 1.0.0
 runner:
   node:
@@ -13,15 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xf6ee56e9c5277df5b4ce6ae9983ee88f3cbed27d31beeb98f9f84f997a1ab0b9"
+  chainId: "0x3dbb473ae9b2b77ecf077c03546f0f8670c020e453dddb457da155e6cc7cba42"
   endpoint: >-
-    wss://polkadot-mythos-rpc.polkadot.io
-  chaintypes:
-    file: ./dist/kusamaAssetHubChaintypes.js
+    wss://rpc-test-network-1.novasama-tech.org
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1078220 # Create proxy https://mythos.subscan.io/extrinsic/1078220-2?event=1078220-5
+    startBlock: 1
     mapping:
       file: ./dist/index.js
       handlers:
@@ -71,8 +69,18 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
-        - handler: handleMultisigRemarkEventHandler
+        - handler: handleProxyEvent
           kind: substrate/EventHandler
           filter:
-            module: system
-            method: Remarked
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled

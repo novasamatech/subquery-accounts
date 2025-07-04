@@ -1,7 +1,18 @@
 type PureProxy @entity {
-  id: ID! # pure proxied accountId
+  id: ID! #accountId
+  chainId: String!
+}
+
+type Proxied @entity {
+  id: ID!
+  chainId: String!
+  type: String!
+  proxyAccountId: String!
+  accountId: String!
+  delay: Int!
   blockNumber: Int!
   extrinsicIndex: Int!
+  isPureProxy: Boolean!
 }
 
 # An account can be a multisig, or a normal account (like a signatory)
@@ -49,6 +60,7 @@ enum OperationStatus {
 type MultisigOperation @entity {
   id: ID!
   status: OperationStatus!
+  chainId: String!
   accountId: String! @index
   section: String
   method: String

@@ -21,4 +21,4 @@ set -e
 yarn
 yarn run codegen
 yarn run build
-yarn run start:docker
+docker-compose -f docker-compose-local.yml pull && docker-compose -f docker-compose-local.yml up --remove-orphans

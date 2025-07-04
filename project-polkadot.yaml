@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-bittensor
+name: subquery-proxy-polkadot
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x2f0555cc76fc2840a25a6ea3b9637146806f1f44b090c175ffde2a7e5ab36c03"
-  endpoint: wss://archive.chain.opentensor.ai:443
-  chaintypes:
-    file: ./dist/bittensorChaintypes.js
+  chainId: "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+  endpoint: >-
+    wss://polkadot-rpc.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1
+    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -75,3 +75,19 @@ dataSources:
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved    
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
+            

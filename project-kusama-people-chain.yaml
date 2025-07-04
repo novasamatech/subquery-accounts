@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-westend-asset-hub
+name: subquery-proxy-polkadot
 version: 1.0.0
 runner:
   node:
@@ -13,13 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9"
+  chainId: "0xc1af4cb4eb3918e5db15086c0cc5ec17fb334f728b7c65dd44bfe1e174ff8b3f"
   endpoint: >-
-    wss://sys.ibp.network/asset-hub-westend
+    wss://kusama-people-rpc.polkadot.io
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 11990129 # first multisig remark with data
+    startBlock: 64347 # First proxy https://people-kusama.subscan.io/extrinsic/64347-2?event=64347-5
     mapping:
       file: ./dist/index.js
       handlers:
@@ -68,9 +68,24 @@ dataSources:
             module: multisig
             method: asMultiThreshold1
             success: true
-            isSigned: true        
+            isSigned: true
         - handler: handleMultisigRemarkEventHandler
           kind: substrate/EventHandler
           filter:
             module: system
             method: Remarked
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+        - handler: handlePureProxyKiledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled    
