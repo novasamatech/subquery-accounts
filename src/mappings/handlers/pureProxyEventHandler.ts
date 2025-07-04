@@ -15,8 +15,6 @@ export async function handlePureProxyEvent(
   const pureProxy = PureProxy.create({
     id: accountId,
     chainId,
-    blockNumber,
-    extrinsicIndex,
   });
 
   await pureProxy.save();
