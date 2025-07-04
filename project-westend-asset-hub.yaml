@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1210710 # first proxy event https://assethub-westend.subscan.io/extrinsic/0x0e9d74ba1c050b021dd254bb8c4a625b9ee0d84073b21272e60ae17e60829c28
+    startBlock: 1404005 # first proxy event https://assethub-westend.subscan.io/extrinsic/0x63fbce8961e8aa94c66a9fb419e0f8c28a1d49b165de4702bb45876bff119c98
     mapping:
       file: ./dist/index.js
       handlers:
