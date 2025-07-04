@@ -89,5 +89,5 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: proxy
-            method: PureRemoved
+            method: PureKilled
             

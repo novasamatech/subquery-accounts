@@ -1,4 +1,6 @@
+import { u8aToHex } from "@polkadot/util";
 import { SubstrateEvent } from "@subql/types";
+import { decodeAddress } from "./addressesDecode";
 
 function extrinsicIndex(event: SubstrateEvent): number {
   return event.extrinsic ? event.extrinsic.idx : event.idx;
@@ -56,5 +58,12 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  return { proxyAccountId, accountId, type, delay, blockNumber: blockNumber(event), extrinsicIndex: extrinsicIndex(event) };
+  return {
+    proxyAccountId: u8aToHex(decodeAddress(proxyAccountId)),
+    accountId: u8aToHex(decodeAddress(accountId)),
+    type,
+    delay,
+    blockNumber: blockNumber(event),
+    extrinsicIndex: extrinsicIndex(event),
+  };
 }

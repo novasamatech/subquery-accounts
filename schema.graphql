@@ -1,3 +1,10 @@
+type PureProxy @entity {
+  id: ID! #accountId
+  chainId: String!
+  blockNumber: Int!
+  extrinsicIndex: Int!
+}
+
 type Proxied @entity {
   id: ID!
   chainId: String!
