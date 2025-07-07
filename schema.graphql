@@ -8,7 +8,7 @@ type Proxied @entity {
   chainId: String!
   type: String!
   proxyAccountId: String!
-  accountId: String!
+  accountId: String! @index
   delay: Int!
   blockNumber: Int!
   extrinsicIndex: Int!
@@ -70,5 +70,5 @@ type MultisigOperation @entity {
   blockCreated: Int! @index
   indexCreated: Int! @index
   timestamp: Int!
-  events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
+  events: [MultisigEvent!]! @derivedFrom(field: "multisig")
 }

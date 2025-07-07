@@ -38,7 +38,7 @@ export async function handlePureProxyKiledEvent(
   event: SubstrateEvent
 ): Promise<void> {
   const proxyData = extractProxyEventData(event);
-  
+
   if (!proxyData) {
     return;
   }
