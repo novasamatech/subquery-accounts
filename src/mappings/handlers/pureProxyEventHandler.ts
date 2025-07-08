@@ -38,7 +38,7 @@ export async function handlePureProxyKiledEvent(
   event: SubstrateEvent
 ): Promise<void> {
   const proxyData = extractProxyEventData(event);
-  
+
   if (!proxyData) {
     return;
   }
@@ -55,12 +55,22 @@ export async function handlePureProxyKiledEvent(
 
   await PureProxy.remove(accountId);
 
-  // Remove all proxied entities where accountId matches the killed pure proxy
-  const proxiedRecords = await Proxied.getByFields([
-    ["accountId", "=", accountId],
-  ], { limit: 1337 });
+  // Fetch and remove in batches to ensure all records are deleted, even when exceeding the batch size
+  while (true) {
+    const proxiedBatch = await Proxied.getByFields(
+      [
+        ["accountId", "=", accountId],
+        ["chainId", "=", chainId],
+      ],
+      { limit: 100 }
+    );
 
-  for (const proxied of proxiedRecords) {
-    await Proxied.remove(proxied.id);
+    if (proxiedBatch.length === 0) {
+      break;
+    }
+
+    for (const proxied of proxiedBatch) {
+      await Proxied.remove(proxied.id);
+    }
   }
 }
