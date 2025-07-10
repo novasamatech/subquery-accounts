@@ -15,7 +15,9 @@ schema:
 network:
   chainId: "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9"
   endpoint: >-
-    wss://sys.ibp.network/asset-hub-westend
+    wss://asset-hub-westend-rpc.n.dwellir.com
+  bypassBlocks:
+    - 12160396 # extra large block, indexer hangs on it https://assethub-westend.subscan.io/block/0x8d5e7883e7a4f06605d0d4e272ae6215f54935ecbd742d983ca2c802097ce01e
 dataSources:
   - name: main
     kind: substrate/Runtime
@@ -68,7 +70,7 @@ dataSources:
             module: multisig
             method: asMultiThreshold1
             success: true
-            isSigned: true        
+            isSigned: true
         - handler: handleMultisigRemarkEventHandler
           kind: substrate/EventHandler
           filter:
