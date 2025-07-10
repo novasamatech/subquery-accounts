@@ -8,7 +8,7 @@ type Proxied @entity {
   id: ID!
   chainId: String! @index
   type: String!
-  proxyAccountId: String!
+  proxyAccountId: String! @index
   accountId: String! @index
   delay: Int!
   blockNumber: Int!
