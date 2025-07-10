@@ -81,19 +81,24 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
 
   const operationId = generateOperationId(callHash, multisigAccountId, blockCreated, indexCreated);
 
+  // For cancelAsMulti, preserve existing operation data if call is null
+  const section = call?.section || existingOperation?.section;
+  const method = call?.method || existingOperation?.method;
+  const callData = call?.toHex() || existingOperation?.callData;
+
   const newOperation = await MultisigOperation.create({
     ...existingOperation,
     id: operationId,
-    section: call?.section,
-    method: call?.method,
-    chainId,
-    callData: call?.toHex(),
-    callHash,
+    section: section,
+    method: method,
+    chainId: chainId,
+    callData: callData,
+    callHash: callHash,
     status: existingOperation?.status || OperationStatus.pending,
     accountId: multisigAccountId,
     depositor: u8aToHex(decodeAddress(visitedCall.origin)),
-    blockCreated,
-    indexCreated,
+    blockCreated: blockCreated,
+    indexCreated: indexCreated,
     timestamp: timestamp(visitedCall.extrinsic.block)
   });
 
