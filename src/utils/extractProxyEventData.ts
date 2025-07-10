@@ -19,6 +19,10 @@ interface ProxyEventData {
   extrinsicIndex: number;
 }
 
+export function getPureProxyId(params: Pick<ProxyEventData, "accountId"> & { chainId: string }) {
+  return `${params.chainId}-${params.accountId}`;
+}
+
 export function getProxiedId(params: Pick<ProxyEventData, "accountId" | "proxyAccountId" | "type" | "delay"> & { chainId: string }) {
   return `${params.chainId}-${params.accountId}-${params.proxyAccountId}-${params.type}-${params.delay}`;
 }
