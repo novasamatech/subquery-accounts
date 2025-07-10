@@ -1,11 +1,12 @@
 type PureProxy @entity {
-  id: ID! #accountId
-  chainId: String!
+  id: ID!
+  accountId: String! @index
+  chainId: String! @index
 }
 
 type Proxied @entity {
   id: ID!
-  chainId: String!
+  chainId: String! @index
   type: String!
   proxyAccountId: String!
   accountId: String! @index
@@ -18,7 +19,7 @@ type Proxied @entity {
 # An account can be a multisig, or a normal account (like a signatory)
 type Account @entity {
   id: ID!
-  address: String!
+  accountId: String!
   # if this account is the signatory on one or many multisigs, this will link to an array of multisigs
   multisigs: [AccountMultisig] @derivedFrom(field: "signatory")
   isMultisig: Boolean

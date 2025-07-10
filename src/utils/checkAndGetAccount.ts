@@ -1,5 +1,6 @@
-import { encodeAddress } from "../utils";
+import { decodeAddress, encodeAddress } from "../utils";
 import { Account } from "../types";
+import { u8aToHex } from "@polkadot/util";
 
 export async function checkAndGetAccount(
   pubKey: string,
@@ -11,7 +12,7 @@ export async function checkAndGetAccount(
     // We couldn't find the account
     account = Account.create({
       id: pubKey,
-      address: encodeAddress(pubKey),
+      accountId: pubKey,
       isMultisig,
       threshold,
     });
