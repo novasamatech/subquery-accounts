@@ -91,7 +91,6 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
     id: operationId,
     section: section,
     method: method,
-    chainId: chainId,
     callData: callData,
     callHash: callHash,
     status: existingOperation?.status || OperationStatus.pending,
