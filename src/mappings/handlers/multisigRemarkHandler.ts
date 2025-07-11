@@ -5,6 +5,7 @@ import { decodeAddress, createKeyMultiAddress } from "../../utils";
 import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
+import { isJsonStringArgs } from "../../utils/isJson";
 
 
 export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): Promise<void> {
@@ -14,9 +15,9 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
 
   if (!extrinsic) return;
 
-  const args = extrinsic.args[0]?.toHuman() as unknown as string;
+  if (!isJsonStringArgs(extrinsic)) return;
 
-  if (args.indexOf('{') === -1) return;
+  const args = extrinsic.args[0]?.toHuman() as unknown as string;
 
   let parsedArgs: MultisigRemarkArgs;
   try {
