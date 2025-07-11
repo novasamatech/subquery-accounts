@@ -16,6 +16,8 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): P
 
   const args = extrinsic.args[0]?.toHuman() as unknown as string;
 
+  if (args.indexOf('{') === -1) return;
+
   let parsedArgs: MultisigRemarkArgs;
   try {
     parsedArgs = JSON.parse(args) as unknown as MultisigRemarkArgs;
