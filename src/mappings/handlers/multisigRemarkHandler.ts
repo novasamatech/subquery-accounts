@@ -5,13 +5,7 @@ import { decodeAddress, createKeyMultiAddress } from "../../utils";
 import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
-import { Bytes } from "@polkadot/types";
-import { Extrinsic } from "@polkadot/types/interfaces";
-
-const isJsonStringArgs = (extrinsic: Extrinsic) => {
-  //123 is {  and  125 is }        :)
-  return (extrinsic.args[0] as Bytes).at(-1) === 125 && (extrinsic.args[0] as Bytes).at(0) === 123;
-}
+import { isJsonStringArgs } from "../../utils/isJson";
 
 export async function handleMultisigRemarkEventHandler(event: SubstrateEvent): Promise<void> {
   if (!event) return;
