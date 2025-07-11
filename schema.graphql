@@ -10,7 +10,7 @@ type Proxied @entity {
   type: String!
   proxyAccountId: String! @index
   accountId: String! @index
-  delay: Int!
+  delay: Int! @index
   blockNumber: Int!
   extrinsicIndex: Int!
   isPureProxy: Boolean!
@@ -32,8 +32,8 @@ type Account @entity {
 # entity for linking accounts and multisigs
 type AccountMultisig @entity {
   id: ID!
-  multisig: Account!
-  signatory: Account!
+  multisig: Account! @index
+  signatory: Account! @index
 }
 
 enum EventStatus {
@@ -47,7 +47,7 @@ type MultisigEvent @entity {
   status: EventStatus!
   blockCreated: Int!
   indexCreated: Int!
-  multisig: MultisigOperation!
+  multisig: MultisigOperation! @index
   timestamp: Int!
 }
 
