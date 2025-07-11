@@ -32,7 +32,7 @@ type Account @entity {
 # entity for linking accounts and multisigs
 type AccountMultisig @entity {
   id: ID!
-  multisig: Account!
+  multisig: Account! @index
   signatory: Account! @index
 }
 
@@ -47,7 +47,7 @@ type MultisigEvent @entity {
   status: EventStatus!
   blockCreated: Int!
   indexCreated: Int!
-  multisig: MultisigOperation!
+  multisig: MultisigOperation! @index
   timestamp: Int!
 }
 
