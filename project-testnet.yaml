@@ -69,6 +69,11 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
+        - handler: handleMultisigRemarkEventHandler
+          kind: substrate/EventHandler
+          filter:
+            module: system
+            method: Remarked
         - handler: handleProxyEvent
           kind: substrate/EventHandler
           filter:
@@ -78,7 +83,7 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: proxy
-            method: ProxyRemoved
+            method: ProxyRemoved    
         - handler: handlePureProxyKiledEvent
           kind: substrate/EventHandler
           filter:
