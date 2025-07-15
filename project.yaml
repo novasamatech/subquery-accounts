@@ -74,3 +74,8 @@ dataSources:
           filter:
             module: system
             method: Remarked
+         - handler: handleBatchCall
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: batch

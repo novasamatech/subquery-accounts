@@ -74,4 +74,9 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: system
-            method: Remarked    
+            method: Remarked
+         - handler: handleBatchCall
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: batch
