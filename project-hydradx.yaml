@@ -74,7 +74,7 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: system
-            method: Remarked    
+            method: Remarked
         - handler: handleProxyEvent
           kind: substrate/EventHandler
           filter:

@@ -1,7 +1,6 @@
 import { Bytes } from "@polkadot/types";
-import { Extrinsic } from "@polkadot/types/interfaces";
 
-export const isJsonStringArgs = (extrinsic: Extrinsic) => {
+export const isJsonStringArgs = (args: Bytes[]) => {
   //123 is {  and  125 is }        :)
-  return (extrinsic.args[0] as Bytes).at(-1) === 125 && (extrinsic.args[0] as Bytes).at(0) === 123;
+  return (args[0] as Bytes).at(-1) === 125 && (args[0] as Bytes).at(0) === 123;
 }
