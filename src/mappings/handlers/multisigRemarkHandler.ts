@@ -1,4 +1,4 @@
-import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
+import { SubstrateEvent } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
@@ -7,7 +7,6 @@ import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
 import { isJsonStringArgs } from "../../utils/isJson";
 import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
-import { GenericExtrinsic } from "@polkadot/types";
 
 const callWalk = CreateCallWalk()
 const multisigVisitor = CreateCallVisitorBuilder()
@@ -15,33 +14,18 @@ const multisigVisitor = CreateCallVisitorBuilder()
   .ignoreFailedCalls(true)
   .build();
 
-export async function handleBatchCall(extrinsic: SubstrateExtrinsic) {
-  callWalk.walk(extrinsic, multisigVisitor)
+export async function handleMultisigRemarkEventHandler(event: SubstrateEvent) {
+  if (!event || !event.extrinsic) return;
+
+  callWalk.walk(event.extrinsic, multisigVisitor)
 }
 
-export async function handleMultisigRemarkCall(call: VisitedCall) {
+export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
+  if (!call || !call.extrinsic) return;
+
   const extrinsic = call.extrinsic.extrinsic;
 
   if (!extrinsic) return;
-
-  handleMultisigRemarkExtrinsic(extrinsic);
-}
-
-export function handleMultisigRemarkEventHandler(event: SubstrateEvent) {
-  if (!event) return;
-
-  const extrinsic = event.extrinsic?.extrinsic;
-
-  if (!extrinsic) return;
-
-  handleMultisigRemarkExtrinsic(extrinsic);
-}
-
-
-
-export async function handleMultisigRemarkExtrinsic(extrinsic: GenericExtrinsic): Promise<void> {
-  if (!extrinsic) return;
-
 
   if (!isJsonStringArgs(extrinsic)) return;
 
