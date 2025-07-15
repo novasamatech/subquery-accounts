@@ -74,4 +74,4 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: system
-            method: Remarked    
+            method: Remarked
