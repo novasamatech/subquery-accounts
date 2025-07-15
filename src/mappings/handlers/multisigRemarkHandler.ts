@@ -7,6 +7,7 @@ import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
 import { isJsonStringArgs } from "../../utils/isJson";
 import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
+import { Bytes } from "@polkadot/types";
 
 const callWalk = CreateCallWalk()
 const multisigVisitor = CreateCallVisitorBuilder()
@@ -21,15 +22,11 @@ export async function handleMultisigRemarkEventHandler(event: SubstrateEvent) {
 }
 
 export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
-  if (!call || !call.extrinsic) return;
+  if (!call || !call.call || !call.call.args) return;
 
-  const extrinsic = call.extrinsic.extrinsic;
+  if (!isJsonStringArgs(call.call.args as Bytes[])) return;
 
-  if (!extrinsic) return;
-
-  if (!isJsonStringArgs(extrinsic)) return;
-
-  const args = extrinsic.args[0]?.toHuman() as unknown as string;
+  const args = call.call.args[0]?.toHuman() as unknown as string;
 
   let parsedArgs: MultisigRemarkArgs;
   try {
