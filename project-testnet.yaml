@@ -89,8 +89,3 @@ dataSources:
           filter:
             module: proxy
             method: PureKilled
-        - handler: handleAssetHubMigrationEvent
-          kind: substrate/EventHandler
-          filter:
-            module: rcMigrator
-            method: AssetHubMigrationStarted
