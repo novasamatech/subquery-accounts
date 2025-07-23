@@ -7,4 +7,7 @@ export {
   handleProxyRemovedEvent,
   handlePureProxyKiledEvent,
   handleAssetHubMigrationEvent,
+  handleBatch,
+  handleMultisig,
+  handleProxyProxy,
 } from "./handlers";
