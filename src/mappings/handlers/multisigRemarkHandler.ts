@@ -1,4 +1,4 @@
-import { SubstrateEvent } from "@subql/types";
+import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
@@ -9,22 +9,31 @@ import { isJsonStringArgs } from "../../utils/isJson";
 import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
 import { Bytes } from "@polkadot/types";
 
-const callWalk = CreateCallWalk()
+export async function handleRemark(extrinsic: SubstrateExtrinsic) {
+  callWalk.walk(extrinsic, multisigVisitor);
+}
+
+const callWalk = CreateCallWalk();
 const multisigVisitor = CreateCallVisitorBuilder()
-  .on('system', 'remark', handleMultisigRemarkCall)
+  .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
+    const calls = extrinsic.call.args.at(0);
+    if (Array.isArray(calls) && calls.length > 10) {
+      // we're skipping large batches, something terrible happens inside anyway
+      context.stop();
+    }
+  })
+  .on("system", "remark", handleMultisigRemarkCall)
   .ignoreFailedCalls(true)
   .build();
 
-export async function handleMultisigRemarkEventHandler(event: SubstrateEvent) {
-  if (!event || !event.extrinsic) return;
+async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
+  if (!call || !call.call || !call.call.args) {
+    return;
+  }
 
-  callWalk.walk(event.extrinsic, multisigVisitor)
-}
-
-export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
-  if (!call || !call.call || !call.call.args) return;
-
-  if (!isJsonStringArgs(call.call.args as Bytes[])) return;
+  if (!isJsonStringArgs(call.call.args as Bytes[])) {
+    return;
+  }
 
   const args = call.call.args[0]?.toHuman() as unknown as string;
 
@@ -38,14 +47,13 @@ export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void>
   if (!parsedArgs) {
     logger.error(`Invalid parsed args: ${JSON.stringify(parsedArgs)}`);
     return;
-  };
-
+  }
   if (!parsedArgs.signatories || !Array.isArray(parsedArgs.signatories) || parsedArgs.signatories.length === 0) {
     logger.error(`Invalid signatories: ${JSON.stringify(parsedArgs.signatories)}`);
     return;
   }
 
-  if (typeof parsedArgs.threshold !== 'number' || parsedArgs.threshold < 1) {
+  if (typeof parsedArgs.threshold !== "number" || parsedArgs.threshold < 1) {
     logger.error(`Invalid threshold: ${parsedArgs.threshold}`);
     return;
   }
@@ -62,34 +70,26 @@ export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void>
     return;
   }
 
-  logger.info(`Multisig Remark Event: ${JSON.stringify(parsedArgs)}`)
+  logger.info(`Multisig Remark Event: ${JSON.stringify(parsedArgs)}`);
 
-  const signatoriesAccountsPromises = parsedArgs.signatories.map((signatory) =>
-    checkAndGetAccount(u8aToHex(decodeAddress(signatory)))
-  );
+  const signatoriesAccountsPromises = parsedArgs.signatories.map(signatory => checkAndGetAccount(u8aToHex(decodeAddress(signatory))));
 
   const allSignatoriesAccounts = await Promise.all(signatoriesAccountsPromises);
 
-  logger.info(`Signatories Accounts: ${JSON.stringify(allSignatoriesAccounts)}`)
+  logger.info(`Signatories Accounts: ${JSON.stringify(allSignatoriesAccounts)}`);
 
   const multisigAddress = createKeyMultiAddress(parsedArgs.signatories, parsedArgs.threshold);
 
   const multisigPubKey = u8aToHex(decodeAddress(multisigAddress));
 
-  const multisigAccount = await checkAndGetAccount(
-    multisigPubKey,
-    true,
-    parsedArgs.threshold
-  );
+  const multisigAccount = await checkAndGetAccount(multisigPubKey, true, parsedArgs.threshold);
 
-  logger.info(`Multisig Account: ${JSON.stringify(multisigAccount)}`)
+  logger.info(`Multisig Account: ${JSON.stringify(multisigAccount)}`);
 
-  const accountMultisigsRelationsPromises = allSignatoriesAccounts.map((member) =>
-    checkAndGetAccountMultisig(multisigAccount.id, member.id)
-  );
+  const accountMultisigsRelationsPromises = allSignatoriesAccounts.map(member => checkAndGetAccountMultisig(multisigAccount.id, member.id));
   const accountMultisigsRelations = await Promise.all(accountMultisigsRelationsPromises);
 
-  logger.info(`Account Multisigs Relations: ${JSON.stringify(accountMultisigsRelations)}`)
+  logger.info(`Account Multisigs Relations: ${JSON.stringify(accountMultisigsRelations)}`);
 
   for (const account of allSignatoriesAccounts) {
     await account.save();
@@ -98,6 +98,6 @@ export async function handleMultisigRemarkCall(call: VisitedCall): Promise<void>
   await multisigAccount.save();
 
   for (const accountMultisigRelation of accountMultisigsRelations) {
-    await accountMultisigRelation.save()
+    await accountMultisigRelation.save();
   }
 }
