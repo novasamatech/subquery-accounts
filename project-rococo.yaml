@@ -29,13 +29,11 @@ dataSources:
           filter:
             module: proxy
             method: PureCreated
-
         - handler: handlePureProxyEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: AnonymousCreated
-
         - handler: handleProxyProxy
           kind: substrate/CallHandler
           filter:
@@ -43,7 +41,6 @@ dataSources:
             method: proxy
             success: true
             isSigned: true
-
         - handler: handleMultisig
           kind: substrate/CallHandler
           filter:
@@ -51,7 +48,6 @@ dataSources:
             method: asMulti
             success: true
             isSigned: true
-
         - handler: handleMultisig
           kind: substrate/CallHandler
           filter:
@@ -59,7 +55,6 @@ dataSources:
             method: approveAsMulti
             success: true
             isSigned: true
-
         - handler: handleMultisig
           kind: substrate/CallHandler
           filter:
@@ -67,7 +62,6 @@ dataSources:
             method: cancelAsMulti
             success: true
             isSigned: true
-
         - handler: handleMultisig
           kind: substrate/CallHandler
           filter:
@@ -90,7 +84,6 @@ dataSources:
           filter:
             module: proxy
             method: PureKilled    
-
         - handler: handleBatch
           kind: substrate/CallHandler
           filter:
@@ -98,7 +91,6 @@ dataSources:
             method: batch
             success: true
             isSigned: true
-
         - handler: handleBatch
           kind: substrate/CallHandler
           filter:
@@ -106,7 +98,6 @@ dataSources:
             method: batchAll
             success: true
             isSigned: true
-
         - handler: handleBatch
           kind: substrate/CallHandler
           filter:
@@ -114,13 +105,11 @@ dataSources:
             method: forceBatch
             success: true
             isSigned: true
-
         - handler: handleRemark
           kind: substrate/EventHandler
           filter:
             module: system
             method: remark
-
         - handler: handleRemark
           kind: substrate/EventHandler
           filter:
