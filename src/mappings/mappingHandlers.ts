@@ -9,4 +9,5 @@ export {
   handleBatch,
   handleMultisig,
   handleProxyProxy,
+  handleRemark,
 } from "./handlers";
