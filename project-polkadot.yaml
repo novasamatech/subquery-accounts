@@ -114,8 +114,7 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: rcMigrator
-            method: AssetHubMigrationStarted    
-            method: remark
+            method: AssetHubMigrationStarted
         - handler: handleRemark
           kind: substrate/EventHandler
           filter:

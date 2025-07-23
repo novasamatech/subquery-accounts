@@ -109,8 +109,7 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: proxy
-            method: PureKilled    
-            method: remark
+            method: PureKilled
         - handler: handleRemark
           kind: substrate/EventHandler
           filter:
