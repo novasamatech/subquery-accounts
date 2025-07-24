@@ -83,7 +83,7 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
   const method = call?.method || existingOperation?.method;
   const callData = call?.toHex() || existingOperation?.callData;
 
-  const newOperation = await MultisigOperation.create({
+  const newOperation = MultisigOperation.create({
     ...existingOperation,
     id: operationId,
     section: section,

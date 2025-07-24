@@ -3,9 +3,9 @@ import { PureProxy, Proxied } from "../../types";
 import { getProxiedId, getPureProxyId } from "../../utils/extractProxyEventData";
 
 const CHAIN_MIGRATIONS = {
-  '0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3': '0x68d56f15f85d3136970ec16946040bc1752654e906147f7e43e9d539d7c3de2f',
-  '0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe': '0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a',
-  '0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e': '0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9',
+  "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3": "0x68d56f15f85d3136970ec16946040bc1752654e906147f7e43e9d539d7c3de2f",
+  "0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe": "0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a",
+  "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e": "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9",
 } as const;
 
 const CONFIG = {
@@ -30,10 +30,10 @@ export async function handleAssetHubMigrationEvent(event: SubstrateEvent): Promi
   logger.info(`Starting Asset Hub migration: ${sourceChainId} → ${targetChainId}`);
 
   const pureProxyStats = await migratePureProxyEntities(sourceChainId, targetChainId);
-  const proxiedStats   = await migrateProxiedEntities(sourceChainId, targetChainId);
+  const proxiedStats = await migrateProxiedEntities(sourceChainId, targetChainId);
 
   const totalMigrated = pureProxyStats.migrated + proxiedStats.migrated;
-  const totalDeleted  = pureProxyStats.deleted  + proxiedStats.deleted;
+  const totalDeleted = pureProxyStats.deleted + proxiedStats.deleted;
 
   logger.info(`Migration completed: migrated=${totalMigrated}, deleted=${totalDeleted}`);
 }
