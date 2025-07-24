@@ -1645,12 +1645,12 @@ class-transformer@^0.5.1:
   integrity sha512-SQa1Ws6hUbfC98vKGxZH3KFY0Y1lm5Zm0SY8XX9zbK7FJCyVEac3ATW0RIpwzW+oOfmHE5PMPufDG9hCfoEOMw==
 
 class-validator@^0.14.1:
-  version "0.14.1"
-  resolved "https://registry.yarnpkg.com/class-validator/-/class-validator-0.14.1.tgz#ff2411ed8134e9d76acfeb14872884448be98110"
-  integrity sha512-2VEG9JICxIqTpoK1eMzZqaV+u/EiwEJkMGzTrZf6sU/fwsnOITVgYJ8yojSy6CaXtO9V0Cc6ZQZ8h8m4UBuLwQ==
+  version "0.14.2"
+  resolved "https://registry.yarnpkg.com/class-validator/-/class-validator-0.14.2.tgz#a3de95edd26b703e89c151a2023d3c115030340d"
+  integrity sha512-3kMVRF2io8N8pY1IFIXlho9r8IPUUIfHe2hYVtiebvAzU2XeQFXTv+XI4WX+TnXmtwXMDcjngcpkiPM0O9PvLw==
   dependencies:
     "@types/validator" "^13.11.8"
-    libphonenumber-js "^1.10.53"
+    libphonenumber-js "^1.11.1"
     validator "^13.9.0"
 
 clean-stack@^3.0.1:
@@ -2466,10 +2466,10 @@ latest-version@^5.1.0:
   dependencies:
     package-json "^6.3.0"
 
-libphonenumber-js@^1.10.53:
-  version "1.12.5"
-  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.12.5.tgz#8e6043a67112d4beedb8627b359a613f04d88fba"
-  integrity sha512-DOjiaVjjSmap12ztyb4QgoFmUe/GbgnEXHu+R7iowk0lzDIjScvPAm8cK9RYTEobbRb0OPlwlZUGTTJPJg13Kw==
+libphonenumber-js@^1.11.1:
+  version "1.12.10"
+  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.12.10.tgz#525f7c9ffaea40c21463d3906f52ec3209ea5945"
+  integrity sha512-E91vHJD61jekHHR/RF/E83T/CMoaLXT7cwYA75T4gim4FZjnM6hbJjVIGg7chqlSqRsSvQ3izGmOjHy1SQzcGQ==
 
 lilconfig@^3.1.3:
   version "3.1.3"
@@ -2604,7 +2604,7 @@ moment@^2.29.1, moment@^2.29.4:
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.30.1.tgz#f8c91c07b7a786e30c59926df530b4eac96974ae"
   integrity sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==
 
-moonbeam-types-bundle@^2.0.8:
+moonbeam-types-bundle@2.0.10:
   version "2.0.10"
   resolved "https://registry.yarnpkg.com/moonbeam-types-bundle/-/moonbeam-types-bundle-2.0.10.tgz#fddd2f174f4e60616fa5b3f9871d0bae7e24ecc0"
   integrity sha512-QDk/ktioLqDQCOLUu/+FyyF3UYWdKOqqa6q1vwI75pdKBg5elNpRXugEC1irzkLolTanvMRc2rO+qarT9ijjyg==
@@ -2809,6 +2809,11 @@ prepend-http@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/prepend-http/-/prepend-http-2.0.0.tgz#e92434bfa5ea8c19f41cdfd401d741a3c819d897"
   integrity sha512-ravE6m9Atw9Z/jjttRUZ+clIXogdghyZAuWJ3qEzjT+jI/dL1ifAqhZeC5VHzQp1MSt1+jxKkFNemj/iO7tVUA==
+
+prettier@3.6.2:
+  version "3.6.2"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.6.2.tgz#ccda02a1003ebbb2bfda6f83a074978f608b9393"
+  integrity sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==
 
 process-warning@^1.0.0:
   version "1.0.0"
@@ -3137,10 +3142,10 @@ strip-json-comments@~2.0.1:
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
   integrity sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==
 
-subquery-call-visitor@1.3.3:
-  version "1.3.3"
-  resolved "https://registry.yarnpkg.com/subquery-call-visitor/-/subquery-call-visitor-1.3.3.tgz#77235046ba477b47453e8820b024db7fed45d265"
-  integrity sha512-dAocRL3XYX+xvV81Y1boJGo0ZUeb0XkmWJfhlgZv9bKMClQNnkI79YYANoDfNLUeL25PpHNnJhbiV2+htNvXrQ==
+subquery-call-visitor@1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/subquery-call-visitor/-/subquery-call-visitor-1.4.0.tgz#0a5aed91eca45bb1e62770a18df3cb7bbed02771"
+  integrity sha512-XqFeKwsrrPXGbSUrVQXn/TChNRYxu+TLzcqmQ8JXeQRT1Oij6SX/53AXiN0+qVPj3xrKfU6ML76Xn+CPTjEb3g==
   dependencies:
     "@types/big.js" "^6.1.6"
     big.js "^6.2.1"

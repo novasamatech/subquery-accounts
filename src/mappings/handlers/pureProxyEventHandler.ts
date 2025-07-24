@@ -3,9 +3,7 @@ import { SubstrateEvent } from "@subql/types";
 import { Proxied, PureProxy } from "../../types";
 import { extractProxyEventData, getProxiedId, getPureProxyId } from "../../utils/extractProxyEventData";
 
-export async function handlePureProxyEvent(
-  event: SubstrateEvent
-): Promise<void> {
+export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void> {
   const proxyData = extractProxyEventData(event);
 
   logger.info(`Pure Proxy Event: ${JSON.stringify(proxyData)}`);
@@ -36,9 +34,7 @@ export async function handlePureProxyEvent(
   await proxied.save();
 }
 
-export async function handlePureProxyKiledEvent(
-  event: SubstrateEvent
-): Promise<void> {
+export async function handlePureProxyKilledEvent(event: SubstrateEvent): Promise<void> {
   const proxyData = extractProxyEventData(event);
 
   if (!proxyData) {
@@ -47,13 +43,15 @@ export async function handlePureProxyKiledEvent(
 
   const { proxyAccountId, accountId, type, delay } = proxyData;
 
-  logger.info(`Pure Proxy Killed Event: ${JSON.stringify({
-    chainId,
-    type,
-    proxyAccountId,
-    accountId,
-    delay,
-  })}`);
+  logger.info(
+    `Pure Proxy Killed Event: ${JSON.stringify({
+      chainId,
+      type,
+      proxyAccountId,
+      accountId,
+      delay,
+    })}`,
+  );
 
   await PureProxy.remove(accountId);
 
@@ -64,7 +62,7 @@ export async function handlePureProxyKiledEvent(
         ["accountId", "=", accountId],
         ["chainId", "=", chainId],
       ],
-      { limit: 100 }
+      { limit: 100 },
     );
 
     if (proxiedBatch.length === 0) {
