@@ -74,26 +74,6 @@ dataSources:
             method: asMultiThreshold1
             success: true
             isSigned: true
-        - handler: handleMultisigRemarkEventHandler
-          kind: substrate/EventHandler
-          filter:
-            module: system
-            method: Remarked
-        - handler: handleProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyAdded
-        - handler: handleProxyRemovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyRemoved
-        - handler: handlePureProxyKilledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
 
         - handler: handleBatch
           kind: substrate/CallHandler
@@ -130,3 +110,21 @@ dataSources:
           filter:
             module: system
             method: remarkWithEvent
+
+        - handler: handleProxyEvent
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+
+        - handler: handlePureProxyKilledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
