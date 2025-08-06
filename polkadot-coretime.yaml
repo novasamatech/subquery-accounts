@@ -101,13 +101,13 @@ dataSources:
             isSigned: true
 
         - handler: handleRemark
-          kind: substrate/EventHandler
+          kind: substrate/CallHandler
           filter:
             module: system
             method: remark
 
         - handler: handleRemark
-          kind: substrate/EventHandler
+          kind: substrate/CallHandler
           filter:
             module: system
             method: remarkWithEvent
