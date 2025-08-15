@@ -23,6 +23,7 @@ const multisigVisitor = CreateCallVisitorBuilder()
     }
   })
   .on("system", "remark", handleMultisigRemarkCall)
+  .on("system", "remarkWithEvent", handleMultisigRemarkCall)
   .ignoreFailedCalls(true)
   .build();
 
