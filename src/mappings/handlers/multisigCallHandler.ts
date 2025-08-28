@@ -85,8 +85,6 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
     { limit: 1 },
   );
 
-  logger.info(`existingOperation ${JSON.stringify({ blockCreated, indexCreated, callHash, multisigAccountId })}`);
-
   const operationId = generateOperationId(callHash, multisigAccountId, blockCreated, indexCreated);
 
   // For cancelAsMulti, preserve existing operation data if call is null
