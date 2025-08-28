@@ -31,8 +31,13 @@ export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleInde
 const MULTISIG_EVENTS = ["NewMultisig", "MultisigApproval", "MultisigExecuted", "MultisigCancelled"];
 export const getCallHashFromMultisigEvents = (events: AnyEvent[]) => {
   const multisigEvent = events.find(e => MULTISIG_EVENTS.includes(e.method));
-  const callHash = multisigEvent?.data.toHuman() as { callHash: string };
-  return callHash?.callHash;
+  const data = multisigEvent?.data.toHuman() as { callHash: string } | { callHash: string; signer: string };
+
+  if (!data.callHash) {
+    throw new Error("Call hash not found in multisig events... DEATH");
+  }
+
+  return data.callHash;
 };
 
 export const getDataFromCall = <T>(call: any, field: string): T | undefined => {
