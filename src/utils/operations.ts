@@ -28,7 +28,7 @@ export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleInde
   return event.data[index] as T;
 };
 
-const MULTISIG_EVENTS = ["NewMultisig", "MultisigApproval", "MultisigExecuted"];
+const MULTISIG_EVENTS = ["NewMultisig", "MultisigApproval", "MultisigExecuted", "MultisigCancelled"];
 export const getCallHashFromMultisigEvents = (events: AnyEvent[]) => {
   const multisigEvent = events.find(e => MULTISIG_EVENTS.includes(e.method));
   const callHash = multisigEvent?.data.toHuman() as { callHash: string };
