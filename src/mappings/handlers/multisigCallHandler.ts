@@ -6,7 +6,16 @@ import { u8aToHex } from "@polkadot/util";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
 import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../../types";
-import { generateEventId, generateOperationId, getBlockCreated, getDataFromCall, getDataFromEvent, getIndexCreated, timestamp } from "../../utils/operations";
+import {
+  generateEventId,
+  generateOperationId,
+  getBlockCreated,
+  getCallHashFromMultisigEvents,
+  getDataFromCall,
+  getDataFromEvent,
+  getIndexCreated,
+  timestamp,
+} from "../../utils/operations";
 import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
 import { AnyTuple, CallBase } from "@polkadot/types/types";
 
@@ -52,8 +61,8 @@ export async function handleMultisigCall(extrinsic: SubstrateExtrinsic): Promise
 async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperation | undefined> {
   const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, "call");
 
-  const call_hash = getDataFromCall<Uint8Array>(visitedCall.call, "callHash");
-  const callHash = call_hash ? u8aToHex(call_hash) : call?.hash?.toHex();
+  const callHash = getCallHashFromMultisigEvents(visitedCall.events);
+
   if (!callHash) return;
 
   const multisig = getMultisigAccountIdFromEvents(visitedCall);
@@ -75,6 +84,8 @@ async function getTransaction(visitedCall: VisitedCall): Promise<MultisigOperati
     ],
     { limit: 1 },
   );
+
+  logger.info(`existingOperation ${JSON.stringify({ blockCreated, indexCreated, callHash, multisigAccountId })}`);
 
   const operationId = generateOperationId(callHash, multisigAccountId, blockCreated, indexCreated);
 
