@@ -5,5 +5,8 @@ export {
   handleMultisig,
   handleProxyProxy,
   handleRemark,
-  handleMultisigCallEvent,
+  handleNewMultisigEvent,
+  handleMultisigApprovedEvent,
+  handleMultisigExecutedEvent,
+  handleMultisigCancelledEvent,
 } from "./handlers";

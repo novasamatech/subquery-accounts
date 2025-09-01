@@ -111,25 +111,25 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleMultisigCallEvent
+        - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: NewMultisig
 
-        - handler: handleMultisigCallEvent
+        - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: MultisigApproved
 
-        - handler: handleMultisigCallEvent
+        - handler: handleMultisigExecutedEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: MultisigExecuted
 
-        - handler: handleMultisigCallEvent
+        - handler: handleMultisigCancelledEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
