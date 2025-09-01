@@ -19,7 +19,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 11990129 # first multisig remark with data
+    startBlock: 200885 # first multisig remark with data
     mapping:
       file: ./dist/index.js
       handlers:
@@ -110,3 +110,27 @@ dataSources:
           filter:
             module: system
             method: remarkWithEvent
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled
