@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot
+name: subquery-proxy-westend-asset-hub
 version: 1.0.0
 runner:
   node:
@@ -13,15 +13,13 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a"
+  chainId: "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9"
   endpoint: >-
-    wss://asset-hub-kusama-rpc.dwellir.com
-  chaintypes:
-    file: ./dist/kusamaAssetHubChaintypes.js
+    wss://sys.ibp.network/asset-hub-westend
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 318927 # First multisig https://assethub-kusama.subscan.io/extrinsic/318927-2
+    startBlock: 200885 # first multisig remark with data
     mapping:
       file: ./dist/index.js
       handlers:

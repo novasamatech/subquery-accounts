@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-polkadot
+name: subquery-proxy-polkadot-collectives
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"
+  chainId: "0x46ee89aa2eedd13e988962630ec9fb7565964cf5023bb351f2b6b25c1b68b0b2"
   endpoint: >-
-    wss://polkadot-rpc.dwellir.com
+    wss://collectives-polkadot-rpc.n.dwellir.com
   dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
+    startBlock: 61787 # first proxy https://collectives-polkadot.subscan.io/extrinsic/61787-2
     mapping:
       file: ./dist/index.js
       handlers:
@@ -135,35 +135,3 @@ dataSources:
           filter:
             module: multisig
             method: MultisigCanceled
-
-        - handler: handleProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyAdded
-
-        - handler: handleProxyRemovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyRemoved
-
-        - handler: handlePureProxyKilledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
-
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
-          filter:
-            module: proxy
-            method: removeProxies
-            success: true
-            isSigned: true
-
-        - handler: handleAssetHubMigrationEvent
-          kind: substrate/EventHandler
-          filter:
-            module: rcMigrator
-            method: AssetHubMigrationStarted

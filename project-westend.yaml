@@ -15,7 +15,7 @@ schema:
 network:
   chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
   endpoint: >-
-    wss://rpc.ibp.network/westend
+    wss://westend.api.onfinality.io/public-ws
   dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
 dataSources:
   - name: main
@@ -112,34 +112,26 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleProxyEvent
+        - handler: handleMultisigCallEvent
           kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: ProxyAdded
+            module: multisig
+            method: NewMultisig
 
-        - handler: handleProxyRemovedEvent
+        - handler: handleMultisigCallEvent
           kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: ProxyRemoved
+            module: multisig
+            method: MultisigApproved
 
-        - handler: handlePureProxyKilledEvent
+        - handler: handleMultisigCallEvent
           kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: PureKilled
+            module: multisig
+            method: MultisigExecuted
 
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
-          filter:
-            module: proxy
-            method: removeProxies
-            success: true
-            isSigned: true
-
-        - handler: handleAssetHubMigrationEvent
+        - handler: handleMultisigCallEvent
           kind: substrate/EventHandler
           filter:
-            module: rcMigrator
-            method: AssetHubMigrationStarted
+            module: multisig
+            method: MultisigCanceled

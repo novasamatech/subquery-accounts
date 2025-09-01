@@ -111,26 +111,26 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleProxyEvent
+        - handler: handleMultisigCallEvent
           kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: ProxyAdded
-        - handler: handleProxyRemovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyRemoved
-        - handler: handlePureProxyKilledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
+            module: multisig
+            method: NewMultisig
 
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: removeProxies
-            success: true
-            isSigned: true
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCallEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled
