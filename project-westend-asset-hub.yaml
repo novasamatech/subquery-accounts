@@ -123,6 +123,14 @@ dataSources:
             module: proxy
             method: ProxyRemoved
 
+        - handler: handleProxyCall
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: removeProxies
+            success: true
+            isSigned: true
+
         - handler: handlePureProxyKilledEvent
           kind: substrate/EventHandler
           filter:

@@ -7,6 +7,7 @@ export {
   handleMultisig,
   handleProxyProxy,
   handleProxyEvent,
+  handleProxyCall,
   handleProxyRemovedEvent,
   handlePureProxyKilledEvent,
   handleAssetHubMigrationEvent,
