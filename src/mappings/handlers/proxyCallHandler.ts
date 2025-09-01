@@ -25,7 +25,6 @@ export async function handleRemoveProxiesCall(call: VisitedCall): Promise<void> 
   if (!call || !call.call || !call.call.args) {
     return;
   }
-  logger.info(`Proxy RemoveProxies Call: ${JSON.stringify(call)}`);
 
   const callerAccountId = u8aToHex(decodeAddress(call.origin));
 
