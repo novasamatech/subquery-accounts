@@ -1,7 +1,6 @@
 export {
   handlePureProxyEvent,
   handleMultisigCall,
-  handleMultisigInProxy,
   handleBatch,
   handleRemark,
   handleMultisig,
@@ -11,4 +10,5 @@ export {
   handleProxyRemovedEvent,
   handlePureProxyKilledEvent,
   handleAssetHubMigrationEvent,
+  handleMultisigCallEvent,
 } from "./handlers";

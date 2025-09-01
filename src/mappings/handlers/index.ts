@@ -1,6 +1,7 @@
 export { handleProxyProxy, handleMultisig, handleBatch } from "./generic";
 
-export { handleMultisigCall, handleMultisigInProxy } from "./multisigCallHandler";
+export { handleMultisigCall } from "./multisigCallHandler";
+export { handleMultisigCallEvent } from "./multisigEventHandler";
 export { handlePureProxyEvent, handlePureProxyKilledEvent } from "./pureProxyEventHandler";
 export { handleProxyEvent, handleProxyRemovedEvent } from "./proxyEventHandler";
 export { handleProxyCall } from "./proxyCallHandler";
