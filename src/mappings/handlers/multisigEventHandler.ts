@@ -97,7 +97,7 @@ export async function handleMultisigCallEvent(event: SubstrateEvent) {
     }).save();
   };
 
-  const multisigVisitorHuy = CreateCallVisitorBuilder()
+  const multisigVisitor = CreateCallVisitorBuilder()
     .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
       const calls = extrinsic.call.args.at(0);
       if (Array.isArray(calls) && calls.length > 100) {
@@ -112,7 +112,7 @@ export async function handleMultisigCallEvent(event: SubstrateEvent) {
     .ignoreFailedCalls(true)
     .build();
 
-  await callWalk.walk(event.extrinsic, multisigVisitorHuy);
+  await callWalk.walk(event.extrinsic, multisigVisitor);
 
   logger.info(`Multisig event method: ${event.event.method}`);
 
