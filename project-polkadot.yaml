@@ -113,6 +113,10 @@ dataSources:
             method: remarkWithEvent
 
         - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
 
         - handler: handleBatch
           kind: substrate/CallHandler

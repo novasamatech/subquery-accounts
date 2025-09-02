@@ -147,6 +147,7 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
 
   const newOperation = await MultisigOperation.create({
     id: operationId,
+    chainId,
     callHash: callHashString,
     status: OperationStatus.pending,
     accountId: multisigAccountId,
