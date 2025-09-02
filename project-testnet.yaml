@@ -137,9 +137,6 @@ dataSources:
             success: true
             isSigned: true
 
-            success: true
-            isSigned: true
-
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
           filter:

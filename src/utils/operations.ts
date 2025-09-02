@@ -28,18 +28,6 @@ export const getDataFromEvent = <T>(event: AnyEvent, field: string, possibleInde
   return event.data[index] as T;
 };
 
-const MULTISIG_EVENTS = ["NewMultisig", "MultisigApproval", "MultisigExecuted", "MultisigCancelled"];
-export const getCallHashFromMultisigEvents = (events: AnyEvent[]) => {
-  const multisigEvent = events.find(e => MULTISIG_EVENTS.includes(e.method));
-  const data = multisigEvent?.data.toHuman() as { callHash: string } | { callHash: string; signer: string };
-
-  if (!data.callHash) {
-    throw new Error("Call hash not found in multisig events... DEATH");
-  }
-
-  return data.callHash;
-};
-
 export const getDataFromCall = <T>(call: any, field: string): T | undefined => {
   // TODO: Fix TS2345 yarn Argument of type is not assignable to parameter of type
   const typedCall = call as unknown as CallBase<AnyTuple>;
