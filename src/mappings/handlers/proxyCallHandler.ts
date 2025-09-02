@@ -23,7 +23,7 @@ export async function handleProxyCall(extrinsic: SubstrateExtrinsic): Promise<vo
 
 export async function handleRemoveProxiesCall(call: VisitedCall): Promise<void> {
   if (!call || !call.call || !call.call.args) {
-    return;
+    throw new Error(`Invalid call: ${JSON.stringify(call)}`);
   }
 
   const callerAccountId = u8aToHex(decodeAddress(call.origin));
