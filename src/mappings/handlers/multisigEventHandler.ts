@@ -1,4 +1,4 @@
-import { SubstrateEvent } from "@subql/types";
+import { SubstrateEvent, SubstrateExtrinsic } from "@subql/types";
 import { u8aToHex } from "@polkadot/util";
 import { decodeAddress } from "../../utils";
 import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
@@ -25,7 +25,35 @@ function getBlockAndIndexFromEvent(event: SubstrateEvent): { blockCreated: numbe
 const callWalk = CreateCallWalk();
 
 function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise<void>) {
-  return CreateCallVisitorBuilder()
+  //here
+
+  return (
+    CreateCallVisitorBuilder()
+      .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
+        const calls = extrinsic.call.args.at(0);
+        if (Array.isArray(calls) && calls.length > 100) {
+          // we're skipping large batches, something terrible happens inside anyway
+          context.stop();
+        }
+      })
+      .on("multisig", "asMulti", handleCall)
+      .on("multisig", "asMultiThreshold1", handleCall)
+      // .on("multisig", "approveAsMulti", handleCall) //doesn't have call hash
+      // .on("multisig", "cancelAsMulti", handleCall) //doesn't have call hash
+      .ignoreFailedCalls(true)
+      .build()
+  );
+}
+
+async function calculateMultiCalls(extrinsic: SubstrateExtrinsic) {
+  let count = 0;
+
+  const handleCall = (visitedCall: VisitedCall) => {
+    count++;
+    return Promise.resolve();
+  };
+
+  const visitor = CreateCallVisitorBuilder()
     .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
       const calls = extrinsic.call.args.at(0);
       if (Array.isArray(calls) && calls.length > 100) {
@@ -35,17 +63,24 @@ function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise
     })
     .on("multisig", "asMulti", handleCall)
     .on("multisig", "asMultiThreshold1", handleCall)
-    .on("multisig", "approveAsMulti", handleCall)
-    .on("multisig", "cancelAsMulti", handleCall)
+    // .on("multisig", "approveAsMulti", handleCall) //doesn't have call hash
+    // .on("multisig", "cancelAsMulti", handleCall) //doesn't have call hash
     .ignoreFailedCalls(true)
     .build();
+
+  await callWalk.walk(extrinsic, visitor);
+  return count;
 }
 
-function createHandleCall(operation: MultisigOperation, callHash: string) {
+function createHandleCall(operation: MultisigOperation, callHash: string, callsWithCallData: number) {
   return async (visitedCall: VisitedCall) => {
     const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, "call");
 
-    if (call?.hash.toHex() !== callHash) {
+    if (!call) {
+      throw new Error("Call not found");
+    }
+
+    if (callsWithCallData >= 2 && call.hash.toHex() !== callHash) {
       return;
     }
 
@@ -79,6 +114,8 @@ async function findExistingOperation(
 
 export async function handleNewMultisigEvent(event: SubstrateEvent) {
   if (!event.extrinsic) throw new Error("Extrinsic not found");
+
+  logger.info(`current event: ${event.event.method}`);
 
   const callHash = getDataFromEvent<Uint8Array>(event.event, "callHash", 2);
   if (!callHash) throw new Error("Call hash not found");
@@ -118,7 +155,9 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
     timestamp: timestamp(event.extrinsic.block),
   }).save();
 
-  const handleCall = createHandleCall(newOperation, callHashString);
+  const count = await calculateMultiCalls(event.extrinsic);
+
+  const handleCall = createHandleCall(newOperation, callHashString, count);
   const multisigVisitor = createMultisigVisitor(handleCall);
 
   await callWalk.walk(event.extrinsic, multisigVisitor);
@@ -128,14 +167,13 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
 export async function handleMultisigApprovedEvent(event: SubstrateEvent) {
   if (!event.extrinsic) throw new Error("Extrinsic not found");
 
+  logger.info(`current event: ${event.event.method}`);
   const callHash = getDataFromEvent<Uint8Array>(event.event, "callHash", 3);
-
   if (!callHash) throw new Error("Call hash not found");
 
   const callHashString = u8aToHex(callHash);
 
   const multisig = getDataFromEvent<AccountId>(event.event, "multisig", 2);
-
   if (!multisig) throw new Error("Multisig not found");
 
   const multisigAccountId = multisig.toHex();
@@ -170,7 +208,9 @@ export async function handleMultisigApprovedEvent(event: SubstrateEvent) {
     timestamp: timestamp(event.extrinsic.block),
   }).save();
 
-  const handleCall = createHandleCall(newOperation, callHashString);
+  const count = await calculateMultiCalls(event.extrinsic);
+
+  const handleCall = createHandleCall(newOperation, callHashString, count);
   const multisigVisitor = createMultisigVisitor(handleCall);
 
   await callWalk.walk(event.extrinsic, multisigVisitor);
@@ -180,14 +220,14 @@ export async function handleMultisigApprovedEvent(event: SubstrateEvent) {
 export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
   if (!event.extrinsic) throw new Error("Extrinsic not found");
 
+  logger.info(`current event: ${event.event.method}`);
+
   const callHash = getDataFromEvent<Uint8Array>(event.event, "callHash", 3);
 
   if (!callHash) throw new Error("Call hash not found");
-
   const callHashString = u8aToHex(callHash);
 
   const multisig = getDataFromEvent<AccountId>(event.event, "multisig", 2);
-
   if (!multisig) throw new Error("Multisig not found");
 
   const multisigAccountId = multisig.toHex();
@@ -222,7 +262,9 @@ export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
     timestamp: timestamp(event.extrinsic.block),
   }).save();
 
-  const handleCall = createHandleCall(newOperation, callHashString);
+  const count = await calculateMultiCalls(event.extrinsic);
+
+  const handleCall = createHandleCall(newOperation, callHashString, count);
   const multisigVisitor = createMultisigVisitor(handleCall);
 
   await callWalk.walk(event.extrinsic, multisigVisitor);
@@ -239,11 +281,9 @@ export async function handleMultisigCancelledEvent(event: SubstrateEvent) {
   if (!event.extrinsic) throw new Error("Extrinsic not found");
 
   const callHash = getDataFromEvent<Uint8Array>(event.event, "callHash", 3);
-
   if (!callHash) throw new Error("Call hash not found");
 
   const callHashString = u8aToHex(callHash);
-
   const multisig = getDataFromEvent<AccountId>(event.event, "multisig", 2);
 
   if (!multisig) throw new Error("Multisig not found");
@@ -280,7 +320,9 @@ export async function handleMultisigCancelledEvent(event: SubstrateEvent) {
     timestamp: timestamp(event.extrinsic.block),
   }).save();
 
-  const handleCall = createHandleCall(newOperation, callHashString);
+  const count = await calculateMultiCalls(event.extrinsic);
+
+  const handleCall = createHandleCall(newOperation, callHashString, count);
   const multisigVisitor = createMultisigVisitor(handleCall);
 
   await callWalk.walk(event.extrinsic, multisigVisitor);
