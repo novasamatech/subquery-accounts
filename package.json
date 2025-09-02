@@ -38,7 +38,9 @@
     "prettier": "3.6.2"
   },
   "resolutions": {
-    "ipfs-unixfs": "6.0.6"
+    "ipfs-unixfs": "6.0.6",
+    "@polkadot/wasm-bridge": "7.4.1",
+    "@polkadot/x-randomvalues": "^13.0.0"
   },
   "dependencies": {
     "@polkadot/api-augment": "16.4.1",

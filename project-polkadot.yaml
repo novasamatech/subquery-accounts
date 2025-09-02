@@ -161,8 +161,6 @@ dataSources:
           filter:
             module: proxy
             method: ProxyRemoved
-            module: multisig
-            method: NewMultisig
 
         - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler

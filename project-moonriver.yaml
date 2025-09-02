@@ -178,8 +178,6 @@ dataSources:
             success: true
             isSigned: true
 
-            module: multisig
-            method: NewMultisig
 
         - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler

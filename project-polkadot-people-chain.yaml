@@ -164,8 +164,6 @@ dataSources:
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
           filter:
-            module: multisig
-            method: NewMultisig
 
         - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler
@@ -184,8 +182,6 @@ dataSources:
           filter:
             module: multisig
             method: MultisigCanceled
-            module: proxy
-            method: PureKilled
 
         - handler: handleProxyCall
           kind: substrate/CallHandler
