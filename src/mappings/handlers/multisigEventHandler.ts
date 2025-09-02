@@ -52,7 +52,6 @@ function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise
       }
     })
     .on("multisig", "asMulti", handleCall)
-    .on("multisig", "asMultiThreshold1", handleCall)
     .ignoreFailedCalls(true)
     .build();
 }
@@ -74,7 +73,6 @@ async function calculateMultiCalls(extrinsic: SubstrateExtrinsic) {
       }
     })
     .on("multisig", "asMulti", handleCall)
-    .on("multisig", "asMultiThreshold1", handleCall)
     .ignoreFailedCalls(true)
     .build();
 
@@ -168,9 +166,6 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
   }).save();
 
   await populateOperationWithCallData(newOperation, callHashString, event);
-
-  logger.info(`New Multisig Operation: ${JSON.stringify(newOperation)}`);
-
   await newOperation.save();
 }
 
