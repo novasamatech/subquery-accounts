@@ -20,7 +20,7 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
+    startBlock: 13479302 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
     mapping:
       file: ./dist/index.js
       handlers:
@@ -154,11 +154,6 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleNewMultisigEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyAdded
 
         - handler: handleProxyRemovedEvent
           kind: substrate/EventHandler
@@ -166,23 +161,7 @@ dataSources:
             module: proxy
             method: ProxyRemoved
 
-        - handler: handleMultisigApprovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigApproved
 
-        - handler: handleMultisigExecutedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigExecuted
-
-        - handler: handleMultisigCancelledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigCanceled
         - handler: handlePureProxyKilledEvent
           kind: substrate/EventHandler
           filter:
@@ -202,3 +181,27 @@ dataSources:
           filter:
             module: rcMigrator
             method: AssetHubMigrationStarted
+
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
+        - handler: handleMultisigApprovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigExecutedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCancelledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled

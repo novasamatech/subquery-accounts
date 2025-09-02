@@ -126,6 +126,10 @@ dataSources:
             method: ProxyRemoved
 
         - handler: handlePureProxyKilledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
 
         - handler: handleBatch
           kind: substrate/CallHandler
@@ -163,12 +167,6 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleNewMultisigEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
-
         - handler: handleProxyCall
           kind: substrate/CallHandler
           filter:
@@ -177,6 +175,11 @@ dataSources:
             success: true
             isSigned: true
 
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
 
         - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler
@@ -195,3 +198,4 @@ dataSources:
           filter:
             module: multisig
             method: MultisigCanceled
+

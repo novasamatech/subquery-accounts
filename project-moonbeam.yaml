@@ -127,6 +127,10 @@ dataSources:
             method: ProxyRemoved
 
         - handler: handlePureProxyKilledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
 
         - handler: handleBatch
           kind: substrate/CallHandler
@@ -167,8 +171,8 @@ dataSources:
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
           filter:
-            module: proxy
-            method: PureKilled
+            module: multisig
+            method: NewMultisig
 
         - handler: handleProxyCall
           kind: substrate/CallHandler

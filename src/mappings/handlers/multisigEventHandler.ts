@@ -168,6 +168,9 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
   }).save();
 
   await populateOperationWithCallData(newOperation, callHashString, event);
+
+  logger.info(`New Multisig Operation: ${JSON.stringify(newOperation)}`);
+
   await newOperation.save();
 }
 

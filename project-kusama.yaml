@@ -153,30 +153,6 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleNewMultisigEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: NewMultisig
-
-        - handler: handleMultisigApprovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigApproved
-
-        - handler: handleMultisigExecutedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigExecuted
-
-        - handler: handleMultisigCancelledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: multisig
-            method: MultisigCanceled
-
         - handler: handleProxyRemovedEvent
           kind: substrate/EventHandler
           filter:
@@ -202,3 +178,27 @@ dataSources:
           filter:
             module: rcMigrator
             method: AssetHubMigrationStarted
+
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
+        - handler: handleMultisigApprovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigExecutedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCancelledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled
