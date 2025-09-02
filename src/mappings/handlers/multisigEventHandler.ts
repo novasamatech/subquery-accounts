@@ -25,8 +25,6 @@ function getBlockAndIndexFromEvent(event: SubstrateEvent): { blockCreated: numbe
 const callWalk = CreateCallWalk();
 
 function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise<void>) {
-  //here
-
   return (
     CreateCallVisitorBuilder()
       .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
@@ -48,7 +46,7 @@ function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise
 async function calculateMultiCalls(extrinsic: SubstrateExtrinsic) {
   let count = 0;
 
-  const handleCall = (visitedCall: VisitedCall) => {
+  const handleCall = (_: VisitedCall) => {
     count++;
     return Promise.resolve();
   };
@@ -72,7 +70,7 @@ async function calculateMultiCalls(extrinsic: SubstrateExtrinsic) {
   return count;
 }
 
-function createHandleCall(operation: MultisigOperation, callHash: string, callsWithCallData: number) {
+function createHandleCall(operation: MultisigOperation, callHash: string, multisigCallsWithCallData: number) {
   return async (visitedCall: VisitedCall) => {
     const call = getDataFromCall<CallBase<AnyTuple>>(visitedCall.call, "call");
 
@@ -80,7 +78,7 @@ function createHandleCall(operation: MultisigOperation, callHash: string, callsW
       throw new Error("Call not found");
     }
 
-    if (callsWithCallData >= 2 && call.hash.toHex() !== callHash) {
+    if (multisigCallsWithCallData >= 2 && call.hash.toHex() !== callHash) {
       return;
     }
 
