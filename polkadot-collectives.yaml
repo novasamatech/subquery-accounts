@@ -1,5 +1,5 @@
 specVersion: 1.0.0
-name: subquery-proxy-westend
+name: subquery-proxy-polkadot-collectives
 version: 1.0.0
 runner:
   node:
@@ -13,14 +13,14 @@ repository: https://github.com/nova-wallet/subquery-proxy
 schema:
   file: ./schema.graphql
 network:
-  chainId: "0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e"
+  chainId: "0x46ee89aa2eedd13e988962630ec9fb7565964cf5023bb351f2b6b25c1b68b0b2"
   endpoint: >-
-    wss://rpc.ibp.network/westend
-  dictionary: https://api.subquery.network/sq/subquery/westend-dictionary
+    wss://collectives-polkadot-rpc.n.dwellir.com
+  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 1352845 # first NewMultisig https://westend.subscan.io/extrinsic/1352845-2?event=1352845-3
+    startBlock: 61787 # first proxy https://collectives-polkadot.subscan.io/extrinsic/61787-2
     mapping:
       file: ./dist/index.js
       handlers:
@@ -112,43 +112,6 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleProxyEvent
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: batch
-            success: true
-            isSigned: true
-
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: batchAll
-            success: true
-            isSigned: true
-
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: forceBatch
-            success: true
-            isSigned: true
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
-            method: remark
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
-            method: remarkWithEvent
-
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
           filter:
@@ -160,14 +123,6 @@ dataSources:
           filter:
             module: multisig
             method: MultisigApproved
-            module: proxy
-            method: ProxyAdded
-
-        - handler: handleProxyRemovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyRemoved
 
         - handler: handleMultisigExecutedEvent
           kind: substrate/EventHandler
@@ -180,22 +135,3 @@ dataSources:
           filter:
             module: multisig
             method: MultisigCanceled
-        - handler: handlePureProxyKilledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
-
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
-          filter:
-            module: proxy
-            method: removeProxies
-            success: true
-            isSigned: true
-
-        - handler: handleAssetHubMigrationEvent
-          kind: substrate/EventHandler
-          filter:
-            module: rcMigrator
-            method: AssetHubMigrationStarted
