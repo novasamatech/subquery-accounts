@@ -130,3 +130,11 @@ dataSources:
           filter:
             module: proxy
             method: PureKilled
+
+        - handler: handleProxyCall
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: removeProxies
+            success: true
+            isSigned: true
