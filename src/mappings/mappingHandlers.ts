@@ -1,6 +1,4 @@
 export {
-
-  handleMultisigInProxy,
   handleProxyEvent,
   handleProxyCall,
   handleProxyRemovedEvent,
