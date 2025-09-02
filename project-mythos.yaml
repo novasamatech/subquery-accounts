@@ -131,41 +131,6 @@ dataSources:
             module: proxy
             method: PureKilled
 
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: batch
-            success: true
-            isSigned: true
-
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: batchAll
-            success: true
-            isSigned: true
-
-        - handler: handleBatch
-          kind: substrate/CallHandler
-          filter:
-            module: utility
-            method: forceBatch
-            success: true
-            isSigned: true
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
-            method: remark
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
-            method: remarkWithEvent
 
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler
