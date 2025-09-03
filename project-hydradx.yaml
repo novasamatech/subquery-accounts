@@ -130,6 +130,12 @@ dataSources:
             module: proxy
             method: PureKilled
 
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
         - handler: handleProxyCall
           kind: substrate/CallHandler
           filter:
@@ -137,3 +143,21 @@ dataSources:
             method: removeProxies
             success: true
             isSigned: true
+
+        - handler: handleMultisigApprovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigExecutedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCancelledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled

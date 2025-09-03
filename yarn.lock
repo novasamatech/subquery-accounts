@@ -865,14 +865,7 @@
     bn.js "^5.2.1"
     tslib "^2.8.0"
 
-"@polkadot/wasm-bridge@6.4.1":
-  version "6.4.1"
-  resolved "https://registry.yarnpkg.com/@polkadot/wasm-bridge/-/wasm-bridge-6.4.1.tgz#e97915dd67ba543ec3381299c2a5b9330686e27e"
-  integrity sha512-QZDvz6dsUlbYsaMV5biZgZWkYH9BC5AfhT0f0/knv8+LrbAoQdP3Asbvddw8vyU9sbpuCHXrd4bDLBwUCRfrBQ==
-  dependencies:
-    "@babel/runtime" "^7.20.6"
-
-"@polkadot/wasm-bridge@7.4.1":
+"@polkadot/wasm-bridge@6.4.1", "@polkadot/wasm-bridge@7.4.1":
   version "7.4.1"
   resolved "https://registry.yarnpkg.com/@polkadot/wasm-bridge/-/wasm-bridge-7.4.1.tgz#dd59ebb7c425657aad64b1430e8455d14d935059"
   integrity sha512-tdkJaV453tezBxhF39r4oeG0A39sPKGDJmN81LYLf+Fihb7astzwju+u75BRmDrHZjZIv00un3razJEWCxze6g==
@@ -1018,20 +1011,19 @@
   dependencies:
     tslib "^2.8.0"
 
-"@polkadot/x-randomvalues@10.4.2":
-  version "10.4.2"
-  resolved "https://registry.yarnpkg.com/@polkadot/x-randomvalues/-/x-randomvalues-10.4.2.tgz#895f1220d5a4522a83d8d5014e3c1e03b129893e"
-  integrity sha512-mf1Wbpe7pRZHO0V3V89isPLqZOy5XGX2bCqsfUWHgb1NvV1MMx5TjVjdaYyNlGTiOkAmJKlOHshcfPU2sYWpNg==
+"@polkadot/x-global@13.5.6":
+  version "13.5.6"
+  resolved "https://registry.yarnpkg.com/@polkadot/x-global/-/x-global-13.5.6.tgz#37a52d1cd32fde6d385cb745c0cec534753be1e5"
+  integrity sha512-iw97n0Bnl2284WgAK732LYR4DW6w5+COfBfHzkhiHqs5xwPEwWMgWGrf2hM8WAQqNIz6Ni8w/jagucPyQBur3Q==
   dependencies:
-    "@babel/runtime" "^7.20.13"
-    "@polkadot/x-global" "10.4.2"
+    tslib "^2.8.0"
 
-"@polkadot/x-randomvalues@13.5.3":
-  version "13.5.3"
-  resolved "https://registry.yarnpkg.com/@polkadot/x-randomvalues/-/x-randomvalues-13.5.3.tgz#6cc90fd501ff1a46baf777c7a5804c355faaf964"
-  integrity sha512-BrKE5Q4dzHWNjwq0PX08uWlJIQOztVCJIYuZiIAj0ic33oLRrQuPojXFWhw/3McjXlVXscFNtsgIXsRli+boiQ==
+"@polkadot/x-randomvalues@10.4.2", "@polkadot/x-randomvalues@13.5.3", "@polkadot/x-randomvalues@^13.0.0":
+  version "13.5.6"
+  resolved "https://registry.yarnpkg.com/@polkadot/x-randomvalues/-/x-randomvalues-13.5.6.tgz#a05e0e4fb188c99c5a84043668a27ae6f05259bc"
+  integrity sha512-w1F9G7FxrJ7+hGC8bh9/VpPH4KN8xmyzgiQdR7+rVB2V8KsKQBQidG69pj5Kwsh3oODOz0yQYsTG6Rm6TAJbGA==
   dependencies:
-    "@polkadot/x-global" "13.5.3"
+    "@polkadot/x-global" "13.5.6"
     tslib "^2.8.0"
 
 "@polkadot/x-textdecoder@10.4.2":

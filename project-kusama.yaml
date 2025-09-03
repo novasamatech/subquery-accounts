@@ -103,12 +103,6 @@ dataSources:
           kind: substrate/CallHandler
           filter:
             module: system
-            method: remark
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
             method: remarkWithEvent
 
         - handler: handleProxyEvent
@@ -116,6 +110,12 @@ dataSources:
           filter:
             module: proxy
             method: ProxyAdded
+
+        - handler: handleRemark
+          kind: substrate/CallHandler
+          filter:
+            module: system
+            method: remarkWithEvent
 
         - handler: handleProxyRemovedEvent
           kind: substrate/EventHandler
@@ -142,3 +142,27 @@ dataSources:
           filter:
             module: rcMigrator
             method: AssetHubMigrationStarted
+
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
+        - handler: handleMultisigApprovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigExecutedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCancelledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled
