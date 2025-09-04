@@ -10,7 +10,10 @@ const visitor = CreateCallVisitorBuilder()
   .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
     const calls = extrinsic.call.args.at(0);
     if (Array.isArray(calls) && calls.length > 100) {
-      // we're skipping large batches, something terrible happens inside anyway
+    const maxLength = 10_000;
+    const calls = extrinsic.call.args[0];
+    // we're skipping large batches, something terrible happens inside anyway
+    if (Array.isArray(calls) && calls.length > maxLength || extrinsic.events?.length > maxLength) {
       context.stop();
     }
   })
