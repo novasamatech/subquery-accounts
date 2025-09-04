@@ -109,12 +109,6 @@ dataSources:
           kind: substrate/CallHandler
           filter:
             module: system
-            method: remark
-
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
             method: remarkWithEvent
 
         - handler: handleProxyCall

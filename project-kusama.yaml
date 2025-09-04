@@ -107,12 +107,6 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleRemark
-          kind: substrate/CallHandler
-          filter:
-            module: system
-            method: remark
-
         - handler: handleProxyCall
           kind: substrate/CallHandler
           filter:
