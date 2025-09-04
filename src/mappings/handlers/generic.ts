@@ -19,7 +19,6 @@ const visitor = CreateCallVisitorBuilder()
   .on("multisig", "cancelAsMulti", handleMultisigCall)
   .on("multisig", "asMultiThreshold1", handleMultisigCall)
 
-  .on("system", "remark", handleRemark)
   .on("system", "remarkWithEvent", handleRemark)
   .on("proxy", "removeProxies", handleRemoveProxiesCall)
   .ignoreFailedCalls(true)
@@ -28,15 +27,3 @@ const visitor = CreateCallVisitorBuilder()
 export const handleNestedCalls = (extrinsic: SubstrateExtrinsic) => {
   return callWalk.walk(extrinsic, visitor);
 };
-
-// export function handleProxyProxy(extrinsic: SubstrateExtrinsic) {
-//   return Promise.all([handleRemark(extrinsic), handleProxyCall(extrinsic), handleMultisigCall(extrinsic)]);
-// }
-
-// export function handleMultisig(extrinsic: SubstrateExtrinsic) {
-//   return Promise.all([handleMultisigCall(extrinsic), handleRemark(extrinsic), handleProxyCall(extrinsic)]);
-// }
-
-// export function handleBatch(extrinsic: SubstrateExtrinsic) {
-//   return Promise.all([handleRemark(extrinsic), handleProxyCall(extrinsic), handleMultisigCall(extrinsic)]);
-// }
