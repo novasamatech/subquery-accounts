@@ -1,27 +1,9 @@
-import { SubstrateExtrinsic } from "@subql/types";
-import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
+import { VisitedCall } from "subquery-call-visitor";
 import { Proxied } from "../../types";
 import { u8aToHex } from "@polkadot/util";
 import { decodeAddress } from "../../utils/addressesDecode";
 
-const callWalk = CreateCallWalk();
-const proxyVisitor = CreateCallVisitorBuilder()
-  .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
-    const calls = extrinsic.call.args.at(0);
-    if (Array.isArray(calls) && calls.length > 100) {
-      // we're skipping large batches, something terrible happens inside anyway
-      context.stop();
-    }
-  })
-  .on("proxy", "removeProxies", handleRemoveProxiesCall)
-  .ignoreFailedCalls(true)
-  .build();
-
-export async function handleProxyCall(extrinsic: SubstrateExtrinsic): Promise<void> {
-  await callWalk.walk(extrinsic, proxyVisitor);
-}
-
-export async function handleRemoveProxiesCall(call: VisitedCall): Promise<void> {
+export async function handleRemoveProxiesCall(call: VisitedCall) {
   if (!call || !call.call || !call.call.args) {
     throw new Error(`Invalid call: ${JSON.stringify(call)}`);
   }
