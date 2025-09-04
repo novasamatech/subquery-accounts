@@ -4,8 +4,15 @@ import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
 import { u8aToHex } from "@polkadot/util";
 import { decodeAddress, createKeyMultiAddress } from "../../utils";
+import { VisitedCall } from "subquery-call-visitor";
 
-export async function handleMultisigCall(extrinsic: SubstrateExtrinsic): Promise<void> {
+export const handleMultisigCall = async (call: VisitedCall) => {
+  await parseAllAccounts(call);
+};
+
+async function parseAllAccounts(call: VisitedCall) {
+  const extrinsic = call.extrinsic;
+
   let [threshold, other_signatories] = extractThresholdAndOtherSignatories(extrinsic);
 
   const signer = extrinsic.extrinsic.signer.toString();

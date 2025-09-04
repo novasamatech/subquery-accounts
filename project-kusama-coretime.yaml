@@ -23,19 +23,7 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
-        - handler: handlePureProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureCreated
-
-        - handler: handlePureProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: AnonymousCreated
-
-        - handler: handleProxyProxy
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: proxy
@@ -43,7 +31,15 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxyAnnounced
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -67,7 +63,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -75,7 +71,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
@@ -83,7 +79,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
@@ -91,11 +87,19 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
             method: forceBatch
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: asDerivative
             success: true
             isSigned: true
 
@@ -111,22 +115,6 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyAdded
-        - handler: handleProxyRemovedEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: ProxyRemoved
-        - handler: handlePureProxyKilledEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureKilled
-
         - handler: handleProxyCall
           kind: substrate/CallHandler
           filter:
@@ -134,6 +122,36 @@ dataSources:
             method: removeProxies
             success: true
             isSigned: true
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
+
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+
+        - handler: handlePureProxyKilledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
 
         - handler: handleNewMultisigEvent
           kind: substrate/EventHandler

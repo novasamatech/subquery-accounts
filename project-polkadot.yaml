@@ -20,23 +20,11 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 200885 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
+    startBlock: 13479302 # first AnonymousCreated https://polkadot.subscan.io/extrinsic/200885-3?event=200885-3
     mapping:
       file: ./dist/index.js
       handlers:
-        - handler: handlePureProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: PureCreated
-
-        - handler: handlePureProxyEvent
-          kind: substrate/EventHandler
-          filter:
-            module: proxy
-            method: AnonymousCreated
-
-        - handler: handleProxyProxy
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: proxy
@@ -44,7 +32,15 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxyAnnounced
+            success: true
+            isSigned: true    
+
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -52,7 +48,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -60,7 +56,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -68,7 +64,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -76,7 +72,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
@@ -84,7 +80,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
@@ -92,7 +88,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleBatch
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: utility
@@ -100,42 +96,71 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleRemark
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: asDerivative
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: system
             method: remark
 
-        - handler: handleRemark
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: system
             method: remarkWithEvent
+        
+        - handler: handleProxyCall
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: removeProxies
+            success: true
+            isSigned: true
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+            success: true
+            isSigned: true
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
+            success: true
+            isSigned: true
 
         - handler: handleProxyEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: ProxyAdded
+            success: true
+            isSigned: true
 
         - handler: handleProxyRemovedEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: ProxyRemoved
-
+            success: true
+            isSigned: true
 
         - handler: handlePureProxyKilledEvent
           kind: substrate/EventHandler
           filter:
             module: proxy
             method: PureKilled
-
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
-          filter:
-            module: proxy
-            method: removeProxies
             success: true
             isSigned: true
 
@@ -150,21 +175,29 @@ dataSources:
           filter:
             module: multisig
             method: NewMultisig
+            success: true
+            isSigned: true           
 
         - handler: handleMultisigApprovedEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: MultisigApproved
+            success: true
+            isSigned: true
 
         - handler: handleMultisigExecutedEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: MultisigExecuted
+            success: true
+            isSigned: true
 
         - handler: handleMultisigCancelledEvent
           kind: substrate/EventHandler
           filter:
             module: multisig
             method: MultisigCanceled
+            success: true
+            isSigned: true
