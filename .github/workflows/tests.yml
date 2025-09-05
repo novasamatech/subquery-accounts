@@ -29,6 +29,7 @@ jobs:
       DB_HOST: localhost
       DB_PORT: 5432
       PROJECT_PATH: ${{ matrix.project_path }}
+      TZ: UTC
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js environment
