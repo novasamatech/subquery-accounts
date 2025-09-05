@@ -6,6 +6,10 @@ jobs:
   pr:
     name: pr
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project_path: ["./project-polkadot.yaml", "./project-aleph-zero.yaml"]
     services:
       postgres:
         image: postgres:16-alpine
@@ -24,6 +28,7 @@ jobs:
       DB_DATABASE: postgres
       DB_HOST: localhost
       DB_PORT: 5432
+      PROJECT_PATH: ${{ matrix.project_path }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js environment
@@ -42,5 +47,5 @@ jobs:
       - name: Enable btree btree_gist
         run: psql "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_DATABASE" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
       
-      - name: Run tests
-        run: yarn test 
+      - name: Run tests (${{ matrix.project_path }})
+        run: subql-node test -f $PROJECT_PATH
