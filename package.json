@@ -9,7 +9,7 @@
     "start:docker": "cross-env PROJECT_PATH=$PROJECT_PATH docker-compose pull && docker-compose up --remove-orphans",
     "dev": "subql codegen && subql build && docker-compose pull && docker-compose up --remove-orphans",
     "prepack": "rm -rf dist && npm run build",
-    "test": "subql build && subql-node test",
+    "test": "cross-env PROJECT_PATH=$PROJECT_PATH subql-node test -f $PROJECT_PATH",
     "deploy:polkadot": "subql publish -f polkadot.yaml",
     "deploy:kusama": "subql publish -f kusama.yaml",
     "deploy:moonbeam": "subql publish -f moonbeam.yaml",

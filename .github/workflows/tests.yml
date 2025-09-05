@@ -1,8 +1,7 @@
 name: PR
 on:
   pull_request:
-    paths-ignore:
-      - ".github/workflows/**"
+
 jobs:
   pr:
     name: pr
@@ -42,6 +41,6 @@ jobs:
 
       - name: Enable btree btree_gist
         run: psql "postgresql://$DB_USER:$DB_PASS@$DB_HOST:$DB_PORT/$DB_DATABASE" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
+      
       - name: Run tests
-        run: sh run-all-tests.sh
-        shell: bash
+        run: yarn test 

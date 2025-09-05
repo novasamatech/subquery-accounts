@@ -32,8 +32,6 @@ services:
       DB_DATABASE: postgres
       DB_HOST: postgres
       DB_PORT: 5432
-      FILTER_MANIFEST_BASENAME: ${FILTER_MANIFEST_BASENAME}
-      SUB_COMMAND: ${SUB_COMMAND}
     volumes:
       - ./:/app
     command:
