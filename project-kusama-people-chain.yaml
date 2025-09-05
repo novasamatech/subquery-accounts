@@ -145,7 +145,7 @@ dataSources:
             module: multisig
             method: NewMultisig
 
-        - handler: handleProxyCall
+        - handler: handleRemoveProxiesCall
           kind: substrate/CallHandler
           filter:
             module: proxy

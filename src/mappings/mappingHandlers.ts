@@ -1,6 +1,7 @@
 export {
   handleNestedCalls,
   handleProxyEvent,
+  handleRemoveProxiesCall,
   handleProxyRemovedEvent,
   handlePureProxyKilledEvent,
   handleAssetHubMigrationEvent,
