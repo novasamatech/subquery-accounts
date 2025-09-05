@@ -10,6 +10,8 @@ if [ -z $1 ]; then
 fi
 
 export PROJECT_PATH=$1
+export FILTER_MANIFEST_BASENAME=$1
+export SUB_COMMAND=test
 
 docker rm -f $(docker-compose ps -a -q)
 sudo rm -rf .data/

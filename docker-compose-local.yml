@@ -32,13 +32,16 @@ services:
       DB_DATABASE: postgres
       DB_HOST: postgres
       DB_PORT: 5432
+      FILTER_MANIFEST_BASENAME: ${FILTER_MANIFEST_BASENAME}
+      SUB_COMMAND: ${SUB_COMMAND}
     volumes:
       - ./:/app
     command:
       - ${SUB_COMMAND:-} # set SUB_COMMAND env variable to "test" to run tests
       - -f=/app/${PROJECT_PATH}
       - --db-schema=app
-      - --batch-size=30
+      - --batch-size=1
+      - --disable-historical=true
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://subquery-node:3000/ready" ]
       interval: 3s
