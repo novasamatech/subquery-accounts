@@ -47,7 +47,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
@@ -55,7 +55,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleMultisig
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: multisig
