@@ -116,7 +116,7 @@ dataSources:
             module: system
             method: remarkWithEvent
         
-        - handler: handleProxyCall
+        - handler: handleRemoveProxiesCall
           kind: substrate/CallHandler
           filter:
             module: proxy

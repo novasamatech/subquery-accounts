@@ -109,7 +109,7 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleProxyCall
+        - handler: handleRemoveProxiesCall
           kind: substrate/CallHandler
           filter:
             module: proxy
@@ -171,10 +171,3 @@ dataSources:
             module: multisig
             method: MultisigCanceled
 
-        - handler: handleProxyCall
-          kind: substrate/CallHandler
-          filter:
-            module: proxy
-            method: removeProxies
-            success: true
-            isSigned: true
