@@ -34,7 +34,7 @@ function validateThreshold(threshold: number) {
 }
 
 function extractThresholdAndOtherSignatories(call: VisitedCall): [number, string[]] {
-  if (call.call.method === "asMultiThreshold1") {
+  if (call.call.method == "asMultiThreshold1") {
     const {
       args: { other_signatories },
     } = call.call.toHuman() as unknown as MultisigThreshold1Args;
