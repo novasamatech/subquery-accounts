@@ -4,7 +4,7 @@ import { handleRemark } from "./multisigRemarkHandler";
 import { handleRemoveProxiesCall } from "./proxyCallHandler";
 import { CreateCallVisitorBuilder, CreateCallWalk } from "subquery-call-visitor";
 
-const callWalk = CreateCallWalk();
+const callWalk = CreateCallWalk(undefined, { info: () => {}, error: () => {}, warn: () => {}, debug: () => {}, fatal: () => {} } as any);
 
 const visitor = CreateCallVisitorBuilder()
   .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {

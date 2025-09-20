@@ -2,39 +2,33 @@ import { u8aToHex } from "@polkadot/util";
 import { SubstrateEvent } from "@subql/types";
 import { decodeAddress } from "./addressesDecode";
 import { HexString } from "@polkadot/util/types";
+import { Codec } from "@polkadot/types/types";
+import { eventParser } from "./eventParser";
 
-function extrinsicIndex(event: SubstrateEvent): number {
-  return event.extrinsic ? event.extrinsic.idx : event.idx;
+export function getPureProxyId(params: { delegator: HexString; chainId: string }) {
+  return `${params.chainId}-${params.delegator}`;
 }
 
-function blockNumber(event: SubstrateEvent): number {
-  return event.block.block.header.number.toNumber();
-}
-interface ProxyEventData {
-  proxyAccountId: HexString;
-  accountId: HexString;
-  type: string;
-  delay: number;
-  blockNumber: number;
-  extrinsicIndex: number;
-}
-
-export function getPureProxyId(params: Pick<ProxyEventData, "accountId"> & { chainId: string }) {
-  return `${params.chainId}-${params.accountId}`;
-}
-
-export function getProxiedId(params: Pick<ProxyEventData, "accountId" | "proxyAccountId" | "type" | "delay"> & { chainId: string }) {
-  return `${params.chainId}-${params.accountId}-${params.proxyAccountId}-${params.type}-${params.delay}`;
+export function getProxiedId(params: { delegator: HexString; delegatee: HexString; type: string; delay: number; chainId: string }) {
+  return `${params.chainId}-${params.delegator}-${params.delegatee}-${params.type}-${params.delay}`;
 }
 
 /**
  * Extracts and validates proxy event data
  */
+
+type ProxyEventData = {
+  delegator: HexString;
+  delegatee: HexString;
+  type: Codec;
+  delay: number;
+  blockNumber: number;
+  extrinsicIndex: number;
+};
+
 export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | null {
   const {
-    event: {
-      data,
-    },
+    event: { data },
   } = event;
 
   if (!data || !Array.isArray(data)) {
@@ -42,18 +36,18 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  const accountId = data.at(0)?.toHuman() as string;
-  const proxyAccountId = data.at(1)?.toHuman() as string;
-  const type = data.at(2)?.toHuman() as string;
+  const delegator = data.at(0)?.toHuman() as string;
+  const delegatee = data.at(1)?.toHuman() as string;
+  const type = data.at(2);
   const delay = parseInt(data.at(3)?.toHuman() as string);
 
-  if (!proxyAccountId) {
-    logger.error(`Invalid proxyAccountId: ${JSON.stringify(proxyAccountId)}`);
+  if (!delegatee) {
+    logger.error(`Invalid proxyAccountId: ${JSON.stringify(delegatee)}`);
     return null;
   }
 
-  if (!accountId) {
-    logger.error(`Invalid accountId: ${JSON.stringify(accountId)}`);
+  if (!delegator) {
+    logger.error(`Invalid accountId: ${JSON.stringify(delegator)}`);
     return null;
   }
 
@@ -62,17 +56,17 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  if (typeof delay !== 'number') {
+  if (typeof delay !== "number") {
     logger.error(`Invalid delay: ${JSON.stringify(delay)}`);
     return null;
   }
 
   return {
-    proxyAccountId: u8aToHex(decodeAddress(proxyAccountId)),
-    accountId: u8aToHex(decodeAddress(accountId)),
+    delegator: u8aToHex(decodeAddress(delegator)),
+    delegatee: u8aToHex(decodeAddress(delegatee)),
     type,
     delay,
-    blockNumber: blockNumber(event),
-    extrinsicIndex: extrinsicIndex(event),
+    blockNumber: eventParser.blockNumber(event),
+    extrinsicIndex: eventParser.extrinsicIndex(event),
   };
 }
