@@ -27,6 +27,11 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
 
   if (pure !== pureAccount) {
     const validationData = await api.query?.["parachainSystem"]?.["validationData"]?.();
+
+    if (!validationData) {
+      throw new Error(`Validation data on chain ${chainId} not found, time to die`);
+    }
+
     const json = validationData?.toJSON() as { relayParentNumber: number };
     const relayParentNumber = json?.relayParentNumber ?? 0;
 
@@ -37,11 +42,11 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
       maybeWhen: { blockHeight: relayParentNumber, extrinsicIndex },
     });
 
-    pureBlockNumber = relayParentNumber;
-
     if (pure !== pureAccountRelayParent) {
       throw new Error(`Who ${who} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
     }
+
+    pureBlockNumber = relayParentNumber;
   }
 
   const pureProxy = PureProxy.create({
