@@ -12,8 +12,8 @@ fi
 export PROJECT_PATH=$1
 
 docker rm -f $(docker-compose ps -a -q)
-# sudo rm -rf .data/
-# sudo rm -rf dist/
+sudo rm -rf .data/
+sudo rm -rf dist/
 
 # If any command bellow will fail - script will stop
 set -e
