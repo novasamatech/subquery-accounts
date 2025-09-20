@@ -13,6 +13,7 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
   if (!proxyData) return;
 
   const { who, pure, type, disambiguationIndex, delay, blockNumber, extrinsicIndex } = proxyData;
+  let pureBlockNumber = blockNumber;
 
   const typeString = type.toHuman() as string;
   const typeU8a = type.toU8a();
@@ -35,7 +36,9 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
       index: disambiguationIndex,
       maybeWhen: { blockHeight: relayParentNumber, extrinsicIndex },
     });
-  
+
+    pureBlockNumber = relayParentNumber;
+
     if (pure !== pureAccountRelayParent) {
       throw new Error(`Who ${who} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
     }
@@ -56,7 +59,7 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
     proxyAccountId: who,
     accountId: pure,
     delay,
-    blockNumber,
+    blockNumber: pureBlockNumber,
     extrinsicIndex,
     isPureProxy: true,
   });
