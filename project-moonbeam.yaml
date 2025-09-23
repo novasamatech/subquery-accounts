@@ -124,7 +124,7 @@ dataSources:
             module: system
             method: remarkWithEvent
 
-        - handler: handleRemoveProxiesCall
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: proxy

@@ -11,11 +11,9 @@ export const handleMultisigCall = async (call: VisitedCall) => {
 };
 
 async function parseAllAccounts(call: VisitedCall) {
-  const extrinsic = call.extrinsic;
+  let [threshold, other_signatories] = extractThresholdAndOtherSignatories(call);
 
-  let [threshold, other_signatories] = extractThresholdAndOtherSignatories(extrinsic);
-
-  const signer = extrinsic.extrinsic.signer.toString();
+  const signer = call.origin;
   const allSignatories = [...other_signatories, signer];
   const signatoriesAccountsPromises = allSignatories.map(signatory => checkAndGetAccount(u8aToHex(decodeAddress(signatory))));
   const allSignatoriesAccounts = await Promise.all(signatoriesAccountsPromises);
@@ -35,17 +33,17 @@ function validateThreshold(threshold: number) {
   }
 }
 
-function extractThresholdAndOtherSignatories(extrinsic: SubstrateExtrinsic): [number, string[]] {
-  if (extrinsic.extrinsic.method.method == "asMultiThreshold1") {
+function extractThresholdAndOtherSignatories(call: VisitedCall): [number, string[]] {
+  if (call.call.method == "asMultiThreshold1") {
     const {
       args: { other_signatories },
-    } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigThreshold1Args;
+    } = call.call.toHuman() as unknown as MultisigThreshold1Args;
 
     return [1, other_signatories];
   } else {
     const {
       args: { threshold, other_signatories },
-    } = extrinsic.extrinsic.method.toHuman() as unknown as MultisigArgs;
+    } = call.call.toHuman() as unknown as MultisigArgs;
 
     validateThreshold(threshold);
 
