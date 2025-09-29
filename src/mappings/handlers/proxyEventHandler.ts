@@ -10,7 +10,7 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
     return;
   }
 
-  const { delegatee: proxyAccountId, delegator: accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
   const typeString = type.toHuman() as string;
 
   logger.info(
@@ -25,7 +25,7 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
   const pureProxy = await PureProxy.get(getPureProxyId({ chainId, pure: accountId }));
 
   const proxied = Proxied.create({
-    id: getProxiedId({ chainId, delegator: accountId, delegatee: proxyAccountId, type: typeString, delay }),
+    id: getProxiedId({ chainId, proxied: accountId, proxy: proxyAccountId, type: typeString, delay }),
     chainId,
     type: typeString,
     proxyAccountId,
@@ -46,7 +46,7 @@ export async function handleProxyRemovedEvent(event: SubstrateEvent): Promise<vo
     return;
   }
 
-  const { delegatee: proxyAccountId, delegator: accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
   const typeString = type.toHuman() as string;
 
   logger.info(
@@ -59,5 +59,5 @@ export async function handleProxyRemovedEvent(event: SubstrateEvent): Promise<vo
     })}`,
   );
 
-  await Proxied.remove(getProxiedId({ chainId, delegator: accountId, delegatee: proxyAccountId, type: typeString, delay }));
+  await Proxied.remove(getProxiedId({ chainId, proxied: accountId, proxy: proxyAccountId, type: typeString, delay }));
 }
