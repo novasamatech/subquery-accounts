@@ -50,7 +50,7 @@ async function migratePureProxyEntities(sourceChainId: string, targetChainId: st
     for (const proxy of proxies) {
       const newId = getPureProxyId({
         chainId: targetChainId,
-        delegator: proxy.accountId as `0x${string}`,
+        pure: proxy.accountId as `0x${string}`,
       });
 
       if (!(await PureProxy.get(newId))) {

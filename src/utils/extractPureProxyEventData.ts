@@ -7,7 +7,7 @@ import { decodeAddress } from "./addressesDecode";
 
 type PureProxyEventData = {
   pure: HexString;
-  who: HexString;
+  spawner: HexString;
   type: Codec;
   disambiguationIndex: number;
   delay: number;
@@ -52,7 +52,7 @@ export function extractPureProxyEventData(event: SubstrateEvent): PureProxyEvent
 
   return {
     pure: u8aToHex(decodeAddress(pure)),
-    who: u8aToHex(decodeAddress(who)),
+    spawner: u8aToHex(decodeAddress(who)),
     type,
     delay: 0,
     disambiguationIndex,

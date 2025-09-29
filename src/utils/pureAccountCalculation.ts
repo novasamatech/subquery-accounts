@@ -6,7 +6,7 @@ import { blake2AsU8a, decodeAddress } from "@polkadot/util-crypto";
  */
 export interface PureAccountParams {
   /** The spawner account (who creates the pure proxy) */
-  who: string;
+  spawner: string;
   /** The type of the proxy (e.g., 'Any', 'NonTransfer', etc.) */
   proxyType: Uint8Array;
   /** A disambiguation index for multiple calls in the same transaction */
@@ -30,7 +30,7 @@ export interface PureAccountParams {
  * @returns The calculated pure proxy account address as a hex string
  */
 export function calculatePureAccount(params: PureAccountParams): string {
-  const { who, proxyType, index, maybeWhen } = params;
+  const { spawner: who, proxyType, index, maybeWhen } = params;
 
   // Decode the 'who' account to get the raw bytes
   const whoBytes = decodeAddress(who);
@@ -67,4 +67,76 @@ function createEntropyData(who: Uint8Array, blockHeight: number, extrinsicIndex:
 
   // Concatenate all the data
   return u8aConcatStrict([modulePrefix, who, blockHeightBytes, extrinsicIndexBytes, proxyTypeBytes, indexBytes]);
+}
+
+/**
+ * Parameters for finding the correct pure block number
+ */
+export interface FindPureBlockNumberParams {
+  /** The spawner account (who creates the pure proxy) */
+  spawner: string;
+  /** The expected pure account address */
+  pure: string;
+  /** The type of the proxy as Uint8Array */
+  type: Uint8Array;
+  /** A disambiguation index for multiple calls in the same transaction */
+  disambiguationIndex: number;
+  /** The original block number from the event */
+  blockNumber: number;
+  /** The extrinsic index from the event */
+  extrinsicIndex: number;
+}
+
+/**
+ * Finds the correct block number for pure proxy creation by checking both
+ * the original block number and the relay parent number if needed.
+ *
+ * @param params - The parameters for finding the pure block number
+ * @returns The correct block number to use for the pure proxy
+ * @throws Error if neither block number nor relay parent number produces the expected pure account
+ */
+export async function findPureBlockNumber(params: FindPureBlockNumberParams): Promise<number> {
+  const { spawner: who, pure, type, disambiguationIndex, blockNumber, extrinsicIndex } = params;
+
+  // First try with the original block number
+  const pureAccount = calculatePureAccount({
+    spawner: who,
+    proxyType: type,
+    index: disambiguationIndex,
+    maybeWhen: { blockHeight: blockNumber, extrinsicIndex },
+  });
+
+  // If the calculated pure account matches the expected one, use the original block number
+  if (pure === pureAccount) {
+    return blockNumber;
+  }
+
+  // If not, try with the relay parent number
+  const validationData = await api.query?.["parachainSystem"]?.["validationData"]?.();
+
+  if (!validationData) {
+    throw new Error(`Validation data on chain ${chainId} not found, time to die`);
+  }
+
+  const json = validationData?.toJSON() as { relayParentNumber: number };
+  const relayParentNumber = json?.relayParentNumber;
+
+  if (relayParentNumber === undefined || relayParentNumber === null) {
+    throw new Error(`Relay parent number on chain ${chainId} not found, time to die`);
+  }
+
+  const pureAccountRelayParent = calculatePureAccount({
+    spawner: who,
+    proxyType: type,
+    index: disambiguationIndex,
+    maybeWhen: { blockHeight: relayParentNumber, extrinsicIndex },
+  });
+
+  // If the relay parent calculation matches, use the relay parent number
+  if (pure === pureAccountRelayParent) {
+    return relayParentNumber;
+  }
+
+  // If neither works, throw an error
+  throw new Error(`Who ${who} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
 }

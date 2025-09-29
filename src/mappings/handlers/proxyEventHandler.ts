@@ -22,7 +22,7 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
     })}`,
   );
 
-  const pureProxy = await PureProxy.get(getPureProxyId({ chainId, delegator: accountId }));
+  const pureProxy = await PureProxy.get(getPureProxyId({ chainId, pure: accountId }));
 
   const proxied = Proxied.create({
     id: getProxiedId({ chainId, delegator: accountId, delegatee: proxyAccountId, type: typeString, delay }),

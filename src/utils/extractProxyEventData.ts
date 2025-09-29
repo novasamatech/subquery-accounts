@@ -5,8 +5,8 @@ import { HexString } from "@polkadot/util/types";
 import { Codec } from "@polkadot/types/types";
 import { eventParser } from "./eventParser";
 
-export function getPureProxyId(params: { delegator: HexString; chainId: string }) {
-  return `${params.chainId}-${params.delegator}`;
+export function getPureProxyId(params: { pure: HexString; chainId: string }) {
+  return `${params.chainId}-${params.pure}`;
 }
 
 export function getProxiedId(params: { delegator: HexString; delegatee: HexString; type: string; delay: number; chainId: string }) {

@@ -3,7 +3,7 @@ import { SubstrateEvent } from "@subql/types";
 import { Proxied, PureProxy } from "../../types";
 import { extractProxyEventData, getProxiedId, getPureProxyId } from "../../utils/extractProxyEventData";
 
-import { calculatePureAccount } from "../../utils";
+import { findPureBlockNumber } from "../../utils";
 import { extractPureProxyEventData } from "../../utils/extractPureProxyEventData";
 
 export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void> {
@@ -12,45 +12,22 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
   logger.info(`Pure Proxy Event: ${JSON.stringify(proxyData)}`);
   if (!proxyData) return;
 
-  const { who, pure, type, disambiguationIndex, delay, blockNumber, extrinsicIndex } = proxyData;
-  let pureBlockNumber = blockNumber;
+  const { spawner, pure, type, disambiguationIndex, delay, blockNumber, extrinsicIndex } = proxyData;
 
   const typeString = type.toHuman() as string;
   const typeU8a = type.toU8a();
 
-  const pureAccount = calculatePureAccount({
-    who: who,
-    proxyType: typeU8a,
-    index: disambiguationIndex,
-    maybeWhen: { blockHeight: blockNumber, extrinsicIndex },
+  const pureBlockNumber = await findPureBlockNumber({
+    spawner,
+    pure,
+    type: typeU8a,
+    disambiguationIndex,
+    blockNumber,
+    extrinsicIndex,
   });
 
-  if (pure !== pureAccount) {
-    const validationData = await api.query?.["parachainSystem"]?.["validationData"]?.();
-
-    if (!validationData) {
-      throw new Error(`Validation data on chain ${chainId} not found, time to die`);
-    }
-
-    const json = validationData?.toJSON() as { relayParentNumber: number };
-    const relayParentNumber = json?.relayParentNumber ?? 0;
-
-    const pureAccountRelayParent = calculatePureAccount({
-      who: who,
-      proxyType: typeU8a,
-      index: disambiguationIndex,
-      maybeWhen: { blockHeight: relayParentNumber, extrinsicIndex },
-    });
-
-    if (pure !== pureAccountRelayParent) {
-      throw new Error(`Who ${who} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
-    }
-
-    pureBlockNumber = relayParentNumber;
-  }
-
   const pureProxy = PureProxy.create({
-    id: getPureProxyId({ chainId, delegator: pure }),
+    id: getPureProxyId({ chainId, pure }),
     chainId,
     accountId: pure,
   });
@@ -58,10 +35,10 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
   await pureProxy.save();
 
   const proxied = Proxied.create({
-    id: getProxiedId({ chainId, delegator: pure, delegatee: who, type: typeString, delay }),
+    id: getProxiedId({ chainId, delegator: pure, delegatee: spawner, type: typeString, delay }),
     chainId,
     type: typeString,
-    proxyAccountId: who,
+    proxyAccountId: spawner,
     accountId: pure,
     delay,
     blockNumber: pureBlockNumber,
