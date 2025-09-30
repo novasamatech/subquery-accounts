@@ -10,7 +10,8 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
     return;
   }
 
-  const { proxyAccountId, accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
+  const typeString = type.toHuman() as string;
 
   logger.info(
     `Proxy Add Event: ${JSON.stringify({
@@ -21,12 +22,12 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
     })}`,
   );
 
-  const pureProxy = await PureProxy.get(getPureProxyId({ chainId, accountId }));
+  const pureProxy = await PureProxy.get(getPureProxyId({ chainId, pure: accountId }));
 
   const proxied = Proxied.create({
-    id: getProxiedId({ chainId, accountId, proxyAccountId, type, delay }),
+    id: getProxiedId({ chainId, proxied: accountId, proxy: proxyAccountId, type: typeString, delay }),
     chainId,
-    type,
+    type: typeString,
     proxyAccountId,
     accountId,
     delay,
@@ -45,7 +46,8 @@ export async function handleProxyRemovedEvent(event: SubstrateEvent): Promise<vo
     return;
   }
 
-  const { proxyAccountId, accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
+  const typeString = type.toHuman() as string;
 
   logger.info(
     `Proxy Remove Event: ${JSON.stringify({
@@ -57,5 +59,5 @@ export async function handleProxyRemovedEvent(event: SubstrateEvent): Promise<vo
     })}`,
   );
 
-  await Proxied.remove(getProxiedId({ chainId, accountId, proxyAccountId, type, delay }));
+  await Proxied.remove(getProxiedId({ chainId, proxied: accountId, proxy: proxyAccountId, type: typeString, delay }));
 }

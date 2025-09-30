@@ -3,30 +3,45 @@ import { SubstrateEvent } from "@subql/types";
 import { Proxied, PureProxy } from "../../types";
 import { extractProxyEventData, getProxiedId, getPureProxyId } from "../../utils/extractProxyEventData";
 
+import { findPureBlockNumber } from "../../utils";
+import { extractPureProxyEventData } from "../../utils/extractPureProxyEventData";
+
 export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void> {
-  const proxyData = extractProxyEventData(event);
+  const proxyData = extractPureProxyEventData(event);
 
   logger.info(`Pure Proxy Event: ${JSON.stringify(proxyData)}`);
   if (!proxyData) return;
 
-  const { proxyAccountId, accountId, type, delay, blockNumber, extrinsicIndex } = proxyData;
+  const { spawner, pure, type, disambiguationIndex, delay, blockNumber, extrinsicIndex } = proxyData;
+
+  const typeString = type.toHuman() as string;
+  const typeU8a = type.toU8a();
+
+  const pureBlockNumber = await findPureBlockNumber({
+    spawner,
+    pure,
+    type: typeU8a,
+    disambiguationIndex,
+    blockNumber,
+    extrinsicIndex,
+  });
 
   const pureProxy = PureProxy.create({
-    id: getPureProxyId({ chainId, accountId }),
+    id: getPureProxyId({ chainId, pure }),
     chainId,
-    accountId,
+    accountId: pure,
   });
 
   await pureProxy.save();
 
   const proxied = Proxied.create({
-    id: getProxiedId({ chainId, accountId, proxyAccountId, type, delay }),
+    id: getProxiedId({ chainId, proxied: pure, proxy: spawner, type: typeString, delay }),
     chainId,
-    type,
-    proxyAccountId,
-    accountId,
+    type: typeString,
+    proxyAccountId: spawner,
+    accountId: pure,
     delay,
-    blockNumber,
+    blockNumber: pureBlockNumber,
     extrinsicIndex,
     isPureProxy: true,
   });
@@ -41,7 +56,7 @@ export async function handlePureProxyKilledEvent(event: SubstrateEvent): Promise
     return;
   }
 
-  const { proxyAccountId, accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
 
   logger.info(
     `Pure Proxy Killed Event: ${JSON.stringify({
