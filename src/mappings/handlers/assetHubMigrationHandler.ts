@@ -55,11 +55,9 @@ async function migratePureProxyEntities(sourceChainId: string, targetChainId: st
 
       if (!(await PureProxy.get(newId))) {
         await PureProxy.create({
+          ...proxy,
           id: newId,
           chainId: targetChainId,
-          accountId: proxy.accountId as `0x${string}`,
-          disambiguationIndex: proxy.disambiguationIndex,
-          spawner: proxy.spawner,
         }).save();
         stats.migrated += 1;
       }
@@ -96,15 +94,9 @@ async function migrateProxiedEntities(sourceChainId: string, targetChainId: stri
 
       if (!(await Proxied.get(newId))) {
         await Proxied.create({
+          ...ent,
           id: newId,
           chainId: targetChainId,
-          type: ent.type,
-          proxyAccountId: ent.proxyAccountId,
-          accountId: ent.accountId,
-          delay: ent.delay,
-          blockNumber: ent.blockNumber,
-          extrinsicIndex: ent.extrinsicIndex,
-          isPureProxy: ent.isPureProxy,
         }).save();
         stats.migrated += 1;
       }
