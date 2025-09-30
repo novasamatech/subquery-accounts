@@ -58,6 +58,8 @@ async function migratePureProxyEntities(sourceChainId: string, targetChainId: st
           id: newId,
           chainId: targetChainId,
           accountId: proxy.accountId as `0x${string}`,
+          disambiguationIndex: proxy.disambiguationIndex,
+          spawner: proxy.spawner,
         }).save();
         stats.migrated += 1;
       }
