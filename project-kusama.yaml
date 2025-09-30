@@ -107,7 +107,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleRemoveProxiesCall
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: proxy

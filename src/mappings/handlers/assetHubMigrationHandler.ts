@@ -86,8 +86,8 @@ async function migrateProxiedEntities(sourceChainId: string, targetChainId: stri
     for (const ent of entities) {
       const newId = getProxiedId({
         chainId: targetChainId,
-        delegator: ent.accountId as `0x${string}`,
-        delegatee: ent.proxyAccountId as `0x${string}`,
+        proxied: ent.accountId as `0x${string}`,
+        proxy: ent.proxyAccountId as `0x${string}`,
         type: ent.type,
         delay: ent.delay,
       });

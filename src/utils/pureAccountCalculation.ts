@@ -96,11 +96,11 @@ export interface FindPureBlockNumberParams {
  * @throws Error if neither block number nor relay parent number produces the expected pure account
  */
 export async function findPureBlockNumber(params: FindPureBlockNumberParams): Promise<number> {
-  const { spawner: who, pure, type, disambiguationIndex, blockNumber, extrinsicIndex } = params;
+  const { spawner, pure, type, disambiguationIndex, blockNumber, extrinsicIndex } = params;
 
   // First try with the original block number
   const pureAccount = calculatePureAccount({
-    spawner: who,
+    spawner,
     proxyType: type,
     index: disambiguationIndex,
     maybeWhen: { blockHeight: blockNumber, extrinsicIndex },
@@ -126,7 +126,7 @@ export async function findPureBlockNumber(params: FindPureBlockNumberParams): Pr
   }
 
   const pureAccountRelayParent = calculatePureAccount({
-    spawner: who,
+    spawner,
     proxyType: type,
     index: disambiguationIndex,
     maybeWhen: { blockHeight: relayParentNumber, extrinsicIndex },
@@ -138,5 +138,5 @@ export async function findPureBlockNumber(params: FindPureBlockNumberParams): Pr
   }
 
   // If neither works, throw an error
-  throw new Error(`Who ${who} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
+  throw new Error(`Who ${spawner} is not the pure account ${pureAccount} or the pure account relay parent ${pureAccountRelayParent}`);
 }

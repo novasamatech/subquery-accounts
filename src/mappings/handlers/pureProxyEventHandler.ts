@@ -37,7 +37,7 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
   await pureProxy.save();
 
   const proxied = Proxied.create({
-    id: getProxiedId({ chainId, delegator: pure, delegatee: spawner, type: typeString, delay }),
+    id: getProxiedId({ chainId, proxied: pure, proxy: spawner, type: typeString, delay }),
     chainId,
     type: typeString,
     proxyAccountId: spawner,
@@ -60,7 +60,7 @@ export async function handlePureProxyKilledEvent(event: SubstrateEvent): Promise
     return;
   }
 
-  const { delegatee: proxyAccountId, delegator: accountId, type, delay } = proxyData;
+  const { proxy: proxyAccountId, proxied: accountId, type, delay } = proxyData;
 
   logger.info(
     `Pure Proxy Killed Event: ${JSON.stringify({

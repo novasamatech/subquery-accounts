@@ -9,8 +9,8 @@ export function getPureProxyId(params: { pure: HexString; chainId: string }) {
   return `${params.chainId}-${params.pure}`;
 }
 
-export function getProxiedId(params: { delegator: HexString; delegatee: HexString; type: string; delay: number; chainId: string }) {
-  return `${params.chainId}-${params.delegator}-${params.delegatee}-${params.type}-${params.delay}`;
+export function getProxiedId(params: { proxied: HexString; proxy: HexString; type: string; delay: number; chainId: string }) {
+  return `${params.chainId}-${params.proxied}-${params.proxy}-${params.type}-${params.delay}`;
 }
 
 /**
@@ -18,8 +18,8 @@ export function getProxiedId(params: { delegator: HexString; delegatee: HexStrin
  */
 
 type ProxyEventData = {
-  delegator: HexString;
-  delegatee: HexString;
+  proxied: HexString;
+  proxy: HexString;
   type: Codec;
   delay: number;
   blockNumber: number;
@@ -36,18 +36,18 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  const delegator = data.at(0)?.toHuman() as string;
-  const delegatee = data.at(1)?.toHuman() as string;
+  const proxied = data.at(0)?.toHuman() as string;
+  const proxy = data.at(1)?.toHuman() as string;
   const type = data.at(2);
   const delay = parseInt(data.at(3)?.toHuman() as string);
 
-  if (!delegatee) {
-    logger.error(`Invalid proxyAccountId: ${JSON.stringify(delegatee)}`);
+  if (!proxy) {
+    logger.error(`Invalid proxyAccountId: ${JSON.stringify(proxy)}`);
     return null;
   }
 
-  if (!delegator) {
-    logger.error(`Invalid accountId: ${JSON.stringify(delegator)}`);
+  if (!proxied) {
+    logger.error(`Invalid accountId: ${JSON.stringify(proxied)}`);
     return null;
   }
 
@@ -62,8 +62,8 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
   }
 
   return {
-    delegator: u8aToHex(decodeAddress(delegator)),
-    delegatee: u8aToHex(decodeAddress(delegatee)),
+    proxied: u8aToHex(decodeAddress(proxied)),
+    proxy: u8aToHex(decodeAddress(proxy)),
     type,
     delay,
     blockNumber: eventParser.blockNumber(event),
