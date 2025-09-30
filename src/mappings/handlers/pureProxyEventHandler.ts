@@ -30,6 +30,8 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
     id: getPureProxyId({ chainId, pure }),
     chainId,
     accountId: pure,
+    spawner,
+    disambiguationIndex,
   });
 
   await pureProxy.save();
@@ -44,6 +46,8 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
     blockNumber: pureBlockNumber,
     extrinsicIndex,
     isPureProxy: true,
+    disambiguationIndex,
+    spawner,
   });
 
   await proxied.save();

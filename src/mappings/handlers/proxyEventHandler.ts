@@ -34,6 +34,8 @@ export async function handleProxyEvent(event: SubstrateEvent): Promise<void> {
     blockNumber: proxyData.blockNumber,
     extrinsicIndex: proxyData.extrinsicIndex,
     isPureProxy: !!pureProxy,
+    disambiguationIndex: pureProxy?.disambiguationIndex,
+    spawner: pureProxy?.spawner,
   });
 
   await proxied.save();
