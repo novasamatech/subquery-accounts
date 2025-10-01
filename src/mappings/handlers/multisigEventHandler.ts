@@ -142,13 +142,15 @@ export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
   const callHashString = getCallHashString(event, 3);
   const multisigAccountId = getMultisigAccountId(event, 2);
   const { blockCreated, indexCreated } = getBlockAndIndexFromEvent(event);
-  const threshold1 = await isThreshold1(event);
+  const isThresholdOne = await isThreshold1(event);
   const finalStatus = getExecutionResult(event);
+  const signatory = getSignatory(event, "approving");
 
-  if (threshold1) {
-    const signatory = getSignatory(event, "approving");
+  let operation: MultisigOperation;
+
+  if (isThresholdOne) {
     const operationId = generateOperationId(callHashString, multisigAccountId, blockCreated, indexCreated);
-    const threshold1Operation = await MultisigOperation.create({
+    operation = await MultisigOperation.create({
       id: operationId,
       chainId: chainId,
       callHash: callHashString,
@@ -157,26 +159,24 @@ export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
       depositor: signatory,
       blockCreated: blockCreated,
       indexCreated: indexCreated,
-      timestamp: timestamp(event.extrinsic!.block),
+      timestamp: timestamp(event.extrinsic.block),
     });
-    await createMultisigEvent(event, threshold1Operation.id, signatory, EventStatus.approve);
-    await populateOperationWithCallData(threshold1Operation, callHashString, event);
-    
-    await threshold1Operation.save();
   } else {
-    const existingOperation = await findExistingOperation(callHashString, blockCreated, indexCreated, multisigAccountId);
-    const signatory = getSignatory(event, "approving");
-    
-    const newOperation = await MultisigOperation.create({
+    const existingOperation = await findExistingOperation(
+      callHashString,
+      blockCreated,
+      indexCreated,
+      multisigAccountId
+    );
+    operation = await MultisigOperation.create({
       ...existingOperation,
       status: finalStatus,
     });
-
-    await createMultisigEvent(event, newOperation.id, signatory, EventStatus.approve);
-    await populateOperationWithCallData(newOperation, callHashString, event);
-
-    await newOperation.save();
   }
+
+  await createMultisigEvent(event, operation.id, signatory, EventStatus.approve);
+  await populateOperationWithCallData(operation, callHashString, event);
+  await operation.save();
 }
 
 export async function handleMultisigCancelledEvent(event: SubstrateEvent) {
