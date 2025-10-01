@@ -64,7 +64,7 @@ enum OperationStatus {
 
 type MultisigOperation @entity {
   id: ID!
-  status: OperationStatus!
+  status: OperationStatus! @index
   chainId: String!
   accountId: String! @index
   section: String
