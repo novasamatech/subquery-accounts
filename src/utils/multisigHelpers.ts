@@ -144,13 +144,31 @@ export async function findExistingOperation(
     { limit: 1 },
   );
 
-  if (!existingOperation) {
-    throw new Error(
-      `Operation not found for call hash: ${callHashString} on block: ${blockCreated} index: ${indexCreated} multisig account id: ${multisigAccountId}`,
-    );
+  if (existingOperation) {
+    return existingOperation;
   }
 
-  return existingOperation;
+  // Fallback: try to find by callHash, accountId, and pending status
+  logger.warn(
+    `Cannot find operation by blockCreated: ${blockCreated}, indexCreated: ${indexCreated}. Trying fallback search by callHash, accountId, and pending status.`
+  );
+
+  const [fallbackOperation] = await MultisigOperation.getByFields(
+    [
+      ["callHash", "=", callHashString],
+      ["accountId", "=", multisigAccountId],
+      ["status", "=", OperationStatus.pending],
+    ],
+    { limit: 1 },
+  );
+
+  if (fallbackOperation) {
+    return fallbackOperation;
+  }
+
+  throw new Error(
+    `Operation not found for call hash: ${callHashString} on block: ${blockCreated} index: ${indexCreated} multisig account id: ${multisigAccountId}. Also tried fallback search by callHash, accountId, and pending status.`,
+  );
 }
 
 /**
