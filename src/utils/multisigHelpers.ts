@@ -4,12 +4,11 @@ import { CreateCallVisitorBuilder, CreateCallWalk } from "subquery-call-visitor"
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../types";
 import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
 import { 
-  generateEventId, 
-  getBlockCreated, 
-  getDataFromCall, 
-  getDataFromEvent, 
-  getIndexCreated, 
-  timestamp 
+  generateEventId,
+  getBlockCreated,
+  getDataFromEvent,
+  getIndexCreated,
+  timestamp
 } from "./operations";
 
 const callWalk = CreateCallWalk();
@@ -28,7 +27,6 @@ export async function isThreshold1(event: SubstrateEvent): Promise<boolean> {
     const visitor = CreateCallVisitorBuilder()
       .on("multisig", "asMultiThreshold1", () => {
         isThreshold1Call = true;
-        return Promise.resolve();
       })
       .ignoreFailedCalls(true)
       .build();
