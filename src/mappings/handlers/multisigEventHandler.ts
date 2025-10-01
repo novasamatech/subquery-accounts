@@ -102,7 +102,7 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
 
   const newOperation = await MultisigOperation.create({
     id: operationId,
-    chainId,
+    chainId: chainId,
     callHash: callHashString,
     status: OperationStatus.pending,
     accountId: multisigAccountId,
@@ -150,7 +150,7 @@ export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
     const operationId = generateOperationId(callHashString, multisigAccountId, blockCreated, indexCreated);
     const threshold1Operation = await MultisigOperation.create({
       id: operationId,
-      chainId,
+      chainId: chainId,
       callHash: callHashString,
       status: finalStatus,
       accountId: multisigAccountId,
