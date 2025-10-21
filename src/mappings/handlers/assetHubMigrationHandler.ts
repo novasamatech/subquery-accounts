@@ -68,7 +68,7 @@ async function migratePureProxyEntities(sourceChainId: string, targetChainId: st
       }
     }
     logger.info(`PureProxy progress: migrated=${stats.migrated}, deleted=${stats.deleted}`);
-    offset += BATCH_SIZE;
+    offset = DELETE_ORIGINALS ? 0 : offset + BATCH_SIZE;
   }
   logger.info(`PureProxy migration finished: migrated=${stats.migrated}, deleted=${stats.deleted}`);
   return stats;
@@ -107,7 +107,7 @@ async function migrateProxiedEntities(sourceChainId: string, targetChainId: stri
       }
     }
     logger.info(`Proxied progress: migrated=${stats.migrated}, deleted=${stats.deleted}`);
-    offset += BATCH_SIZE;
+    offset = DELETE_ORIGINALS ? 0 : offset + BATCH_SIZE;
   }
   logger.info(`Proxied migration finished: migrated=${stats.migrated}, deleted=${stats.deleted}`);
   return stats;
