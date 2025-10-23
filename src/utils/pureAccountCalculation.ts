@@ -45,6 +45,12 @@ export function calculatePureAccount(params: PureAccountParams): string {
   // The result is the account ID (32 bytes from the hash)
   const accountId = hash.slice(0, 32);
 
+  const isEVM = whoBytes.length === 20;
+
+  if (isEVM) {
+    return u8aToHex(accountId.slice(0, 20));
+  }
+
   return u8aToHex(accountId);
 }
 
