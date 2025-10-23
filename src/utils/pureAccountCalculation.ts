@@ -42,8 +42,8 @@ export function calculatePureAccount(params: PureAccountParams): string {
   // Hash the entropy using blake2_256
   const hash = blake2AsU8a(entropy, 256);
 
-  // The result is the account ID (32 bytes from the hash)
-  const accountId = hash.slice(0, 32);
+  // The result is the account ID (32 or 20 bytes from the hash, depends on the spawner length)
+  const accountId = hash.slice(0, whoBytes.length);
 
   return u8aToHex(accountId);
 }
