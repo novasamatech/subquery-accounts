@@ -118,7 +118,7 @@ dataSources:
             success: true
             isSigned: true
 
-        - handler: handleRemark
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: system
