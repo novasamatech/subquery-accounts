@@ -1,6 +1,6 @@
 import { SubstrateExtrinsic } from "@subql/types";
 import { handleMultisigCall } from "./multisigCallHandler";
-import { handleRemark } from "./multisigRemarkHandler";
+import { handleRemarkCall } from "./multisigRemarkHandler";
 import { handleRemoveProxiesCall } from "./proxyCallHandler";
 import { CreateCallVisitorBuilder, CreateCallWalk } from "subquery-call-visitor";
 
@@ -19,7 +19,7 @@ const visitor = CreateCallVisitorBuilder()
   .on("multisig", "approveAsMulti", handleMultisigCall)
   .on("multisig", "cancelAsMulti", handleMultisigCall)
   .on("multisig", "asMultiThreshold1", handleMultisigCall)
-  .on("system", "remarkWithEvent", handleRemark)
+  .on("system", "remarkWithEvent", handleRemarkCall)
   .on("proxy", "removeProxies", handleRemoveProxiesCall)
   .ignoreFailedCalls(true)
   .build();
