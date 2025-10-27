@@ -133,7 +133,7 @@ dataSources:
             module: proxy
             method: ProxyAdded
 
-        - handler: handleRemark
+        - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
             module: system

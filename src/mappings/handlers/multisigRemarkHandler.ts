@@ -6,21 +6,20 @@ import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
 import { isJsonStringArgs } from "../../utils/isJson";
-import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
+import { VisitedCall } from "subquery-call-visitor";
 import { Bytes } from "@polkadot/types";
 
-  export async function handleRemark(call: VisitedCall) {
-    await handleMultisigRemarkCall(call);
-  }
-
+export async function handleRemarkCall(call: VisitedCall) {
+  await handleMultisigRemarkCall(call);
+}
 
 async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
   if (!call || !call.call || !call.call.args) {
-    return;
+    throw new Error(`Invalid call: ${JSON.stringify(call)}`);
   }
 
   if (!isJsonStringArgs(call.call.args as Bytes[])) {
-    return;
+    throw new Error(`Invalid call args: ${JSON.stringify(call.call.args)}`);
   }
 
   const args = call.call.args[0]?.toHuman() as unknown as string;
