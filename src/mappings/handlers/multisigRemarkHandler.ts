@@ -19,7 +19,7 @@ async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
   }
 
   if (!isJsonStringArgs(call.call.args as Bytes[])) {
-    throw new Error(`Invalid call args: ${JSON.stringify(call.call.args)}`);
+    return;
   }
 
   const args = call.call.args[0]?.toHuman() as unknown as string;
