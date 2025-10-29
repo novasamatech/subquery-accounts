@@ -16,6 +16,7 @@ projects:
   - project-mythos.yaml
   - project-polkadot-asset-hub.yaml
   - project-polkadot-coretime.yaml
+  - project-polkadot-collectives.yaml
   - project-polkadot-people-chain.yaml
   - project-polkadot.yaml
   - project-rococo.yaml
