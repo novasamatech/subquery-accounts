@@ -16,7 +16,6 @@ network:
   chainId: "0x46ee89aa2eedd13e988962630ec9fb7565964cf5023bb351f2b6b25c1b68b0b2"
   endpoint: >-
     wss://collectives-polkadot-rpc.n.dwellir.com
-  dictionary: https://api.subquery.network/sq/subquery/dictionary-polkadot
 dataSources:
   - name: main
     kind: substrate/Runtime
