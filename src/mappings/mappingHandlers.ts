@@ -6,7 +6,6 @@ export {
   handlePureProxyKilledEvent,
   handleAssetHubMigrationEvent,
   handlePureProxyEvent,
-  handleRemark,
   handleNewMultisigEvent,
   handleMultisigApprovedEvent,
   handleMultisigExecutedEvent,
