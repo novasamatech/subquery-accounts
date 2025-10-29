@@ -10,6 +10,7 @@ if [ -z $1 ]; then
 fi
 
 export PROJECT_PATH=$1
+export SUB_COMMAND=$2
 
 docker rm -f $(docker-compose ps -a -q)
 sudo rm -rf .data/
