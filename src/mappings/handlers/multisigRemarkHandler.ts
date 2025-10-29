@@ -6,30 +6,16 @@ import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
 import { isJsonStringArgs } from "../../utils/isJson";
-import { CreateCallVisitorBuilder, CreateCallWalk, VisitedCall } from "subquery-call-visitor";
+import { VisitedCall } from "subquery-call-visitor";
 import { Bytes } from "@polkadot/types";
 
-export async function handleRemark(extrinsic: SubstrateExtrinsic) {
-  callWalk.walk(extrinsic, multisigVisitor);
+export async function handleRemarkCall(call: VisitedCall) {
+  await handleMultisigRemarkCall(call);
 }
-
-const callWalk = CreateCallWalk();
-const multisigVisitor = CreateCallVisitorBuilder()
-  .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {
-    const calls = extrinsic.call.args.at(0);
-    if (Array.isArray(calls) && calls.length > 10) {
-      // we're skipping large batches, something terrible happens inside anyway
-      context.stop();
-    }
-  })
-  .on("system", "remark", handleMultisigRemarkCall)
-  .on("system", "remarkWithEvent", handleMultisigRemarkCall)
-  .ignoreFailedCalls(true)
-  .build();
 
 async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
   if (!call || !call.call || !call.call.args) {
-    return;
+    throw new Error(`Invalid call: ${JSON.stringify(call)}`);
   }
 
   if (!isJsonStringArgs(call.call.args as Bytes[])) {

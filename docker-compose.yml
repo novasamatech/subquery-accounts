@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -38,9 +38,10 @@ services:
       - ${SUB_COMMAND:-} # set SUB_COMMAND env variable to "test" to run tests
       - -f=/app/${PROJECT_PATH}
       - --db-schema=app
+      - --multi-chain
       - --batch-size=30
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://subquery-node:3000/ready"]
+      test: [ "CMD", "curl", "-f", "http://subquery-node:3000/ready" ]
       interval: 3s
       timeout: 5s
       retries: 10
@@ -68,3 +69,497 @@ services:
       - --name=app
       - --playground
       - --indexer=http://subquery-node:3000
+  subquery-node-project-westend:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-westend.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-westend:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-aleph-zero:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-aleph-zero.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-aleph-zero:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-avail:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-avail.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-avail:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-hydradx:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-hydradx.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-hydradx:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-kusama-asset-hub:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-kusama-asset-hub.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-kusama-asset-hub:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-kusama-coretime:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-kusama-coretime.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-kusama-coretime:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-kusama-people-chain:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-kusama-people-chain.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-kusama-people-chain:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-kusama:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-kusama.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-kusama:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-moonbeam:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-moonbeam.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-moonbeam:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-moonriver:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-moonriver.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-moonriver:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-mythos:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-mythos.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-mythos:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-polkadot-asset-hub:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-polkadot-asset-hub.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-polkadot-asset-hub:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-polkadot-coretime:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-polkadot-coretime.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-polkadot-coretime:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-polkadot-people-chain:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-polkadot-people-chain.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-polkadot-people-chain:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-testnet:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-testnet.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-testnet:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-westend-asset-hub:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-westend-asset-hub.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-westend-asset-hub:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-bittensor:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-bittensor.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-bittensor:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-polkadot:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-polkadot.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-polkadot:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10
+  subquery-node-project-rococo:
+    image: subquerynetwork/subql-node-substrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    volumes:
+      - ./:/app
+    command:
+      - -f=app/project-rococo.yaml
+      - --multi-chain
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://subquery-node-project-rococo:3000/ready
+      interval: 3s
+      timeout: 5s
+      retries: 10

@@ -1,13 +1,29 @@
 type PureProxy @entity {
-  id: ID! # pure proxied accountId
+  id: ID!
+  accountId: String! @index
+  chainId: String! @index
+  spawner: String!
+  disambiguationIndex: Int!
+}
+
+type Proxied @entity {
+  id: ID!
+  chainId: String! @index
+  type: String!
+  proxyAccountId: String! @index
+  accountId: String! @index
+  delay: Int! @index
   blockNumber: Int!
   extrinsicIndex: Int!
+  isPureProxy: Boolean!
+  disambiguationIndex: Int
+  spawner: String
 }
 
 # An account can be a multisig, or a normal account (like a signatory)
 type Account @entity {
   id: ID!
-  address: String!
+  accountId: String!
   # if this account is the signatory on one or many multisigs, this will link to an array of multisigs
   multisigs: [AccountMultisig] @derivedFrom(field: "signatory")
   isMultisig: Boolean
@@ -20,8 +36,8 @@ type Account @entity {
 # entity for linking accounts and multisigs
 type AccountMultisig @entity {
   id: ID!
-  multisig: Account!
-  signatory: Account!
+  multisig: Account! @index
+  signatory: Account! @index
 }
 
 enum EventStatus {
@@ -35,7 +51,7 @@ type MultisigEvent @entity {
   status: EventStatus!
   blockCreated: Int!
   indexCreated: Int!
-  multisig: MultisigOperation!
+  multisig: MultisigOperation! @index
   timestamp: Int!
 }
 
@@ -48,7 +64,8 @@ enum OperationStatus {
 
 type MultisigOperation @entity {
   id: ID!
-  status: OperationStatus!
+  status: OperationStatus! @index
+  chainId: String!
   accountId: String! @index
   section: String
   method: String
@@ -58,5 +75,5 @@ type MultisigOperation @entity {
   blockCreated: Int! @index
   indexCreated: Int! @index
   timestamp: Int!
-  events: [MultisigEvent!]! @derivedFrom(field: "multisig")  
+  events: [MultisigEvent!]! @derivedFrom(field: "multisig")
 }

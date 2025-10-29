@@ -1,0 +1,174 @@
+specVersion: 1.0.0
+name: subquery-proxy-polkadot
+version: 1.0.0
+runner:
+  node:
+    name: "@subql/node"
+    version: "*"
+  query:
+    name: "@subql/query"
+    version: v1.5.0
+description: Nova SubQuery project
+repository: https://github.com/nova-wallet/subquery-proxy
+schema:
+  file: ./schema.graphql
+network:
+  chainId: "0x70255b4d28de0fc4e1a193d7e175ad1ccef431598211c55538f1018651a0344e"
+  endpoint: >-
+    wss://ws.azero.dev
+  chaintypes:
+    file: ./dist/alephZeroChaintypes.js
+dataSources:
+  - name: main
+    kind: substrate/Runtime
+    startBlock: 1011242 # First multisig https://alephzero.subscan.io/extrinsic/1011242-1
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxy
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: proxyAnnounced
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMulti
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: approveAsMulti
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: cancelAsMulti
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: multisig
+            method: asMultiThreshold1
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: batch
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: batchAll
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: forceBatch
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: utility
+            method: asDerivative
+            success: true
+            isSigned: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: system
+            method: remarkWithEvent
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: proxy
+            method: removeProxies
+            success: true
+            isSigned: true
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureCreated
+
+        - handler: handlePureProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: AnonymousCreated
+
+        - handler: handleProxyEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyAdded
+
+        - handler: handleProxyRemovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: ProxyRemoved
+
+        - handler: handlePureProxyKilledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: proxy
+            method: PureKilled
+
+        - handler: handleNewMultisigEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: NewMultisig
+
+        - handler: handleMultisigApprovedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigApproved
+
+        - handler: handleMultisigExecutedEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigExecuted
+
+        - handler: handleMultisigCancelledEvent
+          kind: substrate/EventHandler
+          filter:
+            module: multisig
+            method: MultisigCanceled

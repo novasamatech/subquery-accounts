@@ -1,1 +1,13 @@
-export { handlePureProxyEvent, handleMultisigCall, handleMultisigInProxy, handleBatch, handleMultisig, handleProxyProxy, handleRemark } from "./handlers";
+export {
+  handleNestedCalls,
+  handleProxyEvent,
+  handleRemoveProxiesCall,
+  handleProxyRemovedEvent,
+  handlePureProxyKilledEvent,
+  handleAssetHubMigrationEvent,
+  handlePureProxyEvent,
+  handleNewMultisigEvent,
+  handleMultisigApprovedEvent,
+  handleMultisigExecutedEvent,
+  handleMultisigCancelledEvent,
+} from "./handlers";
