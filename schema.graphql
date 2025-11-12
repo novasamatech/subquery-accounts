@@ -4,6 +4,8 @@ type PureProxy @entity {
   chainId: String! @index
   spawner: String!
   disambiguationIndex: Int!
+  entropyBlockNumber: Int!
+  extrinsicIndex: Int!
 }
 
 type Proxied @entity {
@@ -13,7 +15,7 @@ type Proxied @entity {
   proxyAccountId: String! @index
   accountId: String! @index
   delay: Int! @index
-  blockNumber: Int!
+  blockNumber: Int! #entropyBlockNumber (can't rename for sake of backwards compatibility)
   extrinsicIndex: Int!
   isPureProxy: Boolean!
   disambiguationIndex: Int
