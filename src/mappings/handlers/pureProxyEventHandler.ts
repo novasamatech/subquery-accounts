@@ -32,6 +32,8 @@ export async function handlePureProxyEvent(event: SubstrateEvent): Promise<void>
     accountId: pure,
     spawner,
     disambiguationIndex,
+    entropyBlockNumber: pureBlockNumber,
+    extrinsicIndex,
   });
 
   await pureProxy.save();
