@@ -10,11 +10,10 @@ import {
   getBlockAndIndexFromEvent,
   findExistingOperation,
   getExecutionResult,
-  isThreshold1
+  isThreshold1,
 } from "../../utils/multisigHelpers";
 
 import { AnyTuple, CallBase } from "@polkadot/types/types";
-
 
 const callWalk = CreateCallWalk();
 
@@ -78,7 +77,6 @@ function createHandleCall(operation: MultisigOperation, callHash: string, multis
   };
 }
 
-
 async function populateOperationWithCallData(operation: MultisigOperation, callHashString: string, event: SubstrateEvent): Promise<void> {
   const count = await calculateMultiCalls(event.extrinsic!);
 
@@ -95,6 +93,10 @@ export async function handleNewMultisigEvent(event: SubstrateEvent) {
   const multisigAccountId = getMultisigAccountId(event, 1);
 
   const { blockCreated, indexCreated } = getBlockAndIndexFromEvent(event);
+
+  logger.info(
+    `[handleNewMultisigEvent] callHashString: ${callHashString}, blockCreated: ${blockCreated}, indexCreated: ${indexCreated}, multisigAccountId: ${multisigAccountId}`,
+  );
 
   const operationId = generateOperationId(callHashString, multisigAccountId, blockCreated, indexCreated);
 
@@ -135,7 +137,6 @@ export async function handleMultisigApprovedEvent(event: SubstrateEvent) {
   await newOperation.save();
 }
 
-
 export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
   if (!event.extrinsic) throw new Error("Extrinsic not found");
 
@@ -162,12 +163,7 @@ export async function handleMultisigExecutedEvent(event: SubstrateEvent) {
       timestamp: timestamp(event.extrinsic.block),
     });
   } else {
-    const existingOperation = await findExistingOperation(
-      callHashString,
-      blockCreated,
-      indexCreated,
-      multisigAccountId
-    );
+    const existingOperation = await findExistingOperation(callHashString, blockCreated, indexCreated, multisigAccountId);
     operation = await MultisigOperation.create({
       ...existingOperation,
       status: finalStatus,
@@ -185,6 +181,7 @@ export async function handleMultisigCancelledEvent(event: SubstrateEvent) {
   const callHashString = getCallHashString(event, 3);
   const multisigAccountId = getMultisigAccountId(event, 2);
   const { blockCreated, indexCreated } = getBlockAndIndexFromEvent(event);
+
   const existingOperation = await findExistingOperation(callHashString, blockCreated, indexCreated, multisigAccountId);
   const signatory = getSignatory(event, "cancelling");
 

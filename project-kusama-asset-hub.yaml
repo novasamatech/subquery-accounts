@@ -15,13 +15,13 @@ schema:
 network:
   chainId: "0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a"
   endpoint: >-
-    wss://asset-hub-kusama-rpc.dwellir.com
+    wss://sys.ibp.network/statemine
   chaintypes:
     file: ./dist/kusamaAssetHubChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
-    startBlock: 318927 # First multisig https://assethub-kusama.subscan.io/extrinsic/318927-2
+    startBlock: 12149300 # First multisig https://assethub-kusama.subscan.io/extrinsic/318927-2
     mapping:
       file: ./dist/index.js
       handlers:
@@ -171,4 +171,4 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: multisig
-            method: MultisigCanceled
+            method: MultisigCancelled

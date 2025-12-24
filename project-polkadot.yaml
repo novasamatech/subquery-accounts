@@ -198,6 +198,6 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: multisig
-            method: MultisigCanceled
+            method: MultisigCancelled
             success: true
             isSigned: true
