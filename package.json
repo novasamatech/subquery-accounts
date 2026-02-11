@@ -28,10 +28,10 @@
   "author": "Novasama Technlogies",
   "license": "MIT",
   "devDependencies": {
-    "@polkadot/api": "16.4.1",
-    "@subql/cli": "5.14.0",
-    "@subql/testing": "2.3.0",
-    "@subql/types": "3.13.0",
+    "@polkadot/api": "^16",
+    "@subql/cli": "latest",
+    "@subql/testing": "latest",
+    "@subql/types": "latest",
     "cross-env": "7.0.3",
     "moonbeam-types-bundle": "2.0.10",
     "prettier": "3.6.2",
@@ -39,15 +39,25 @@
   },
   "resolutions": {
     "ipfs-unixfs": "6.0.6",
-    "@polkadot/wasm-bridge": "7.4.1",
-    "@polkadot/x-randomvalues": "^13.0.0"
+    "@polkadot/api": "16.5.4",
+    "@polkadot/api-augment": "16.5.4",
+    "@polkadot/api-base": "16.5.4",
+    "@polkadot/api-derive": "16.5.4",
+    "@polkadot/rpc-augment": "16.5.4",
+    "@polkadot/rpc-core": "16.5.4",
+    "@polkadot/rpc-provider": "16.5.4",
+    "@polkadot/types": "16.5.4",
+    "@polkadot/types-augment": "16.5.4",
+    "@polkadot/types-codec": "16.5.4",
+    "@polkadot/types-create": "16.5.4",
+    "@polkadot/types-known": "16.5.4"
   },
   "dependencies": {
-    "@polkadot/api-augment": "16.4.1",
-    "@polkadot/types": "16.4.1",
-    "@polkadot/util": "13.5.3",
-    "@polkadot/util-crypto": "13.5.3",
-    "@subql/types-core": "2.1.0",
+    "@polkadot/api-augment": "^16",
+    "@polkadot/types": "^16",
+    "@polkadot/util": "^13",
+    "@polkadot/util-crypto": "^13",
+    "@subql/types-core": "latest",
     "subquery-call-visitor": "1.4.2",
     "tslib": "2.8.1"
   },
@@ -56,6 +66,8 @@
     "bittensorChaintypes": "./chainTypes/bittensorChainTypes.ts",
     "alephZeroChaintypes": "./chainTypes/alephZeroChaintypes.ts",
     "kusamaAssetHubChaintypes": "./chainTypes/kusamaAssetHubChaintypes.ts",
+    "polkadotAssetHubChaintypes": "./chainTypes/polkadotAssetHubChaintypes.ts",
+    "westendAssetHubChaintypes": "./chainTypes/westendAssetHubChaintypes.ts",
     "availChainTypes": "./chainTypes/availChainTypes.ts"
   }
 }

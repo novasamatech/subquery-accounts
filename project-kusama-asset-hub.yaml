@@ -15,7 +15,7 @@ schema:
 network:
   chainId: "0x48239ef607d7928874027a43a67689209727dfb3d3dc5e5b03a39bdc2eda771a"
   endpoint: >-
-    wss://sys.ibp.network/statemine
+    wss://asset-hub-kusama-rpc.n.dwellir.com
   chaintypes:
     file: ./dist/kusamaAssetHubChaintypes.js
 dataSources:
