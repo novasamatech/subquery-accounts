@@ -6,13 +6,15 @@
     "declaration": true,
     "importHelpers": true,
     "resolveJsonModule": true,
-    "module": "commonjs",
+    "module": "node16",
+    "moduleResolution": "node16",
     "outDir": "dist",
     "rootDir": ".",
     "target": "es2021",
+    "skipLibCheck": true,
     "strict": true,
     "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true  
+    "noUncheckedIndexedAccess": true,
   },
   "include": [
     "src/**/*",
