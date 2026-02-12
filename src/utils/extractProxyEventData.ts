@@ -36,10 +36,10 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  const proxied = data.at(0)?.toHuman() as string;
-  const proxy = data.at(1)?.toHuman() as string;
+  const proxied = data.at(0)?.toString();
+  const proxy = data.at(1)?.toString();
   const type = data.at(2);
-  const delay = parseInt(data.at(3)?.toHuman() as string);
+  const delay = Number(data.at(3)?.toString());
 
   if (!proxy) {
     logger.error(`Invalid proxyAccountId: ${JSON.stringify(proxy)}`);
@@ -56,7 +56,7 @@ export function extractProxyEventData(event: SubstrateEvent): ProxyEventData | n
     return null;
   }
 
-  if (typeof delay !== "number") {
+  if (!Number.isFinite(delay)) {
     logger.error(`Invalid delay: ${JSON.stringify(delay)}`);
     return null;
   }

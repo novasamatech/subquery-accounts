@@ -3,22 +3,23 @@ import { OverrideBundleDefinition } from "@polkadot/types/types";
 const definitions: OverrideBundleDefinition = {
   types: [
     {
-      // Before spec 9430, assetId was Option<AssetId>
-      minmax: [0, 9429],
+      // Specs 2–9435: ChargeAssetTxPayment.asset_id = Option<u32>
+      // Pallet: pallet_asset_tx_payment (specs <800 have no v14 metadata;
+      // override is harmless since ChargeAssetTxPayment is absent there).
+      // Verified on-chain via RPC metadata scan across all spec eras.
+      minmax: [0, 9435],
       types: {
         NovaAssetId: "Option<AssetId>",
       },
     },
     {
-      // From spec 9430 to 1999999, assetId uses Option<MultiLocation>
-      minmax: [9430, 1999999],
-      types: {
-        NovaAssetId: "Option<MultiLocation>",
-      },
-    },
-    {
-      // From spec version 2000000, ChargeAssetTxPayment uses MultiLocationV3 for foreign assets
-      minmax: [2000000, null],
+      // Specs 1000000+: ChargeAssetTxPayment.asset_id = Option<MultiLocation/Location>
+      // Pallet switched to pallet_asset_conversion_tx_payment.
+      //   1000000–1003003: staging_xcm::v3::multilocation::MultiLocation
+      //   2000007+:        staging_xcm::v5::location::Location
+      // All are structurally identical {parents: u8, interior: Junctions},
+      // so MultiLocationV3 decodes all of them correctly.
+      minmax: [1000000, null],
       types: {
         NovaAssetId: "Option<MultiLocationV3>",
       },
@@ -38,8 +39,4 @@ const definitions: OverrideBundleDefinition = {
 
 export default {
   typesBundle: { spec: { statemine: definitions } },
-  types: {
-    // Override for current runtime - needed for block decoding
-    NovaAssetId: "Option<MultiLocationV3>",
-  },
 };

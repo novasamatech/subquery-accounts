@@ -10,7 +10,7 @@
     "moduleResolution": "node16",
     "outDir": "dist",
     "rootDir": ".",
-    "target": "es2021",
+    "target": "es2022",
     "skipLibCheck": true,
     "strict": true,
     "noPropertyAccessFromIndexSignature": true,
