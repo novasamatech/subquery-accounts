@@ -16,7 +16,6 @@ network:
   chainId: "0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e"
   endpoint: >-
     wss://rococo-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/rococo-dictionary
 dataSources:
   - name: main
     kind: substrate/Runtime
