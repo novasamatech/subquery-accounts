@@ -5885,15 +5885,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"subquery-call-visitor@https://github.com/novasamatech/subquery-call-visitor/archive/refs/heads/fix/evm-address.tar.gz":
+"subquery-call-visitor@npm:1.4.4":
   version: 1.4.4
-  resolution: "subquery-call-visitor@https://github.com/novasamatech/subquery-call-visitor/archive/refs/heads/fix/evm-address.tar.gz"
+  resolution: "subquery-call-visitor@npm:1.4.4"
   dependencies:
     "@polkadot/util": "npm:^14.0.1"
     "@types/big.js": "npm:^6.1.6"
     big.js: "npm:^6.2.1"
     pino: "npm:^8.12.0"
-  checksum: 10c0/516b14d3bd9c25e7b4877b2b6957465d0dddfde3f449f6d88fc89252c3a12cbf00dca4f9ba17598d52fd45543e98d3ab404796172aed9c41fc7ee5ae57b3558a
+  checksum: 10c0/7fc0f2b6ba8c2f2091eb7f0b24163b8afd491f16452bcf6d3efaf46f7270d179942ddb3293136ef95bf7091f16f5d1686644e919a898308a5b984ef7df957a6f
   languageName: node
   linkType: hard
 
@@ -5913,7 +5913,7 @@ __metadata:
     cross-env: "npm:7.0.3"
     moonbeam-types-bundle: "npm:2.0.10"
     prettier: "npm:3.6.2"
-    subquery-call-visitor: "https://github.com/novasamatech/subquery-call-visitor/archive/refs/heads/fix/evm-address.tar.gz"
+    subquery-call-visitor: "npm:1.4.4"
     tslib: "npm:2.8.1"
     typescript: "npm:5.8.3"
   languageName: unknown

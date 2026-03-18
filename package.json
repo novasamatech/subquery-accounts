@@ -60,7 +60,7 @@
     "@polkadot/util": "14.0.1",
     "@polkadot/util-crypto": "14.0.1",
     "@subql/types-core": "latest",
-    "subquery-call-visitor": "https://github.com/novasamatech/subquery-call-visitor/archive/refs/heads/fix/evm-address.tar.gz",
+    "subquery-call-visitor": "1.4.4",
     "tslib": "2.8.1"
   },
   "exports": {
