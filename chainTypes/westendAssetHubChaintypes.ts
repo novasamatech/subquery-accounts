@@ -3,11 +3,11 @@ import { OverrideBundleDefinition } from "@polkadot/types/types";
 const definitions: OverrideBundleDefinition = {
   types: [
     {
-      // Specs 2–9425: ChargeAssetTxPayment.asset_id = Option<u32>
+      // Specs 2–9434: ChargeAssetTxPayment.asset_id = Option<u32>
       // Pallet: pallet_asset_tx_payment (specs <504 have no v14 metadata;
       // override is harmless since ChargeAssetTxPayment is absent there).
       // Verified on-chain via RPC metadata scan across all spec eras.
-      minmax: [0, 9425],
+      minmax: [0, 9434],
       types: {
         NovaAssetId: "Option<AssetId>",
       },
