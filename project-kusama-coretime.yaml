@@ -15,7 +15,6 @@ schema:
 network:
   chainId: "0x638cd2b9af4b3bb54b8c1f0d22711fc89924ca93300f0caf25a580432b29d050"
   endpoint: wss://kusama-coretime-rpc.polkadot.io
-  dictionary: https://api.subquery.network/sq/subquery/dictionary-kusama
 dataSources:
   - name: main
     kind: substrate/Runtime

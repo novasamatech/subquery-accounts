@@ -33,6 +33,8 @@ function createMultisigVisitor(handleCall: (visitedCall: VisitedCall) => Promise
     })
     .on("multisig", "asMulti", handleCall)
     .on("multisig", "asMultiThreshold1", handleCall)
+    .on("utility", "asMulti", handleCall)
+    .on("utility", "asMultiThreshold1", handleCall)
     .ignoreFailedCalls(true)
     .build();
 }

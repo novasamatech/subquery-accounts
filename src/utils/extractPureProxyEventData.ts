@@ -25,10 +25,10 @@ export function extractPureProxyEventData(event: SubstrateEvent): PureProxyEvent
     return null;
   }
 
-  const pure = data.at(0)?.toHuman() as string;
-  const who = data.at(1)?.toHuman() as string;
+  const pure = data.at(0)?.toString();
+  const who = data.at(1)?.toString();
   const type = data.at(2);
-  const disambiguationIndex = parseInt(data.at(3)?.toHuman() as string);
+  const disambiguationIndex = Number(data.at(3)?.toString());
 
   if (!who) {
     logger.error(`Invalid proxyAccountId: ${JSON.stringify(who)}`);
@@ -45,7 +45,7 @@ export function extractPureProxyEventData(event: SubstrateEvent): PureProxyEvent
     return null;
   }
 
-  if (typeof disambiguationIndex !== "number") {
+  if (!Number.isFinite(disambiguationIndex)) {
     logger.error(`Invalid disambiguationIndex: ${JSON.stringify(disambiguationIndex)}`);
     return null;
   }
