@@ -52,5 +52,6 @@ Thumbs.db
 
 .data
 .eslintcache
+.cache/
 
 .claude
