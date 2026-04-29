@@ -1,5 +1,11 @@
-import { u8aToHex, stringToU8a, u8aConcatStrict } from "@polkadot/util";
+import { u8aToHex, u8aConcat, hexToU8a } from "@polkadot/util";
 import { blake2AsU8a, decodeAddress } from "@polkadot/util-crypto";
+
+// "modlpy/proxy____" — substrate proxy pallet pure-account derivation prefix.
+// Built via hexToU8a (not stringToU8a) for the same reason as MULTISIG_PREFIX
+// in addressesDecode.ts: stringToU8a relies on a host-realm TextEncoder whose
+// output later breaks isU8a checks inside the SubQuery sandbox.
+const PROXY_PREFIX = hexToU8a("0x6d6f646c70792f70726f78795f5f5f5f");
 
 /**
  * Parameters for calculating a pure account address
@@ -53,20 +59,20 @@ export function calculatePureAccount(params: PureAccountParams): string {
  * This mimics the SCALE encoding of the tuple in Substrate
  */
 function createEntropyData(who: Uint8Array, blockHeight: number, extrinsicIndex: number, proxyType: Uint8Array, index: number): Uint8Array {
-  // Substrate's module prefix for proxy pallet
-  const modulePrefix = stringToU8a("modlpy/proxy____");
-
-  const blockHeightBytes = api.registry.createType("u32", blockHeight).toU8a();
-
-  const extrinsicIndexBytes = api.registry.createType("u32", extrinsicIndex).toU8a();
-
-  // Encode proxy type as compact string
-  const proxyTypeBytes = proxyType;
-
-  const indexBytes = api.registry.createType("u16", index).toU8a();
-
-  // Concatenate all the data
-  return u8aConcatStrict([modulePrefix, who, blockHeightBytes, extrinsicIndexBytes, proxyTypeBytes, indexBytes]);
+  // Anything that originates from `api.*` (registry.createType(...).toU8a(),
+  // event.data[i].toU8a(), …) lives in the host Node realm. Inside the SubQuery
+  // sandbox the realm boundary breaks polkadot/util's isU8a check, so u8aConcat
+  // would otherwise fall back to stringToU8a(value.toString()) and corrupt the
+  // bytes. Re-wrap each one through Uint8Array.from to bring them into the
+  // sandbox realm before feeding them into the polkadot pipeline.
+  return u8aConcat(
+    PROXY_PREFIX,
+    who,
+    Uint8Array.from(api.registry.createType("u32", blockHeight).toU8a()),
+    Uint8Array.from(api.registry.createType("u32", extrinsicIndex).toU8a()),
+    Uint8Array.from(proxyType),
+    Uint8Array.from(api.registry.createType("u16", index).toU8a()),
+  );
 }
 
 /**
