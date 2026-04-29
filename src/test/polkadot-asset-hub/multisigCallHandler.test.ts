@@ -1,5 +1,5 @@
 import { subqlTest } from "@subql/testing";
-import { Account, AccountMultisig } from "../types";
+import { Account, AccountMultisig } from "../../types";
 
 // Polkadot Asset Hub block 1317999, extrinsic 2 — the very first multisig on this chain.
 //   call:   multisig.approveAsMulti(threshold = 2, other_signatories = [S2, S3], call_hash = 0x83f8c2cd…)

@@ -1,5 +1,5 @@
 import { subqlTest } from "@subql/testing";
-import { Proxied, PureProxy } from "../types";
+import { Proxied, PureProxy } from "../../types";
 
 // Polkadot Asset Hub block 6601748, extrinsic 2 — direct proxy.createPure
 // (no multisig wrapper, so the test exercises only the pure-proxy path).

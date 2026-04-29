@@ -1,5 +1,5 @@
 import { subqlTest } from "@subql/testing";
-import { Proxied } from "../types";
+import { Proxied } from "../../types";
 
 // Polkadot Asset Hub block 2430302, extrinsic 2 — proxy.addProxy.
 //   delegator (signer): 1virto…  (accountId 0x28f8eba6…)

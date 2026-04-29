@@ -3,7 +3,7 @@ on:
   pull_request:
 
 jobs:
-  pr:
+  build:
     name: build project
     runs-on: ubuntu-latest
     steps:
@@ -12,11 +12,36 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Enable corepack 
-        run: corepack enable 
+      - name: Enable corepack
+        run: corepack enable
       - name: Install
         run: yarn install
       - name: Codegen
         run: yarn codegen
       - name: Build
         run: yarn build
+
+  test:
+    name: subql-node test (Polkadot Asset Hub)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install
+        run: yarn install
+      - name: Codegen
+        run: yarn codegen
+      - name: Build
+        run: yarn build
+      - name: Run subql-node test
+        env:
+          PROJECT_PATH: project-polkadot-asset-hub.yaml
+        run: |
+          docker compose -f docker-compose-test.yml up \
+            --build --abort-on-container-exit --exit-code-from subquery-node-test
