@@ -1,0 +1,52 @@
+# Run subql-node `test` against a single project YAML, in isolation from the
+# main indexer stack (no graphql-engine, exits after the test completes).
+#
+# Quick start (defaults to project-polkadot-asset-hub.yaml):
+#   yarn && yarn codegen && yarn build
+#   docker compose -f docker-compose-test.yml up --build \
+#     --abort-on-container-exit --exit-code-from subquery-node-test
+#
+# Run a different chain:
+#   PROJECT_PATH=project-kusama.yaml docker compose -f docker-compose-test.yml \
+#     up --build --abort-on-container-exit --exit-code-from subquery-node-test
+#
+# How it works:
+#   subql-node walks every *.test.ts under src/, fetches the referenced block
+#   via the RPC endpoint declared in the project YAML, runs the named handler,
+#   and compares produced entities to `expectedEntities`.
+#
+# NOTE: dist/ must be built on the host before `up`, because the project dir
+# is bind-mounted into the container (matches the pattern in docker-compose.yml).
+
+services:
+  postgres-test:
+    build:
+      context: .
+      dockerfile: ./docker/pg-Dockerfile
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  subquery-node-test:
+    image: subquerynetwork/subql-node-substrate:v5.6.0
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_DATABASE: postgres
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+    volumes:
+      - ./:/app
+    working_dir: /app
+    restart: "no"
+    command:
+      - test
+      - -f=/app/${PROJECT_PATH:-project-polkadot-asset-hub.yaml}
+      - --db-schema=test
