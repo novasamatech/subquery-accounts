@@ -667,6 +667,34 @@ Note: from the `Option<MultiLocation>` boundary onward, the type evolves (xcm v3
 
 ---
 
+### 14. "Who X is not the pure account …" on Asset Hub Blocks (`createPure(when=Some(...))`)
+
+**Symptoms:**
+- Indexer loops on a specific AH block with `Error: Who 0x… is not the pure account 0x… or the pure account relay parent 0x…`.
+- Throw originates at `src/utils/pureAccountCalculation.ts` (`findPureBlockNumber`).
+- Affects mostly Polkadot/Kusama/Westend Asset Hub during/after the active relay→AH migration window.
+
+**Root cause:** The substrate proxy pallet's `pure_account(who, proxy_type, index, maybe_when)` derivation accepts an optional `maybe_when = Some((historic_block, historic_ext_idx))`. AH users recreate their relay-chain pure proxies on AH by calling `proxy.createPure(..., when = Some((original_relay_block, original_ext_idx)))`, so the runtime hashes the *historic relay* `(height, ext_idx)` into the entropy, not the AH envelope. The runtime exposes those values in event data fields `at` (data[4]) and `extrinsic_index` (data[5]). Older `extractPureProxyEventData` ignored both fields and pulled `blockNumber` / `extrinsicIndex` from the AH envelope (`event.block.block.header.number`, `event.extrinsic.idx`) — for legacy `createPure` without `when` they coincide; for migration-era `createPure(when=Some(...))` they diverge, derivation fails, and `findPureBlockNumber` throws.
+
+**Entry points:**
+- `src/utils/extractPureProxyEventData.ts` — must prefer payload `at` / `extrinsic_index` over envelope.
+- `src/utils/pureAccountCalculation.ts` → `findPureBlockNumber()` — assertion site.
+
+**How to diagnose:**
+1. Pull the offending block over RPC, find the `proxy.PureCreated` event, dump `event.toHuman()`. If `data.at` differs from the block's own number — this case.
+2. Quick DB check (substitute target chain genesis as `chain_id`):
+   ```sql
+   SELECT count(*) FROM app.proxieds
+   WHERE chain_id = '0x68d5…' AND is_pure_proxy = true AND block_number > 20000000;
+   ```
+   Non-zero count on an AH chain (current height ≪ 20M) indicates `createPure(when=...)` flow is live and the fix is needed.
+
+**Fix:** In `extractPureProxyEventData`, read `data.at(4)` / `data.at(5)` first and only fall back to `eventParser.blockNumber(event)` / `eventParser.extrinsicIndex(event)` when those fields are absent (older `AnonymousCreated` runtimes). Covered by test `src/test/polkadot-asset-hub/pureProxyEventHandler-when.test.ts` (block 15,503,985).
+
+**Related but distinct:** §4 is the same family of "computed pure ≠ on-chain pure" symptoms; that section covers the parachain-relay-parent fallback. §14 is the migration-era `maybe_when` override which neither the parachain block nor the relay-parent block can reproduce.
+
+---
+
 ## Database Operations (Per-Network Wipe)
 
 This section documents how to wipe data for **one chain only** in a shared multichain database.
