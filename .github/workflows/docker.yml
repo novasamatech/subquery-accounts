@@ -6,7 +6,7 @@ on:
       - main
       - dev
       # TODO: remove before merge to main
-      - "base/multichain"
+      - "hotfix/v2.4.2-pure-proxy-when"
     tags:
       - 'v*'
 
