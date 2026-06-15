@@ -151,9 +151,118 @@ Current counts (as of 2026-03-05):
 
 ---
 
+## Running Debug Scripts under Podman (Linux)
+
+**On a Linux host with `podman` available, every node-based debug/scan script in `scripts/` (and any ad-hoc `scripts/_tmp-*.js`) MUST run inside a rootless Podman container.** The project policy forbids invoking `node` / `yarn` / `npm` / `npx` / `ts-node` / `tsc` / `subql-node` on the host directly — there is no `node_modules/` on the host, the host should stay free of project artefacts, and the bundled runtime must match what the indexer uses. Bash invocations in this repo's CLAUDE memory enforce the same.
+
+The shell snippets in the **Debugging & Scan Scripts** section below show the bare `node scripts/foo.js` form for clarity; on Linux always wrap them with the patterns below.
+
+### Image selection
+
+| Image | When to use |
+|---|---|
+| `docker.io/subquerynetwork/subql-node-substrate:v6.4.6` | Current indexer image (after `281658d`). Has `@polkadot/api` + `@polkadot/util-crypto` baked in. Use for any probe that only needs polkadot-js + bundled chain types. |
+| `docker.io/subquerynetwork/subql-node-substrate:v5.6.0` | Older CI image. Useful for comparing decoder behaviour across subql-node versions. |
+| `docker.io/library/node:24-alpine` + the project's `subql-workspace` volume | Use when you need the project's exact dependency tree (custom `chainTypes`, `subquery-call-visitor`, etc.). Orchestrated by `make podman-build` / `make podman-test`. |
+
+### Probe a specific block with a `_tmp-*.js` script
+
+Override `--entrypoint /bin/sh` (otherwise the image runs `subql-node` and your `node …` cmdline gets ignored), bind-mount the repo read-only at `/src`, use `--network=host` so the container can reach an external WS RPC, and pass the script via absolute path inside `/src`:
+
+```bash
+podman run --rm --entrypoint /bin/sh \
+  -v "$PWD":/src:ro,Z \
+  --network=host \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'cd / && node /src/scripts/_tmp-probe-block.js'
+```
+
+Same for the standing scripts in this section, e.g. the Kusama multisig debugger:
+
+```bash
+podman run --rm --entrypoint /bin/sh \
+  -v "$PWD":/src:ro,Z \
+  --network=host \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'cd / && node /src/scripts/debug-kusama-multisig-block.js --block=2016479 --endpoint=wss://kusama-rpc.polkadot.io'
+```
+
+### Private RPC URLs — use `--env-file`, never the cmdline
+
+Do NOT put tokenised/private RPC URLs into `project-*.yaml`, into scripts as defaults, into permission allowlists (`.claude/settings.local.json`), or onto the cmdline (visible via `ps`). Use an ephemeral env-file mode `0600` outside the repo:
+
+```bash
+umask 077 && cat > /tmp/k-rpc.env <<'EOF'
+KUSAMA_ENDPOINT=wss://<host>/<path>
+EOF
+chmod 600 /tmp/k-rpc.env
+
+podman run --rm --entrypoint /bin/sh \
+  --env-file /tmp/k-rpc.env \
+  -v "$PWD":/src:ro,Z \
+  --network=host \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'cd / && node /src/scripts/_tmp-probe-block.js'
+
+shred -u /tmp/k-rpc.env   # delete after use
+```
+
+The probe script reads it via `process.env.KUSAMA_ENDPOINT` and must NOT print the URL (use `connecting to RPC (redacted)` instead of echoing `endpoint`).
+
+### Determining bundled versions inside an image
+
+Bypass the default subql-node entrypoint with `--entrypoint /bin/sh`, then introspect from inside:
+
+```bash
+# Resolved path of @polkadot/api inside the image
+podman run --rm --entrypoint /bin/sh \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'node -e "console.log(require.resolve(\"@polkadot/api\"))"'
+# → /node_modules/@polkadot/api/cjs/index.js
+
+# Node version
+podman run --rm --entrypoint /bin/sh \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'node --version'
+# v6.4.6 → v18.20.5 (as of 2026-05)
+
+# Raw bundled package.json (note: version field is STRIPPED in the image)
+podman run --rm --entrypoint /bin/sh \
+  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 \
+  -c 'cat /node_modules/@polkadot/api/package.json'
+```
+
+**Gotcha:** subql-node images ship a minimised `package.json` for `@polkadot/api` that has NO `"version"` field. `require("@polkadot/api/package.json").version` returns `undefined`. For the version the project pins, look at the repo's `package.json` → `resolutions` (currently `@polkadot/api: 16.5.4`, `@polkadot/util: 14.0.1`).
+
+### Pitfalls observed in practice
+
+- **Never pipe `node …` through `tail -N` when running async / in background.** `tail` buffers stdin in chunks and only flushes on EOF, so you'll see nothing until the script exits. Use no pipe (or `stdbuf -oL`).
+- **`wss://kusama-rpc.dwellir.com` (the value currently in `project-kusama.yaml`) has been unreliable** — drops WebSocket with `1006 Abnormal Closure` in a tight loop. For probes prefer `wss://kusama-rpc.polkadot.io` or a private endpoint via env-file.
+- **`WsProvider` default auto-reconnect loops forever** when the endpoint refuses connections. For one-shot probes disable autoreconnect and wrap connect in a 20 s timeout:
+  ```js
+  const provider = new WsProvider(endpoint, false);
+  const t = setTimeout(() => { console.error("connect timeout 20s"); process.exit(2); }, 20000);
+  await provider.connect();
+  await new Promise((res, rej) => { provider.on("connected", res); provider.on("error", rej); });
+  clearTimeout(t);
+  const api = await ApiPromise.create({ provider, noInitWarn: true, throwOnConnect: true });
+  ```
+- **`-v "$PWD":/src:ro,Z`** — the `:Z` SELinux relabel is harmless on non-SELinux distros but required if you're on Fedora/RHEL/CentOS. `:ro` is critical: the script must not write to your repo from inside the container.
+- **Background runs:** start with `podman run --rm …` and let the harness's background facility track it; do not chain `sleep && tail` loops.
+
+### Cleanup
+
+- `--rm` removes the container on exit (already in every snippet above).
+- After ad-hoc probes: delete `scripts/_tmp-*.js`, `shred -u /tmp/<rpc-env-file>` if used.
+- Long-running build/test workflows: `make podman-clean` (removes containers, network, and the `subql-workspace` volume).
+
+---
+
 ## Debugging & Scan Scripts
 
 All scripts live in `scripts/`. Most scripts read endpoints from `scripts/asset-hub-spec-blocks.json` — no need to pass RPC endpoints manually. Never hardcode or commit tokenized RPC URLs.
+
+**On Linux these scripts must be executed under Podman — see the section above for the wrapper pattern.**
 
 ### `scripts/scan-spec-starts.js` — Auto-discover spec transitions & update JSON
 
