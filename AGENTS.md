@@ -32,7 +32,8 @@ src/
   utils/
     operations.ts               # generateOperationId, getDataFromEvent/Call, timestamp
     multisigHelpers.ts          # findExistingOperation, createMultisigEvent, isThreshold1
-    addressesDecode.ts          # createKeyMultiAddress, decodeAddress
+    addressesDecode.ts          # createKeyMultiAccountId, decodeAddress
+    cryptoIntegrity.ts          # assertCryptoIntegrity -- known-vector canary for derived ids
     pureAccountCalculation.ts   # calculatePureAccount, findPureBlockNumber
     extractProxyEventData.ts    # Proxy event data parsing
     extractPureProxyEventData.ts # Pure proxy event data parsing
@@ -118,7 +119,7 @@ Every network subscribes to the same set of call/event handlers for the `multisi
 |---|---|
 | **Kusama** | Multisig lived in the `utility` module before spec 2007 (block 2,704,203). Requires additional `utility.*` event/call handlers + lowered startBlock. See Kusama deep-dive below. |
 | **Polkadot, Kusama, Westend** | Handle `rcMigrator.AssetHubMigrationStarted` for migrating proxy data to Asset Hub |
-| **Moonbeam, Moonriver** | EVM-compatible chains. 20-byte addresses (Ethereum format). `createKeyMultiAddress` handles both formats |
+| **Moonbeam, Moonriver** | EVM-compatible chains. 20-byte addresses (Ethereum format). `createKeyMultiAccountId` handles both formats |
 | **Asset Hub chains** | Use custom chainTypes with `NovaAssetId` evolving across spec versions |
 | **Bittensor** | Custom types (`Balance` as u64), startBlock=1 |
 | **Avail** | Extensive DA-specific types, custom `CheckAppId` signed extension |
@@ -565,9 +566,9 @@ Additionally, on old `MultisigExecuted`, field index 3 is `DispatchResult`, not 
 **Symptom:** Incorrect multisig addresses or errors when creating AccountMultisig records.
 
 **Entry point:**
-- `src/utils/addressesDecode.ts` -> `createKeyMultiAddress()`, `decodeAddress()`
+- `src/utils/addressesDecode.ts` -> `createKeyMultiAccountId()`, `decodeAddress()`
 
-**Cause:** EVM chains use 20-byte addresses (Ethereum format) instead of 32-byte Substrate addresses. `createKeyMultiAddress` handles both formats, but any changes must account for both code paths.
+**Cause:** EVM chains use 20-byte addresses (Ethereum format) instead of 32-byte Substrate addresses. `createKeyMultiAccountId` handles both formats, but any changes must account for both code paths.
 
 ### 9. Type Errors After Updating @polkadot/* Dependencies
 

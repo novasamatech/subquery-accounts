@@ -3,14 +3,17 @@ import { VisitedCall } from "subquery-call-visitor";
 import { MultisigArgs, MultisigThreshold1Args } from "../types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
-import { decodeAddress, createKeyMultiAddress } from "../../utils";
+import { decodeAddress, createKeyMultiAccountId } from "../../utils";
+import { assertCryptoIntegrity } from "../../utils/cryptoIntegrity";
 
 export const handleMultisigCall = async (call: VisitedCall): Promise<void> => {
+  assertCryptoIntegrity();
+
   const [threshold, otherSignatories] = extractThresholdAndOtherSignatories(call);
   const allSignatories = [...otherSignatories, call.origin];
 
   const signatoryAccounts = await Promise.all(allSignatories.map(addr => checkAndGetAccount(toAccountId(addr))));
-  const multisigAccount = await checkAndGetAccount(toAccountId(createKeyMultiAddress(allSignatories, threshold)), true, threshold);
+  const multisigAccount = await checkAndGetAccount(createKeyMultiAccountId(allSignatories, threshold), true, threshold);
   const accountMultisigs = await Promise.all(signatoryAccounts.map(member => checkAndGetAccountMultisig(multisigAccount.id, member.id)));
 
   await Promise.all(signatoryAccounts.map(member => member.save()));
@@ -22,10 +25,16 @@ function toAccountId(address: string): string {
   return u8aToHex(decodeAddress(address));
 }
 
-function validateThreshold(threshold: number): void {
-  if (threshold < 1) {
+// toHuman() renders u16 as a locale-formatted string ("4", or "1,024" past 999),
+// which BN would reject and the store would persist as a string.
+function normalizeThreshold(threshold: number | string): number {
+  const value = typeof threshold === "number" ? threshold : Number(String(threshold).replace(/,/g, ""));
+
+  if (!Number.isInteger(value) || value < 1) {
     throw new Error(`Invalid threshold: ${threshold}`);
   }
+
+  return value;
 }
 
 function extractThresholdAndOtherSignatories(call: VisitedCall): [number, string[]] {
@@ -40,7 +49,5 @@ function extractThresholdAndOtherSignatories(call: VisitedCall): [number, string
     args: { threshold, other_signatories },
   } = call.call.toHuman() as unknown as MultisigArgs;
 
-  validateThreshold(threshold);
-
-  return [threshold, other_signatories];
+  return [normalizeThreshold(threshold), other_signatories];
 }
