@@ -3,7 +3,15 @@
 # the manifests filtered on the misspelled "MultisigApproved" event (PR #95).
 # Extracts candidate operations + their recorded events, recovers the missing
 # approvals from archive-node storage (scripts/backfill-multisig-approvals.js)
-# and emits a reviewable SQL transaction. Nothing is written without --apply.
+# and emits a reviewable SQL transaction per database. Nothing is written
+# without --apply.
+#
+# Two databases (e.g. prod and prod-2) can be backfilled from ONE chain pass:
+# set PGCONN2 and the script unifies the candidates of both extracts, probes
+# the chain once, and writes fix-multisig-approvals-db1.sql /
+# fix-multisig-approvals-db2.sql filtered to what each database lacks —
+# events are never emitted for an operation a database doesn't contain, so
+# the multisig_id foreign key stays safe.
 #
 # Deploy the fixed indexer image BEFORE running with --apply: the script and
 # the live indexer are idempotent against each other (ON CONFLICT DO NOTHING),
@@ -16,10 +24,11 @@
 #     unknowable from the DB alone — the chain probe decides).
 #
 # Usage:
-#   PGCONN="postgres://user:pass@host:5432/db" scripts/backfill-multisig-approvals.sh <db-schema> [--apply] [--chains 0x...,0x...]
+#   PGCONN="postgres://user:pass@host:5432/db" [PGCONN2="postgres://..."] \
+#     scripts/backfill-multisig-approvals.sh <db-schema> [--apply] [--chains 0x...,0x...] [--concurrency 8]
 #
-#   scripts/backfill-multisig-approvals.sh app                 # dry run: writes fix-multisig-approvals.sql
-#   scripts/backfill-multisig-approvals.sh app --apply         # applies the SQL, then prints the remaining-gap count
+#   scripts/backfill-multisig-approvals.sh app                 # dry run: writes fix-multisig-approvals-db1.sql (+db2)
+#   scripts/backfill-multisig-approvals.sh app --apply         # applies each SQL to its database, prints remaining gaps
 #   scripts/backfill-multisig-approvals.sh app --chains 0x68d5...  # limit to specific chains (comma-separated genesis hashes)
 
 set -euo pipefail
@@ -27,17 +36,19 @@ set -euo pipefail
 SCHEMA="${1:-}"
 shift || true
 MODE=""
-CHAINS_ARG=()
+EXTRA_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --apply) MODE="--apply"; shift ;;
-    --chains) CHAINS_ARG=(--chains "$2"); shift 2 ;;
+    --chains) EXTRA_ARGS+=(--chains "$2"); shift 2 ;;
+    --concurrency) EXTRA_ARGS+=(--concurrency "$2"); shift 2 ;;
+    --endpoints) EXTRA_ARGS+=(--endpoints "$2"); shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
 if [[ -z "$SCHEMA" ]]; then
-  echo "Usage: PGCONN=postgres://... $0 <db-schema> [--apply] [--chains <chainId,...>]" >&2
+  echo "Usage: PGCONN=postgres://... [PGCONN2=postgres://...] $0 <db-schema> [--apply] [--chains <chainId,...>] [--concurrency <n>]" >&2
   exit 2
 fi
 if [[ -z "${PGCONN:-}" ]]; then
@@ -87,18 +98,36 @@ where op.status in ('executed', 'error')
     where e.multisig_id = op.id and e.status = 'approve'
   )"
 
-echo "== Extracting candidate operations from schema '${SCHEMA}'..."
-psql "$PGCONN" -v ON_ERROR_STOP=1 -Atc "$EXTRACT_QUERY" \
-  | node scripts/backfill-multisig-approvals.js --schema "$SCHEMA" "${CHAINS_ARG[@]}" > fix-multisig-approvals.sql
-echo "== SQL written to fix-multisig-approvals.sql"
+EXTRACT_DIR="$(mktemp -d)"
+trap 'rm -rf "$EXTRACT_DIR"' EXIT
+
+DB_CONNS=("$PGCONN")
+DB_NAMES=("db1")
+if [[ -n "${PGCONN2:-}" ]]; then
+  DB_CONNS+=("$PGCONN2")
+  DB_NAMES+=("db2")
+fi
+
+EXTRACT_ARGS=()
+for i in "${!DB_CONNS[@]}"; do
+  name="${DB_NAMES[$i]}"
+  echo "== Extracting candidate operations from '${name}' (schema '${SCHEMA}')..."
+  psql "${DB_CONNS[$i]}" -v ON_ERROR_STOP=1 -Atc "$EXTRACT_QUERY" > "$EXTRACT_DIR/$name.json"
+  EXTRACT_ARGS+=(--extract "$name=$EXTRACT_DIR/$name.json")
+done
+
+node scripts/backfill-multisig-approvals.js --schema "$SCHEMA" --out-dir . "${EXTRACT_ARGS[@]}" "${EXTRA_ARGS[@]}"
 
 if [[ "$MODE" != "--apply" ]]; then
-  echo "== Dry run complete. Review fix-multisig-approvals.sql, then re-run with --apply."
+  echo "== Dry run complete. Review fix-multisig-approvals-<name>.sql, then re-run with --apply."
   exit 0
 fi
 
-echo "== Applying fix-multisig-approvals.sql..."
-psql "$PGCONN" -v ON_ERROR_STOP=1 -f fix-multisig-approvals.sql
+for i in "${!DB_CONNS[@]}"; do
+  name="${DB_NAMES[$i]}"
+  echo "== Applying fix-multisig-approvals-${name}.sql to '${name}'..."
+  psql "${DB_CONNS[$i]}" -v ON_ERROR_STOP=1 -f "fix-multisig-approvals-${name}.sql"
 
-echo "== Executed/error operations still missing approvals (threshold not reached by events):"
-psql "$PGCONN" -v ON_ERROR_STOP=1 -Atc "$GAP_QUERY"
+  echo "== ${name}: executed/error operations still missing approvals (threshold not reached by events):"
+  psql "${DB_CONNS[$i]}" -v ON_ERROR_STOP=1 -Atc "$GAP_QUERY"
+done

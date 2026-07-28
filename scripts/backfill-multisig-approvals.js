@@ -15,18 +15,27 @@
 //     over that window on an archive node, and the exact signer / extrinsic
 //     index / timestamp are read from that block's MultisigApproval event.
 //
-// Usage (normally via backfill-multisig-approvals.sh):
-//   node scripts/backfill-multisig-approvals.js --schema app [--chains <id,...>] < extract.json > fix.sql
+// Several databases can be backfilled from ONE chain pass: operations are
+// unified by id across the given extracts (the id is derived from chain data,
+// so it is identical in every database), probed once, and a separate SQL file
+// is emitted per database containing only the events that database lacks.
 //
-// stdin  — JSON {"operations": [{id, chain_id, account_id, call_hash, status,
-//            block_created, index_created, threshold, events: [{id, status, block_created}]}]}
-// stdout — SQL transaction (nothing to fix -> "-- nothing to fix")
-// stderr — per-chain progress, stats and warnings
+// Usage (normally via backfill-multisig-approvals.sh):
+//   node scripts/backfill-multisig-approvals.js --schema app \
+//     --extract db1=extract1.json [--extract db2=extract2.json ...] \
+//     [--out-dir .] [--chains <chainId,...>] [--concurrency 8] [--endpoints <file.json>]
+//
+// extract file — JSON {"operations": [{id, chain_id, account_id, call_hash, status,
+//                  block_created, index_created, threshold, events: [{id, status, block_created}]}]}
+// output       — <out-dir>/fix-multisig-approvals-<name>.sql per extract
+// stderr       — per-chain progress, stats and warnings
 //
 // Endpoints are taken from the network.endpoint of each project-*.yaml (mapped
-// by genesis hash). Override with --endpoints <file.json> ({"0x..chainId": "wss://..."})
-// when a manifest endpoint is not an archive node — historical storage reads
-// REQUIRE an archive node for the whole lifetime of the operations involved.
+// by genesis hash). Override with --endpoints <file.json> mapping a chainId to
+// a url or an ARRAY of urls (operations are distributed round-robin across
+// them) when a manifest endpoint is not an archive node — historical storage
+// reads REQUIRE an archive node for the whole lifetime of the operations
+// involved.
 
 "use strict";
 
@@ -44,12 +53,25 @@ function argValue(flag) {
   return index !== -1 ? process.argv[index + 1] : undefined;
 }
 
+function argValues(flag) {
+  const values = [];
+  for (let i = 0; i < process.argv.length - 1; i++) {
+    if (process.argv[i] === flag) values.push(process.argv[i + 1]);
+  }
+  return values;
+}
+
 const schema = argValue("--schema");
-if (!schema || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema)) {
-  console.error("Usage: node scripts/backfill-multisig-approvals.js --schema <db-schema> [--chains <chainId,...>] [--endpoints <file.json>] < extract.json > fix.sql");
+const extractArgs = argValues("--extract");
+if (!schema || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema) || extractArgs.length === 0) {
+  console.error(
+    "Usage: node scripts/backfill-multisig-approvals.js --schema <db-schema> --extract <name>=<file.json> [--extract <name>=<file.json> ...] [--out-dir <dir>] [--chains <chainId,...>] [--concurrency <n>] [--endpoints <file.json>]",
+  );
   process.exit(2);
 }
 
+const outDir = argValue("--out-dir") ?? ".";
+const concurrency = Math.max(1, Number(argValue("--concurrency") ?? 8));
 const chainFilter = argValue("--chains")
   ? new Set(argValue("--chains").split(",").map(s => s.trim().toLowerCase()))
   : null;
@@ -67,7 +89,7 @@ function loadManifestEndpoints(repoRoot) {
     // endpoint may be a plain scalar or a folded (>-) block scalar
     const endpointMatch = text.match(/endpoint:\s*(?:>-?\s*\n\s*)?(wss?:\/\/\S+)/);
     if (chainMatch && endpointMatch) {
-      endpoints[chainMatch[1].toLowerCase()] = endpointMatch[1];
+      endpoints[chainMatch[1].toLowerCase()] = [endpointMatch[1]];
     }
   }
   return endpoints;
@@ -77,13 +99,13 @@ const endpoints = loadManifestEndpoints(path.join(__dirname, ".."));
 const endpointsOverrideFile = argValue("--endpoints");
 if (endpointsOverrideFile) {
   const overrides = JSON.parse(fs.readFileSync(endpointsOverrideFile, "utf8"));
-  for (const [chainId, url] of Object.entries(overrides)) {
-    endpoints[chainId.toLowerCase()] = url;
+  for (const [chainId, urls] of Object.entries(overrides)) {
+    endpoints[chainId.toLowerCase()] = Array.isArray(urls) ? urls : [urls];
   }
 }
 
 // ---------------------------------------------------------------------------
-// input validation
+// input loading and unification
 // ---------------------------------------------------------------------------
 
 const HEX = /^0x[0-9a-fA-F]+$/;
@@ -103,9 +125,55 @@ function assertOperationShape(op) {
   }
 }
 
-const input = JSON.parse(fs.readFileSync(0, "utf8"));
-const operations = input.operations ?? [];
-for (const op of operations) assertOperationShape(op);
+const extracts = extractArgs.map(arg => {
+  const eq = arg.indexOf("=");
+  if (eq === -1) throw new Error(`--extract expects <name>=<file.json>, got: ${arg}`);
+  const name = arg.slice(0, eq);
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new Error(`Invalid extract name: ${name}`);
+  const operations = JSON.parse(fs.readFileSync(arg.slice(eq + 1), "utf8")).operations ?? [];
+  for (const op of operations) assertOperationShape(op);
+  return { name, operations };
+});
+
+// The operation id is `${callHash}-${account}-${block}-${index}` — pure chain
+// data, so the same operation carries the same id in every database. One
+// unified entry per id records which databases contain it and which event ids
+// each already has; the resolution window is merged across databases (one may
+// have caught a resolution event the other missed).
+function unifyOperations() {
+  const unified = new Map();
+
+  for (const { name, operations } of extracts) {
+    for (const op of operations) {
+      let entry = unified.get(op.id);
+      if (!entry) {
+        entry = {
+          id: op.id,
+          chain_id: op.chain_id.toLowerCase(),
+          account_id: op.account_id,
+          call_hash: op.call_hash,
+          block_created: op.block_created,
+          index_created: op.index_created,
+          resolved: false,
+          resolutionBlock: null,
+          perDb: new Map(),
+        };
+        unified.set(op.id, entry);
+      }
+
+      if (op.status !== "pending") entry.resolved = true;
+      for (const event of op.events) {
+        if (event.block_created > entry.block_created) {
+          entry.resolutionBlock = Math.max(entry.resolutionBlock ?? 0, event.block_created);
+        }
+      }
+
+      entry.perDb.set(name, new Set(op.events.map(e => e.id)));
+    }
+  }
+
+  return Array.from(unified.values());
+}
 
 // ---------------------------------------------------------------------------
 // chain probing
@@ -114,7 +182,7 @@ for (const op of operations) assertOperationShape(op);
 async function connect(endpoint) {
   const provider = new WsProvider(endpoint, false);
   const timer = setTimeout(() => {
-    console.error(`ERROR connect timeout 20s`);
+    console.error(`ERROR connect timeout 20s for ${endpoint}`);
     process.exit(3);
   }, 20000);
   await provider.connect();
@@ -132,11 +200,19 @@ function multisigStorage(apiAt) {
   return apiAt.query.multisig?.multisigs ?? apiAt.query.utility?.multisigs ?? null;
 }
 
-async function readEntry(api, blockNumber, accountId, callHash, blockHashCache) {
-  if (!blockHashCache.has(blockNumber)) {
-    blockHashCache.set(blockNumber, await api.rpc.chain.getBlockHash(blockNumber));
+// The block-hash cache stores promises so concurrent operations probing the
+// same block share one in-flight RPC call instead of racing duplicates.
+function getBlockHash(api, blockNumber, blockHashCache) {
+  let cached = blockHashCache.get(blockNumber);
+  if (!cached) {
+    cached = api.rpc.chain.getBlockHash(blockNumber);
+    blockHashCache.set(blockNumber, cached);
   }
-  const apiAt = await api.at(blockHashCache.get(blockNumber));
+  return cached;
+}
+
+async function readEntry(api, blockNumber, accountId, callHash, blockHashCache) {
+  const apiAt = await api.at(await getBlockHash(api, blockNumber, blockHashCache));
   const storage = multisigStorage(apiAt);
   if (!storage) return null;
 
@@ -176,11 +252,7 @@ async function findTransitionBlock(api, op, low, high, target, blockHashCache) {
 }
 
 async function extractApprovalEvent(api, blockNumber, op, blockHashCache) {
-  if (!blockHashCache.has(blockNumber)) {
-    blockHashCache.set(blockNumber, await api.rpc.chain.getBlockHash(blockNumber));
-  }
-  const blockHash = blockHashCache.get(blockNumber);
-  const apiAt = await api.at(blockHash);
+  const apiAt = await api.at(await getBlockHash(api, blockNumber, blockHashCache));
   const [events, timestampNow] = await Promise.all([apiAt.query.system.events(), apiAt.query.timestamp.now()]);
 
   for (const record of events) {
@@ -213,39 +285,31 @@ async function extractApprovalEvent(api, blockNumber, op, blockHashCache) {
 // per-operation recovery
 // ---------------------------------------------------------------------------
 
-function resolutionBlock(op) {
-  // The creation event carries the creation block; MultisigExecuted / reject
-  // events carry the block they actually happened in (see createMultisigEvent).
-  const blocks = op.events.map(e => e.block_created).filter(b => b > op.block_created);
-  return blocks.length > 0 ? Math.max(...blocks) : null;
-}
-
 async function recoverOperation(api, op, headNumber, blockHashCache) {
   let windowEnd;
   let endApprovals;
 
-  if (op.status === "pending") {
-    windowEnd = headNumber;
-    endApprovals = await approvalsAt(api, headNumber, op, blockHashCache);
-    if (!endApprovals) {
-      return { warn: `operation ${op.id} is 'pending' in DB but absent from head storage — resolved on-chain; re-run after the indexer catches up` };
-    }
-  } else {
-    const resolved = resolutionBlock(op);
-    if (!resolved) {
-      return { warn: `operation ${op.id} (${op.status}) has no resolution event block — cannot bound the search window` };
-    }
-    windowEnd = resolved - 1;
+  if (op.resolved && op.resolutionBlock) {
+    // The creation event carries the creation block; MultisigExecuted / reject
+    // events carry the block they actually happened in (see createMultisigEvent).
+    windowEnd = op.resolutionBlock - 1;
     endApprovals = await approvalsAt(api, windowEnd, op, blockHashCache);
     if (!endApprovals) {
       // resolved in the same block it got its last approval, or a non-archive node
       return { warn: `operation ${op.id}: no storage entry at block ${windowEnd} — same-block resolution or non-archive endpoint` };
     }
+  } else if (op.resolved) {
+    return { warn: `operation ${op.id}: resolved but no resolution event block in any extract — cannot bound the search window` };
+  } else {
+    windowEnd = headNumber;
+    endApprovals = await approvalsAt(api, headNumber, op, blockHashCache);
+    if (!endApprovals) {
+      return { warn: `operation ${op.id} is 'pending' in every extract but absent from head storage — resolved on-chain; re-run after the indexer catches up` };
+    }
   }
 
   if (endApprovals.length <= 1) return { rows: [] };
 
-  const knownEventIds = new Set(op.events.map(e => e.id));
   const rows = [];
 
   for (let target = 2; target <= endApprovals.length; target++) {
@@ -255,11 +319,8 @@ async function recoverOperation(api, op, headNumber, blockHashCache) {
       return { warn: `operation ${op.id}: approvals grew to ${target} at block ${block} but no matching MultisigApproval event found there` };
     }
 
-    const eventId = `${op.id}-${approval.signer}-approve`;
-    if (knownEventIds.has(eventId)) continue;
-
     rows.push({
-      id: eventId,
+      id: `${op.id}-${approval.signer}-approve`,
       accountId: approval.signer,
       blockCreated: approval.blockCreated,
       indexCreated: approval.indexCreated,
@@ -272,6 +333,23 @@ async function recoverOperation(api, op, headNumber, blockHashCache) {
 }
 
 // ---------------------------------------------------------------------------
+// concurrency pool
+// ---------------------------------------------------------------------------
+
+async function mapConcurrent(items, limit, fn) {
+  let next = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      await fn(items[index], index);
+    }
+  });
+
+  await Promise.all(workers);
+}
+
+// ---------------------------------------------------------------------------
 // SQL emission
 // ---------------------------------------------------------------------------
 
@@ -280,22 +358,23 @@ function sqlString(value) {
   return `'${value}'`;
 }
 
-function emitSql(rows) {
+function writeSqlFile(filePath, rows) {
+  const lines = [];
   if (rows.length === 0) {
-    console.log("-- nothing to fix");
-    return;
+    lines.push("-- nothing to fix");
+  } else {
+    lines.push("BEGIN;");
+    lines.push(`-- ${rows.length} recovered multisig approval events`);
+    for (const row of rows) {
+      lines.push(
+        `INSERT INTO ${schema}.multisig_events (id, account_id, status, block_created, index_created, multisig_id, timestamp)\n` +
+          `VALUES (${sqlString(row.id)}, ${sqlString(row.accountId)}, 'approve', ${row.blockCreated}, ${row.indexCreated}, ${sqlString(row.multisigId)}, ${row.timestamp})\n` +
+          `ON CONFLICT (id) DO NOTHING;`,
+      );
+    }
+    lines.push("COMMIT;");
   }
-
-  console.log("BEGIN;");
-  console.log(`-- ${rows.length} recovered multisig approval events`);
-  for (const row of rows) {
-    console.log(
-      `INSERT INTO ${schema}.multisig_events (id, account_id, status, block_created, index_created, multisig_id, timestamp)\n` +
-        `VALUES (${sqlString(row.id)}, ${sqlString(row.accountId)}, 'approve', ${row.blockCreated}, ${row.indexCreated}, ${sqlString(row.multisigId)}, ${row.timestamp})\n` +
-        `ON CONFLICT (id) DO NOTHING;`,
-    );
-  }
-  console.log("COMMIT;");
+  fs.writeFileSync(filePath, lines.join("\n") + "\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -303,58 +382,86 @@ function emitSql(rows) {
 // ---------------------------------------------------------------------------
 
 async function main() {
+  const operations = unifyOperations();
+
   const byChain = new Map();
   for (const op of operations) {
-    const chainId = op.chain_id.toLowerCase();
-    if (chainFilter && !chainFilter.has(chainId)) continue;
-    if (!byChain.has(chainId)) byChain.set(chainId, []);
-    byChain.get(chainId).push(op);
+    if (chainFilter && !chainFilter.has(op.chain_id)) continue;
+    if (!byChain.has(op.chain_id)) byChain.set(op.chain_id, []);
+    byChain.get(op.chain_id).push(op);
   }
 
-  const allRows = [];
+  const rowsPerDb = new Map(extracts.map(e => [e.name, []]));
   let warnings = 0;
 
   for (const [chainId, chainOps] of byChain) {
-    const endpoint = endpoints[chainId];
-    if (!endpoint) {
+    const chainEndpoints = endpoints[chainId];
+    if (!chainEndpoints || chainEndpoints.length === 0) {
       console.error(`WARN no endpoint known for chain ${chainId} — skipping ${chainOps.length} operations`);
       warnings += chainOps.length;
       continue;
     }
 
-    console.error(`== chain ${chainId}: ${chainOps.length} operations via ${endpoint}`);
-    const api = await connect(endpoint);
+    console.error(
+      `== chain ${chainId}: ${chainOps.length} operations via ${chainEndpoints.join(", ")} (concurrency ${concurrency})`,
+    );
+    const apis = [];
+    for (const endpoint of chainEndpoints) {
+      try {
+        apis.push(await connect(endpoint));
+      } catch (error) {
+        console.error(`WARN endpoint ${endpoint} failed to connect: ${error.message}`);
+      }
+    }
+    if (apis.length === 0) {
+      console.error(`WARN no reachable endpoint for chain ${chainId} — skipping ${chainOps.length} operations`);
+      warnings += chainOps.length;
+      continue;
+    }
 
     try {
-      const headNumber = (await api.rpc.chain.getHeader()).number.toNumber();
+      const headNumber = (await apis[0].rpc.chain.getHeader()).number.toNumber();
       const blockHashCache = new Map();
       let done = 0;
+      let recovered = 0;
 
-      for (const op of chainOps) {
+      await mapConcurrent(chainOps, concurrency, async (op, index) => {
+        const api = apis[index % apis.length];
         try {
           const result = await recoverOperation(api, op, headNumber, blockHashCache);
           if (result.warn) {
             console.error(`WARN ${result.warn}`);
             warnings += 1;
           } else {
-            allRows.push(...result.rows);
+            for (const row of result.rows) {
+              recovered += 1;
+              for (const [dbName, knownEventIds] of op.perDb) {
+                if (knownEventIds.has(row.id)) continue;
+                rowsPerDb.get(dbName).push(row);
+              }
+            }
           }
         } catch (error) {
           console.error(`WARN operation ${op.id} failed: ${error.message}`);
           warnings += 1;
         }
         done += 1;
-        if (done % 25 === 0 || done === chainOps.length) {
-          console.error(`   ${done}/${chainOps.length} processed, ${allRows.length} events recovered so far`);
+        if (done % 50 === 0 || done === chainOps.length) {
+          console.error(`   ${done}/${chainOps.length} processed, ${recovered} approvals recovered on this chain`);
         }
-      }
+      });
     } finally {
-      await api.disconnect();
+      await Promise.all(apis.map(api => api.disconnect().catch(() => {})));
     }
   }
 
-  emitSql(allRows);
-  console.error(`== done: ${allRows.length} events recovered, ${warnings} warnings`);
+  for (const { name } of extracts) {
+    const rows = rowsPerDb.get(name);
+    const filePath = path.join(outDir, `fix-multisig-approvals-${name}.sql`);
+    writeSqlFile(filePath, rows);
+    console.error(`== ${name}: ${rows.length} events -> ${filePath}`);
+  }
+  console.error(`== done, ${warnings} warnings`);
 }
 
 main().catch(error => {
