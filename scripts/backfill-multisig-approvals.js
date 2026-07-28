@@ -179,19 +179,23 @@ function unifyOperations() {
 // chain probing
 // ---------------------------------------------------------------------------
 
+// Auto-reconnect (2.5s) keeps a multi-hour run alive across WebSocket drops:
+// requests in flight during a drop fail and surface as per-operation warnings,
+// the rest of the run proceeds after reconnect (failed operations are picked up
+// by an idempotent re-run). The initial connect is still bounded by a timeout.
 async function connect(endpoint) {
-  const provider = new WsProvider(endpoint, false);
-  const timer = setTimeout(() => {
-    console.error(`ERROR connect timeout 20s for ${endpoint}`);
-    process.exit(3);
-  }, 20000);
-  await provider.connect();
-  await new Promise((resolve, reject) => {
-    provider.on("connected", resolve);
-    provider.on("error", reject);
-  });
-  clearTimeout(timer);
-  return ApiPromise.create({ provider, noInitWarn: true, throwOnConnect: true });
+  const provider = new WsProvider(endpoint, 2500);
+  let timer;
+  try {
+    return await Promise.race([
+      ApiPromise.create({ provider, noInitWarn: true }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`connect timeout 30s for ${endpoint}`)), 30000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // multisig storage moved from `utility` to `multisig` on old Kusama runtimes;
