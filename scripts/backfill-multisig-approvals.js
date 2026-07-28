@@ -382,6 +382,35 @@ function writeSqlFile(filePath, rows) {
 }
 
 // ---------------------------------------------------------------------------
+// progress journal — probing a 20k-operation backlog takes hours, so every
+// completed operation is appended to a JSONL file immediately. A restarted run
+// reuses journaled results instead of re-probing (warned/failed operations are
+// not journaled and get retried).
+// ---------------------------------------------------------------------------
+
+const progressPath = path.join(outDir, "backfill-progress.jsonl");
+
+function loadProgress() {
+  const journal = new Map();
+  if (!fs.existsSync(progressPath)) return journal;
+
+  for (const line of fs.readFileSync(progressPath, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const entry = JSON.parse(line);
+      journal.set(entry.opId, entry.rows);
+    } catch {
+      // a line torn by a kill mid-write — ignore, the op will be re-probed
+    }
+  }
+  return journal;
+}
+
+function journalOperation(opId, rows) {
+  fs.appendFileSync(progressPath, JSON.stringify({ opId, rows }) + "\n");
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -395,10 +424,34 @@ async function main() {
     byChain.get(op.chain_id).push(op);
   }
 
+  const journal = loadProgress();
+  if (journal.size > 0) {
+    console.error(`== resuming: ${journal.size} operations already journaled in ${progressPath}`);
+  }
+
   const rowsPerDb = new Map(extracts.map(e => [e.name, []]));
+  const collectRows = (op, rows) => {
+    for (const row of rows) {
+      for (const [dbName, knownEventIds] of op.perDb) {
+        if (knownEventIds.has(row.id)) continue;
+        rowsPerDb.get(dbName).push(row);
+      }
+    }
+  };
   let warnings = 0;
 
-  for (const [chainId, chainOps] of byChain) {
+  for (const [chainId, allChainOps] of byChain) {
+    const chainOps = [];
+    for (const op of allChainOps) {
+      const journaled = journal.get(op.id);
+      if (journaled) {
+        collectRows(op, journaled);
+      } else {
+        chainOps.push(op);
+      }
+    }
+    if (chainOps.length === 0) continue;
+
     const chainEndpoints = endpoints[chainId];
     if (!chainEndpoints || chainEndpoints.length === 0) {
       console.error(`WARN no endpoint known for chain ${chainId} — skipping ${chainOps.length} operations`);
@@ -437,13 +490,9 @@ async function main() {
             console.error(`WARN ${result.warn}`);
             warnings += 1;
           } else {
-            for (const row of result.rows) {
-              recovered += 1;
-              for (const [dbName, knownEventIds] of op.perDb) {
-                if (knownEventIds.has(row.id)) continue;
-                rowsPerDb.get(dbName).push(row);
-              }
-            }
+            journalOperation(op.id, result.rows);
+            collectRows(op, result.rows);
+            recovered += result.rows.length;
           }
         } catch (error) {
           console.error(`WARN operation ${op.id} failed: ${error.message}`);
