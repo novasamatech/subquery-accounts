@@ -172,7 +172,7 @@ dataSources:
           kind: substrate/EventHandler
           filter:
             module: multisig
-            method: MultisigApproved
+            method: MultisigApproval
 
         - handler: handleMultisigExecutedEvent
           kind: substrate/EventHandler
