@@ -96,7 +96,7 @@ Safety limit: batches with >10,000 calls/events are skipped (`context.stop()`).
 
 ```
 NewMultisig         -> creates MultisigOperation (status: pending)
-MultisigApproved    -> finds existing operation, adds MultisigEvent
+MultisigApproval    -> finds existing operation, adds MultisigEvent
 MultisigExecuted    -> finalizes (status: executed | error)
 MultisigCancelled   -> cancels (status: cancelled)
 ```
