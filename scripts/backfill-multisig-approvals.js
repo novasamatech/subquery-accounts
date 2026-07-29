@@ -262,7 +262,7 @@ async function findTransitionBlock(api, op, low, high, target, blockHashCache) {
   return high;
 }
 
-async function extractApprovalEvent(api, blockNumber, op, blockHashCache) {
+async function extractApprovalEvent(api, blockNumber, op, blockHashCache, usedSigners) {
   const apiAt = await api.at(await getBlockHash(api, blockNumber, blockHashCache));
   const [events, timestampNow] = await Promise.all([apiAt.query.system.events(), apiAt.query.timestamp.now()]);
 
@@ -281,8 +281,15 @@ async function extractApprovalEvent(api, blockNumber, op, blockHashCache) {
     if (callHash.toHex().toLowerCase() !== op.call_hash.toLowerCase()) continue;
     if (timepoint.height.toNumber() !== op.block_created || timepoint.index.toNumber() !== op.index_created) continue;
 
+    // Two approvals can land in the same block — both bisection targets then
+    // resolve to it, and this block hosts a matching MultisigApproval per
+    // approval. Skip signers already claimed by earlier targets so each target
+    // maps to its own event instead of duplicating the first one.
+    const signer = approving.toHex().toLowerCase();
+    if (usedSigners.has(signer)) continue;
+
     return {
-      signer: approving.toHex().toLowerCase(),
+      signer,
       blockCreated: blockNumber,
       indexCreated: phase.isApplyExtrinsic ? phase.asApplyExtrinsic.toNumber() : 0,
       timestamp: Math.floor(timestampNow.toNumber() / 1000),
@@ -323,12 +330,15 @@ async function recoverOperation(api, op, headNumber, blockHashCache) {
 
   const rows = [];
 
+  const usedSigners = new Set();
+
   for (let target = 2; target <= endApprovals.length; target++) {
     const block = await findTransitionBlock(api, op, op.block_created, windowEnd, target, blockHashCache);
-    const approval = await extractApprovalEvent(api, block, op, blockHashCache);
+    const approval = await extractApprovalEvent(api, block, op, blockHashCache, usedSigners);
     if (!approval) {
       return { warn: `operation ${op.id}: approvals grew to ${target} at block ${block} but no matching MultisigApproval event found there` };
     }
+    usedSigners.add(approval.signer);
 
     rows.push({
       id: `${op.id}-${approval.signer}-approve`,
