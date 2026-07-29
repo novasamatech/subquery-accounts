@@ -72,6 +72,13 @@ if (!schema || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema) || extractArgs.length ==
 
 const outDir = argValue("--out-dir") ?? ".";
 const concurrency = Math.max(1, Number(argValue("--concurrency") ?? 8));
+// Every inserted event id is also recorded in a bookkeeping table under this
+// batch label, so an applied backfill can be audited and rolled back later.
+const batch = argValue("--batch") ?? "multisig-approvals-backfill";
+if (!/^[0-9a-zA-Z_.\-]+$/.test(batch)) {
+  console.error(`Invalid --batch label: ${batch}`);
+  process.exit(2);
+}
 const chainFilter = argValue("--chains")
   ? new Set(argValue("--chains").split(",").map(s => s.trim().toLowerCase()))
   : null;
@@ -368,12 +375,33 @@ function writeSqlFile(filePath, rows) {
     lines.push("-- nothing to fix");
   } else {
     lines.push("BEGIN;");
-    lines.push(`-- ${rows.length} recovered multisig approval events`);
+    lines.push(`-- ${rows.length} recovered multisig approval events, batch ${sqlString(batch)}`);
+    lines.push(
+      `-- Every id actually inserted is recorded in ${schema}.backfill_multisig_approvals,\n` +
+        `-- so the batch can be audited and rolled back:\n` +
+        `--   DELETE FROM ${schema}.multisig_events e USING ${schema}.backfill_multisig_approvals b\n` +
+        `--   WHERE e.id = b.id AND b.batch = ${sqlString(batch)};\n` +
+        `--   DELETE FROM ${schema}.backfill_multisig_approvals WHERE batch = ${sqlString(batch)};`,
+    );
+    lines.push(
+      `CREATE TABLE IF NOT EXISTS ${schema}.backfill_multisig_approvals (\n` +
+        `  id text PRIMARY KEY,\n` +
+        `  batch text NOT NULL,\n` +
+        `  inserted_at timestamptz NOT NULL DEFAULT now()\n` +
+        `);`,
+    );
     for (const row of rows) {
+      // The CTE records ONLY ids this script actually inserted — an id skipped
+      // by ON CONFLICT belongs to the live indexer and must never be swept up
+      // by a batch rollback.
       lines.push(
-        `INSERT INTO ${schema}.multisig_events (id, account_id, status, block_created, index_created, multisig_id, timestamp)\n` +
-          `VALUES (${sqlString(row.id)}, ${sqlString(row.accountId)}, 'approve', ${row.blockCreated}, ${row.indexCreated}, ${sqlString(row.multisigId)}, ${row.timestamp})\n` +
-          `ON CONFLICT (id) DO NOTHING;`,
+        `WITH ins AS (\n` +
+          `  INSERT INTO ${schema}.multisig_events (id, account_id, status, block_created, index_created, multisig_id, timestamp)\n` +
+          `  VALUES (${sqlString(row.id)}, ${sqlString(row.accountId)}, 'approve', ${row.blockCreated}, ${row.indexCreated}, ${sqlString(row.multisigId)}, ${row.timestamp})\n` +
+          `  ON CONFLICT (id) DO NOTHING\n` +
+          `  RETURNING id\n` +
+          `)\n` +
+          `INSERT INTO ${schema}.backfill_multisig_approvals (id, batch) SELECT id, ${sqlString(batch)} FROM ins ON CONFLICT (id) DO NOTHING;`,
       );
     }
     lines.push("COMMIT;");
