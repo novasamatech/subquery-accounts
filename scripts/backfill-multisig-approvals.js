@@ -444,14 +444,6 @@ function journalOperation(opId, rows) {
 
 async function main() {
   const operations = unifyOperations();
-
-  const byChain = new Map();
-  for (const op of operations) {
-    if (chainFilter && !chainFilter.has(op.chain_id)) continue;
-    if (!byChain.has(op.chain_id)) byChain.set(op.chain_id, []);
-    byChain.get(op.chain_id).push(op);
-  }
-
   const journal = loadProgress();
   if (journal.size > 0) {
     console.error(`== resuming: ${journal.size} operations already journaled in ${progressPath}`);
@@ -466,18 +458,26 @@ async function main() {
       }
     }
   };
+
+  // Journaled results are collected for EVERY operation regardless of the
+  // --chains filter — the filter limits what gets probed, while the emitted SQL
+  // must always cover the full journal (otherwise a chain-scoped touch-up run
+  // would overwrite the SQL files with a chain-scoped subset).
+  const byChain = new Map();
+  for (const op of operations) {
+    const journaled = journal.get(op.id);
+    if (journaled) {
+      collectRows(op, journaled);
+      continue;
+    }
+    if (chainFilter && !chainFilter.has(op.chain_id)) continue;
+    if (!byChain.has(op.chain_id)) byChain.set(op.chain_id, []);
+    byChain.get(op.chain_id).push(op);
+  }
+
   let warnings = 0;
 
-  for (const [chainId, allChainOps] of byChain) {
-    const chainOps = [];
-    for (const op of allChainOps) {
-      const journaled = journal.get(op.id);
-      if (journaled) {
-        collectRows(op, journaled);
-      } else {
-        chainOps.push(op);
-      }
-    }
+  for (const [chainId, chainOps] of byChain) {
     if (chainOps.length === 0) continue;
 
     const chainEndpoints = endpoints[chainId];
