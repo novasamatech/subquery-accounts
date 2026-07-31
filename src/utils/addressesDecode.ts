@@ -56,25 +56,27 @@ export function encodeAddress(publicKey: Uint8Array | string, ss58Format?: numbe
 }
 
 /**
- * Derive a Substrate multisig account address from its signatories and threshold.
+ * Derive a multisig account id (hex) from its signatories and threshold.
  *
- * Functionally equivalent to @polkadot/util-crypto's `encodeMultiAddress`, but
+ * Functionally equivalent to @polkadot/util-crypto's `createKeyMulti`, but
  * provides our own MULTISIG_PREFIX (see above) instead of letting the library
- * compute it via stringToU8a — the only place in the chain that breaks under
- * the SubQuery sandbox.
+ * compute it via stringToU8a, and returns the raw account id without an SS58
+ * round-trip: SS58 encoding hashes a blake2 checksum through the same
+ * sandbox-fragile pipeline, producing addresses with invalid checksums that
+ * only survive because decodeAddress ignores them.
  *
  * @param who Array of SS58/EVM addresses or pre-decoded public keys
  * @param threshold Number of approvals required to dispatch a multisig call
- * @returns The multisig account address (SS58 for Substrate, 0x… for EVM)
+ * @returns The multisig account id as hex (32 bytes for Substrate, 20 for EVM)
  */
-export function createKeyMultiAddress(who: (string | Uint8Array)[], threshold: bigint | BN | number): string {
+export function createKeyMultiAccountId(who: (string | Uint8Array)[], threshold: bigint | BN | number): string {
   const decoded = who.map(addr => (typeof addr === "string" ? decodeAddress(addr) : addr));
   const blakeInput = u8aConcat(MULTISIG_PREFIX, compactToU8a(decoded.length), ...u8aSorted(decoded), bnToU8a(threshold as number, THRESHOLD_LE_OPTS));
   const multisigKey = blake2AsU8a(blakeInput);
 
   if (typeof who[0] === "string" && ETHEREUM_ADDRESS_REGEX.test(who[0].trim())) {
-    return encodeAddress(addressToEvm(multisigKey, false));
+    return u8aToHex(addressToEvm(multisigKey, false));
   }
 
-  return encodeAddress(multisigKey);
+  return u8aToHex(multisigKey);
 }

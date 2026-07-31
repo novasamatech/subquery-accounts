@@ -1,7 +1,8 @@
 import { SubstrateExtrinsic } from "@subql/types";
 import { checkAndGetAccount } from "../../utils/checkAndGetAccount";
 import { checkAndGetAccountMultisig } from "../../utils/checkAndGetAccountMultisig";
-import { decodeAddress, createKeyMultiAddress } from "../../utils";
+import { decodeAddress, createKeyMultiAccountId } from "../../utils";
+import { assertCryptoIntegrity } from "../../utils/cryptoIntegrity";
 import { u8aToHex } from "@polkadot/util";
 import { MultisigRemarkArgs } from "../types";
 import { validateAddress } from "../../utils/validateAddress";
@@ -65,9 +66,9 @@ async function handleMultisigRemarkCall(call: VisitedCall): Promise<void> {
 
   logger.info(`Signatories Accounts: ${JSON.stringify(allSignatoriesAccounts)}`);
 
-  const multisigAddress = createKeyMultiAddress(parsedArgs.signatories, parsedArgs.threshold);
+  assertCryptoIntegrity();
 
-  const multisigPubKey = u8aToHex(decodeAddress(multisigAddress));
+  const multisigPubKey = createKeyMultiAccountId(parsedArgs.signatories, parsedArgs.threshold);
 
   const multisigAccount = await checkAndGetAccount(multisigPubKey, true, parsedArgs.threshold);
 

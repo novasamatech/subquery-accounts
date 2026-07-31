@@ -24,9 +24,7 @@ subqlTest(
       id: MULTISIG,
       accountId: MULTISIG,
       isMultisig: true,
-      // toHuman() emits substrate u16 as a string and the handler stores it verbatim;
-      // see extractThresholdAndOtherSignatories in multisigCallHandler.ts.
-      threshold: "2" as unknown as number,
+      threshold: 2,
     }),
     Account.create({
       id: SIGNATORY_1,
