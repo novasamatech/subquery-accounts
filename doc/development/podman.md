@@ -32,12 +32,14 @@ build/test jobs must use different `WORKSPACE_VOLUME` values. Do not run cleanup
 
 ## Storage and Images
 
-Defaults live in [scripts/podman/common.sh](../../scripts/podman/common.sh); Make only forwards overrides.
+Image versions live in [versions.env](../../versions.env), shared by Podman, Compose and CI.
+Storage defaults live in [scripts/podman/common.sh](../../scripts/podman/common.sh); Make only forwards overrides.
 
 | Setting | Default | Purpose |
 |---|---|---|
 | `NODE_IMAGE` | `docker.io/library/node:24-alpine` | Build tooling and project dependency tree |
 | `SUBQL_NODE_IMAGE` | `docker.io/subquerynetwork/subql-node-substrate:v6.4.6` | Actual indexer decoder and SubQuery VM |
+| `SUBQL_PRODUCTION_IMAGE` | `docker.io/onfinality/subql-node:v6.4.6` | Production Dockerfile base, using the same `SUBQL_NODE_VERSION` |
 | `PG_TEST_IMAGE` | `localhost/subql-pg-test:latest` | Built from `docker/pg-Dockerfile` |
 | `WORKSPACE_VOLUME` | `subql-workspace` | Sources, dependencies and bundles at `/work` |
 | `DIAGNOSTICS_VOLUME` | `subql-diagnostics` | Snapshots / caches at `/out` |
@@ -52,8 +54,31 @@ preserving generated directories. The `:Z` mount option handles SELinux. Do not 
 Updating project resolutions does not update dependencies bundled into the runtime image.
 For a decoder change verify both, and retain the exact image digest in incident evidence.
 The production Dockerfile runs the Node offline suite after copying the built project into
-the final runtime stage. When updating a runtime version, also check both local/test Compose files,
-CI workflows and manifest minimum versions.
+the final runtime stage. Its build args are required so a stale fallback cannot silently override
+`versions.env`. `NODE_IMAGE` always means the build image, including during a replay;
+override `SUBQL_NODE_IMAGE` for a different replay runtime. Existing environment overrides win.
+
+For a local production-image build from the repository root:
+
+~~~bash
+source versions.env
+podman build -f docker/subql-node-Dockerfile \
+  --build-arg NODE_IMAGE="$NODE_IMAGE" \
+  --build-arg SUBQL_NODE_IMAGE="$SUBQL_PRODUCTION_IMAGE" \
+  -t localhost/subquery-accounts:review .
+~~~
+
+For existing disposable Docker environments, use
+`docker compose --env-file versions.env -f docker-compose-test.yml config` (or `up`). The local
+and multichain Compose files use the same option, including every secondary indexer service.
+Do not use the destructive legacy `local-runner.sh` for Linux development; use Make/Podman.
+The Docker image workflow also accepts `workflow_dispatch` for an explicit pre-merge image;
+feature-branch pushes do not publish automatically.
+
+When upgrading, edit the versions once and follow the
+[runtime upgrade checklist](../runbooks/runtime-compatibility.md#runtime-upgrade-checklist), including
+manifest minimum versions. `.dockerignore` excludes VCS data, caches, local databases and generated
+host artifacts from builds; dependencies, bundles and generated models are built inside the image.
 
 ## Test Ownership
 

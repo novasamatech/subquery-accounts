@@ -4,8 +4,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-: "${NODE_IMAGE:=docker.io/library/node:24-alpine}"
-: "${SUBQL_NODE_IMAGE:=docker.io/subquerynetwork/subql-node-substrate:v6.4.6}"
+source "$REPO_ROOT/versions.env"
 : "${PG_TEST_IMAGE:=localhost/subql-pg-test:latest}"
 : "${WORKSPACE_VOLUME:=subql-workspace}"
 : "${DIAGNOSTICS_VOLUME:=subql-diagnostics}"

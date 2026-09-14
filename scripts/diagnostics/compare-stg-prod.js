@@ -18,8 +18,9 @@
  *   --parallel           Query STG and PROD in parallel (default: sequential, gentler)
  *   --sequential         Query STG then PROD one after another (this is the default)
  *   --deep               Fetch all fields and compare them (default: id-only — much lighter on the backend)
- *   --exclude-chain=list Comma-separated genesis hashes to skip (default skips Westend Asset Hub only while PROD is >1000 blocks behind)
- *   --no-exclude-chain   Clear the default exclude list and compare every chain
+ *   --max-lag=N          Auto-exclude chains where PROD trails STG by more than N blocks (default: 1000)
+ *   --exclude-chain=list Skip these genesis hashes instead of auto-excluding lagging chains
+ *   --no-exclude-chain   Disable exclusions and compare every chain
  *   --cache-dir=<path>   Override cache dir (default: .cache/compare-stg-prod)
  *   --no-cache           Disable on-disk cache entirely
  *   --refresh            Ignore existing cache and re-fetch from scratch
@@ -49,13 +50,9 @@ const DEFAULT_PROD = 'https://subquery-accounts-prod.novasama-tech.org';
 const DEFAULT_CACHE = path.resolve(process.env.DIAGNOSTICS_DIR || path.resolve(__dirname, '../../.cache'), 'compare-stg-prod');
 const REQUEST_TIMEOUT_MS = 60_000;
 const DEFAULT_EXCLUDE_LAG_THRESHOLD = 1_000;
-// Westend Asset Hub — prod indexer has been stuck ~2M blocks behind staging for days,
-// so ALL its (chain-scoped) rows show up as "only in STG" noise. Excluded by default.
-// NOTE: this exclusion is only effective for entities whose chainId is derivable
-// (pureProxies/proxieds via id prefix, multisigOperations via its chainId column).
-const DEFAULT_EXCLUDE_CHAINS = [
-  '0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9', // Westend Asset Hub
-];
+const MAX_RETRIES = 15;
+const BACKOFF_BASE_MS = 750;
+const BACKOFF_CAP_MS = 60_000;
 const USER_AGENT = 'subquery-proxy-compare-stg-prod/1.0 (+scripts/diagnostics/compare-stg-prod.js)';
 
 const ENTITIES = {
@@ -108,10 +105,10 @@ function endpointTag(url) {
   return crypto.createHash('sha1').update(String(url)).digest('hex').slice(0, 8);
 }
 
-function parseArgs(argv = process.argv.slice(2)) {
+function parseArgs(argv = process.argv.slice(2), env = process.env) {
   const args = {
-    stg: DEFAULT_STG,
-    prod: DEFAULT_PROD,
+    stg: env.STG_ENDPOINT || DEFAULT_STG,
+    prod: env.PROD_ENDPOINT || DEFAULT_PROD,
     entities: Object.keys(ENTITIES),
     pageSize: 500,
     pageDelayMs: 250,
@@ -119,8 +116,9 @@ function parseArgs(argv = process.argv.slice(2)) {
     json: false,
     sequential: true,
     deep: false,
-    excludeChains: [...DEFAULT_EXCLUDE_CHAINS],
-    excludeChainsDefaulted: true,
+    excludeChains: [],
+    autoExclude: true,
+    maxLag: DEFAULT_EXCLUDE_LAG_THRESHOLD,
     cacheDir: DEFAULT_CACHE,
     noCache: false,
     refresh: false,
@@ -134,7 +132,7 @@ function parseArgs(argv = process.argv.slice(2)) {
     if (arg === '--refresh') { args.refresh = true; continue; }
     if (arg === '--no-exclude-chain') {
       args.excludeChains = [];
-      args.excludeChainsDefaulted = false;
+      args.autoExclude = false;
       continue;
     }
     const raw = arg.replace(/^--/, '');
@@ -151,10 +149,14 @@ function parseArgs(argv = process.argv.slice(2)) {
     else if (k === 'page-size') args.pageSize = Number(value());
     else if (k === 'page-delay-ms') args.pageDelayMs = Number(value());
     else if (k === 'sample') args.sample = Number(value());
+    else if (k === 'max-lag') {
+      if (!/^[0-9]+$/.test(value())) throw new Error('--max-lag must be a non-negative integer');
+      args.maxLag = Number(value());
+    }
     else if (k === 'cache-dir') args.cacheDir = value();
     else if (k === 'exclude-chain') {
       args.excludeChains = value().split(',').map(s => s.trim()).filter(Boolean);
-      args.excludeChainsDefaulted = false;
+      args.autoExclude = false;
     }
     else {
       throw new Error(`Unknown flag: ${arg}`);
@@ -168,6 +170,7 @@ function parseArgs(argv = process.argv.slice(2)) {
   if (!Number.isSafeInteger(args.pageSize) || args.pageSize <= 0) throw new Error('--page-size must be a positive integer');
   if (!Number.isSafeInteger(args.pageDelayMs) || args.pageDelayMs < 0) throw new Error('--page-delay-ms must be a non-negative integer');
   if (!Number.isSafeInteger(args.sample) || args.sample < 0) throw new Error('--sample must be a non-negative integer');
+  if (!Number.isSafeInteger(args.maxLag)) throw new Error('--max-lag must be a non-negative integer');
   if (!args.cacheDir) throw new Error('--cache-dir must not be empty');
   for (const [name, endpoint] of [['--stg', args.stg], ['--prod', args.prod]]) {
     let parsed;
@@ -201,7 +204,7 @@ async function graphqlRaw(endpoint, query, variables, attempt = 0) {
     if (!transient && bodyText) {
       try { return JSON.parse(bodyText); } catch (_) {}
     }
-    if (transient && attempt < 15) {
+    if (transient && attempt < MAX_RETRIES) {
       return retryGraphql(endpoint, query, variables, attempt, `status=${res ? res.status : 'n/a'} ${errMsg ? '(' + errMsg.slice(0, 60) + ')' : ''}`);
     }
     throw new Error(
@@ -211,18 +214,18 @@ async function graphqlRaw(endpoint, query, variables, attempt = 0) {
   try {
     return await res.json();
   } catch (err) {
-    if (attempt < 15) {
+    if (attempt < MAX_RETRIES) {
       return retryGraphql(endpoint, query, variables, attempt, `response body error (${String(err).slice(0, 80)})`);
     }
-    throw new Error(`GraphQL response body failed after 15 retries (${endpoint}): ${String(err)}`);
+    throw new Error(`GraphQL response body failed after ${MAX_RETRIES} retries (${endpoint}): ${String(err)}`);
   }
 }
 
 async function retryGraphql(endpoint, query, variables, attempt, reason) {
-  const base = Math.min(60000, 750 * Math.pow(2, attempt));
-  const jitter = Math.floor(Math.random() * 750);
+  const base = Math.min(BACKOFF_CAP_MS, BACKOFF_BASE_MS * Math.pow(2, attempt));
+  const jitter = Math.floor(Math.random() * BACKOFF_BASE_MS);
   const backoff = base + jitter;
-  process.stderr.write(`\n  [retry ${attempt + 1}/15] ${endpoint} ${reason} — waiting ${backoff}ms\n`);
+  process.stderr.write(`\n  [retry ${attempt + 1}/${MAX_RETRIES}] ${endpoint} ${reason} — waiting ${backoff}ms\n`);
   await new Promise(r => setTimeout(r, backoff));
   return graphqlRaw(endpoint, query, variables, attempt + 1);
 }
@@ -265,17 +268,21 @@ async function fetchMetadatas(endpoint) {
 }
 
 function resolveExcludeChains(args, stgMeta, prodMeta) {
-  if (!args.excludeChainsDefaulted) return args.excludeChains;
-  const stgByGenesis = new Map(stgMeta.map(m => [String(m.genesisHash).toLowerCase(), m]));
-  const prodByGenesis = new Map(prodMeta.map(m => [String(m.genesisHash).toLowerCase(), m]));
-  return args.excludeChains.filter(chain => {
-    const key = chain.toLowerCase();
-    const stg = stgByGenesis.get(key);
-    const prod = prodByGenesis.get(key);
-    if (!stg) return false;
-    if (!prod) return true;
-    return Number(stg.lastProcessedHeight) - Number(prod.lastProcessedHeight) > DEFAULT_EXCLUDE_LAG_THRESHOLD;
-  });
+  if (!args.autoExclude) return args.excludeChains;
+  const heights = rows => new Map(rows.map(row => {
+    const chain = String(row.genesisHash).toLowerCase();
+    const height = row.lastProcessedHeight;
+    if (!/^0x[0-9a-f]{64}$/.test(chain) || !/^[0-9]+$/.test(String(height)) ||
+        !Number.isSafeInteger(Number(height))) {
+      throw new Error('Cannot determine chain lag: invalid genesisHash or lastProcessedHeight');
+    }
+    return [chain, Number(height)];
+  }));
+  const stgHeights = heights(stgMeta);
+  const prodHeights = heights(prodMeta);
+  // A missing chain is not a measured lag. Keep it visible in the comparison.
+  return [...stgHeights].filter(([chain, height]) => prodHeights.has(chain) &&
+    height - prodHeights.get(chain) > args.maxLag).map(([chain]) => chain);
 }
 
 // Cache layout: <cacheDir>/<env>-<urlTag>-<entity>[-deep].jsonl  (one node per line)
@@ -510,7 +517,7 @@ function eq(a, b) {
   return false;
 }
 
-function printChainStatus(stgMeta, prodMeta) {
+function printChainStatus(stgMeta, prodMeta, maxLag) {
   console.log('Chain indexing status (lastProcessedHeight):');
   const byGenesis = new Map();
   for (const m of stgMeta) byGenesis.set(m.genesisHash, { stg: m });
@@ -529,7 +536,7 @@ function printChainStatus(stgMeta, prodMeta) {
   for (const r of rows) {
     const flag = !r.stg ? ' (missing on STG)' : !r.prod ? ' (missing on PROD)' : '';
     const deltaStr = r.delta == null ? '' : ` delta=${r.delta >= 0 ? '+' : ''}${r.delta}`;
-    const warn = (r.delta != null && Math.abs(r.delta) > 1000) ? ' ⚠' : '';
+    const warn = (r.delta != null && Math.abs(r.delta) > maxLag) ? ' ⚠' : '';
     console.log(`  - ${r.name}: stg=${r.sh} prod=${r.ph}${deltaStr}${warn}${flag}`);
   }
   console.log('');
@@ -620,15 +627,16 @@ if (require.main === module) {
     console.log(`  Transport: ${args.sequential ? 'sequential' : 'parallel'}, page size ${args.pageSize}, page delay ${args.pageDelayMs}ms`);
     if (args.excludeChains.length) {
       console.log(`  Excluded chains: ${args.excludeChains.map(c => c.slice(0, 10) + '…').join(', ')}`);
-    } else if (args.excludeChainsDefaulted) {
-      console.log(`  Excluded chains: none (default exclusion is inactive because PROD is not significantly behind)`);
+    } else if (args.autoExclude) {
+      console.log(`  Excluded chains: none (no measured PROD lag exceeds ${args.maxLag} blocks)`);
     }
     console.log('');
   }
 
-  if (!args.json) printChainStatus(stgMeta, prodMeta);
+  if (!args.json) printChainStatus(stgMeta, prodMeta, args.maxLag);
 
   const result = { stg: args.stg, prod: args.prod, metadatas: { stg: stgMeta, prod: prodMeta }, entities: {} };
+  result.exclusions = { mode: args.autoExclude ? 'auto' : 'explicit', maxLag: args.maxLag, chains: args.excludeChains };
 
   result.schemaDiffs = {};
   result.failures = {};

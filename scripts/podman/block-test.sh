@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # Full indexer replay. Uses the same workspace, database and cleanup as tests.
-# NODE_IMAGE is accepted as a legacy alias for the runtime image in this script.
-SUBQL_NODE_IMAGE="${SUBQL_NODE_IMAGE:-${NODE_IMAGE:-}}"
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 source "$REPO_ROOT/scripts/podman/test-stack.sh"
 

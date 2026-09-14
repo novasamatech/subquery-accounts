@@ -4,6 +4,39 @@
 
 Use this for dependency, sandbox, address and historical Asset Hub type failures. These notes retain earlier incident evidence and alternative fixes; package versions and old helper names are historical, not instructions to downgrade or copy code blindly. Current implementations are authoritative: `addressesDecode.ts` uses `createKeyMultiAccountId`, `cryptoIntegrity.ts` guards derived ids, and the visitor version comes from `package.json`.
 
+## Runtime Upgrade Checklist
+
+1. Update `NODE_VERSION` / `SUBQL_NODE_VERSION` in [versions.env](../../versions.env), not individual
+   workflows. Verify both runtime publishers: diagnostics/tests use `subquerynetwork`, the production
+   Dockerfile uses `onfinality`. Keep project package resolutions and manifest minimums compatible.
+2. Check the internal entry points below in the candidate image. They are not stable public APIs;
+   if they move, update the loader/harness and verify behavior instead of skipping the VM tests.
+3. Rebuild and run `make podman-test` with the candidate runtime, then build the production image.
+   Its final stage runs the offline suite too, so an incompatible internal API intentionally fails
+   the image build. Inspect the final image for accidentally included local caches/database files.
+4. Compare old/candidate dependencies on the same raw snapshot and run the VM byte/hash, signed-origin,
+   crypto-canary and entity assertions. Use historical and new-format transactions. Do not remove a
+   chainTypes override based only on a newer package version or a successful bare-v5 decode.
+
+### Internal Runtime APIs
+
+[scripts/lib/runtime.js](../../scripts/lib/runtime.js) resolves packages from `SUBQL_ROOT` (default `/`)
+and initializes logging before importing the sandbox. This root is independent of the project's
+dependencies and a diagnostic's `--api-root` / `--known-types-root` candidate installations.
+
+| Path relative to the runtime installation | Contract used by tooling |
+|---|---|
+| `@subql/node-core/dist/logger` | `initLogger` before VM imports |
+| `@subql/node-core/dist/indexer/sandbox` | `IndexerSandbox`, `setGlobal`, `securedExec` for real mappings |
+| `./dist/utils/project` | `loadChainTypesFromJs` for chainTypes VM loading |
+| `./dist/utils/substrate` | `wrapExtrinsics`, `wrapEvents`, `filterExtrinsic`, `filterEvent` for dispatch |
+| `@polkadot/types/metadata/decorate/events` | `decorateEvents` for runtime event predicates |
+| `@polkadot/types/metadata/decorate/extrinsics` | `decorateExtrinsics` for fixture calls |
+
+The last two are polkadot-js package entry points; the SubQuery `dist` paths are private implementation
+details. The offline decoder and entity tests exercise these contracts in both the test and final
+production runtime. A relocated entry point needs inspection, not a silent fallback to project packages.
+
 ### 9. Type Errors After Updating @polkadot/* Dependencies
 
 **Symptom:** Build fails after updating `@polkadot/api` or `@polkadot/types`.

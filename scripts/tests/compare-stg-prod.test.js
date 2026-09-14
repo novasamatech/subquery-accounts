@@ -56,7 +56,7 @@ async function withFetch(mock, fn) {
   }
 }
 
-async function startGraphqlServer(entityResponses) {
+async function startGraphqlServer(entityResponses, metadatas = {}) {
   const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', chunk => { raw += chunk; });
@@ -64,7 +64,7 @@ async function startGraphqlServer(entityResponses) {
       const query = JSON.parse(raw).query;
       let body;
       if (query.includes('_metadatas')) {
-        body = { data: { _metadatas: { nodes: [] } } };
+        body = { data: { _metadatas: { nodes: metadatas[req.url] || [] } } };
       } else if (entityResponses[req.url] instanceof Error) {
         body = { errors: [{ message: entityResponses[req.url].message }] };
       } else if (typeof entityResponses[req.url] === 'function') {
@@ -92,8 +92,10 @@ async function startGraphqlServer(entityResponses) {
   };
 }
 
-async function runScript(args) {
-  const child = spawn(process.execPath, [SCRIPT, ...args], { stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
+async function runScript(args, env = {}) {
+  const child = spawn(process.execPath, [SCRIPT, ...args], {
+    stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000, env: { ...process.env, ...env },
+  });
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', chunk => { stdout += chunk; });
@@ -139,6 +141,20 @@ test('parseArgs preserves values, accepts documented flags, and validates inputs
   assert.throws(() => parseArgs(['--cache-dir=']), /must not be empty/);
   assert.throws(() => parseArgs(['--stg=ftp://example.test']), /http:\/\/ or https:\/\//);
   assert.throws(() => parseArgs(['--exclude-chain=nope']), /genesis hash/);
+  for (const value of ['-1', 'nope', '1.5', '', ' ', '9007199254740992']) {
+    assert.throws(() => parseArgs([`--max-lag=${value}`]), /non-negative integer/);
+  }
+});
+
+test('endpoint environment overrides precede defaults and CLI flags take precedence', () => {
+  const env = { STG_ENDPOINT: 'https://stg.example/graphql?a=b', PROD_ENDPOINT: 'https://prod.example/graphql' };
+  assert.equal(parseArgs([], env).stg, env.STG_ENDPOINT);
+  assert.equal(parseArgs([], env).prod, env.PROD_ENDPOINT);
+  const args = parseArgs(['--stg=https://cli-stg.example', '--prod=https://cli-prod.example'], env);
+  assert.equal(args.stg, 'https://cli-stg.example');
+  assert.equal(args.prod, 'https://cli-prod.example');
+  assert.equal(parseArgs([], {}).stg, parseArgs([], { STG_ENDPOINT: '' }).stg);
+  assert.throws(() => parseArgs([], { PROD_ENDPOINT: 'invalid' }), /valid URL/);
 });
 
 test('schema differences affect the verdict even when global rows are unscoped', () => {
@@ -217,17 +233,49 @@ test('deep JSON CLI does not report equality when schemas differ', async () => {
   }
 });
 
-test('default chain exclusion is active only while PROD is significantly behind', () => {
-  const args = parseArgs(['--entities=pureProxies']);
-  const metadata = height => [{ genesisHash: CHAIN_A, lastProcessedHeight: height }];
-  args.excludeChains = [CHAIN_A];
-  assert.deepEqual(resolveExcludeChains(args, metadata(5000), metadata(3000)), [CHAIN_A]);
-  assert.deepEqual(resolveExcludeChains(args, metadata(5000), metadata(4500)), []);
+test('auto exclusion derives every lagging chain from metadata, with a strict configurable boundary', () => {
+  const metadata = (a, b) => [
+    { genesisHash: CHAIN_A.toUpperCase(), lastProcessedHeight: a },
+    { genesisHash: CHAIN_B, lastProcessedHeight: b },
+  ];
+  const args = parseArgs([]);
+  assert.deepEqual(resolveExcludeChains(args, metadata(5000, 7000), metadata(3000, 5000)), [CHAIN_A, CHAIN_B]);
+  assert.deepEqual(resolveExcludeChains(args, metadata(5000, 7000), metadata(4000, 5999)), [CHAIN_B]);
+  assert.deepEqual(resolveExcludeChains(args, metadata(5000, 7000), metadata(5001, 7000)), []);
+  assert.deepEqual(resolveExcludeChains(parseArgs(['--max-lag=0']), metadata('5000', '7000'), metadata(5000, 6999)), [CHAIN_B]);
+  assert.deepEqual(resolveExcludeChains(parseArgs(['--max-lag=2000']), metadata(5000, 7000), metadata(3000, 5000)), []);
+  assert.deepEqual(resolveExcludeChains(parseArgs([`--exclude-chain=${CHAIN_A}`]), metadata(5000, 7000), metadata(5000, 0)), [CHAIN_A]);
+  assert.deepEqual(resolveExcludeChains(parseArgs(['--no-exclude-chain', '--max-lag=0']), metadata(5000, 7000), metadata(0, 0)), []);
+  assert.deepEqual(resolveExcludeChains(args, [], metadata(3000, 5000)), []);
+  assert.deepEqual(resolveExcludeChains(args, metadata(5000, 7000), []), [], 'Missing chains must remain visible');
+});
 
-  const explicit = parseArgs([`--exclude-chain=${CHAIN_A}`, '--entities=pureProxies']);
-  assert.deepEqual(resolveExcludeChains(explicit, metadata(5000), metadata(5000)), [CHAIN_A]);
-  assert.deepEqual(resolveExcludeChains(args, [], metadata(3000)), []);
-  assert.deepEqual(resolveExcludeChains(args, metadata(5000), []), [CHAIN_A]);
+test('auto exclusion rejects malformed metadata instead of hiding unknown chain lag', () => {
+  const args = parseArgs([]);
+  for (const height of [null, undefined, '', -1, 'bad', 1.5, true, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => resolveExcludeChains(args, [{ genesisHash: CHAIN_A, lastProcessedHeight: height }], []), /Cannot determine chain lag/);
+  }
+  assert.throws(() => resolveExcludeChains(args, [], [{ genesisHash: 'invalid', lastProcessedHeight: 1 }]), /Cannot determine chain lag/);
+});
+
+test('JSON CLI uses env endpoints and reports auto exclusions without concealing unfiltered differences', async () => {
+  const rows = [{ id: `${CHAIN_A}-proxy` }, { id: `${CHAIN_B}-proxy` }];
+  const server = await startGraphqlServer({ '/stg': rows, '/prod': [] }, {
+    '/stg': [CHAIN_A, CHAIN_B].map(genesisHash => ({ genesisHash, lastProcessedHeight: 100 })),
+    '/prod': [CHAIN_A, CHAIN_B].map(genesisHash => ({ genesisHash, lastProcessedHeight: 10 })),
+  });
+  try {
+    const env = { STG_ENDPOINT: server.url('/stg'), PROD_ENDPOINT: server.url('/prod') };
+    const flags = ['--json', '--entities=pureProxies', '--no-cache', '--max-lag=50'];
+    const auto = await runScript(flags, env);
+    assert.equal(auto.code, 0, auto.stderr);
+    assert.deepEqual(JSON.parse(auto.stdout).exclusions, { mode: 'auto', maxLag: 50, chains: [CHAIN_A, CHAIN_B] });
+    assert.equal((await runScript([...flags, '--no-exclude-chain'], env)).code, 1);
+    assert.equal((await runScript([...flags, `--exclude-chain=${CHAIN_A}`], env)).code, 1);
+    assert.equal((await runScript([...flags, '--max-lag=90'], env)).code, 1);
+  } finally {
+    await server.close();
+  }
 });
 
 test('chain scopes distinguish id prefixes, operation fields, and operation lookups', () => {
@@ -569,13 +617,4 @@ test('graphqlRaw retries an interrupted successful response body', async () => {
     assert.deepEqual(await graphqlRaw('https://example.test', '{ ok }'), { data: { ok: true } });
   });
   assert.equal(calls, 2);
-});
-
-test('review structural fixes remain present', () => {
-  const source = fs.readFileSync(SCRIPT, 'utf8');
-  assert.doesNotMatch(source, /function perChainCounts/);
-  assert.doesNotMatch(source, /probeCachePath/);
-  assert.match(source, /\*   --sequential /);
-  assert.match(source, /\*   --no-exclude-chain /);
-  assert.doesNotMatch(source, /pureProxies \/ proxieds \/ multisigOperations ids always start with the chainId/);
 });

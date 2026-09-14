@@ -23,6 +23,8 @@ if [[ ! "$CHAIN" =~ ^[a-z0-9-]+$ || $# != 1 ]]; then
 fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "$REPO_ROOT/versions.env"
+export SUBQL_NODE_IMAGE
 PROJECT_FILE="project-${CHAIN}.yaml"
 TEST_DIR="src/test/${CHAIN}"
 
@@ -40,10 +42,10 @@ cd "${REPO_ROOT}"
 bash scripts/tests/run-host.sh
 docker run --rm --network=none --entrypoint sh \
   -v "$REPO_ROOT:/project:ro" \
-  docker.io/subquerynetwork/subql-node-substrate:v6.4.6 /project/scripts/tests/run.sh
+  "$SUBQL_NODE_IMAGE" /project/scripts/tests/run.sh
 
 export PROJECT_PATH="${PROJECT_FILE}"
-COMPOSE=(docker compose --project-name "subql-test-$CHAIN-$$-$RANDOM" -f docker-compose-test.yml)
+COMPOSE=(docker compose --project-name "subql-test-$CHAIN-$$-$RANDOM" --env-file versions.env -f docker-compose-test.yml)
 compose_pid=""
 cleanup() {
   if [[ -n "$compose_pid" ]]; then kill -TERM "$compose_pid" 2>/dev/null || true; fi

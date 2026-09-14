@@ -2,6 +2,10 @@ import type { Enum, Struct } from "@polkadot/types-codec";
 import type { GenericExtrinsic } from "@polkadot/types/extrinsic/Extrinsic";
 import type { CodecClass, Registry } from "@polkadot/types/types";
 
+const EXTRINSIC_VERSION_V5 = 5;
+const GENERAL_EXTRINSIC_PREAMBLE = 0x40 | EXTRINSIC_VERSION_V5;
+const MIN_GENERAL_PAYLOAD_BYTES = 2; // Preamble + extension version; metadata validates the rest.
+
 // Return codecs created by the registry: it lives outside SubQuery's chain
 // types VM, and its numeric decoders cannot consume the VM's Uint8Arrays.
 export const AssetHubGeneralExtrinsic = class {
@@ -10,7 +14,7 @@ export const AssetHubGeneralExtrinsic = class {
     const length = registry.createType("Compact<u32>", encoded);
     const offset = length.encodedLength;
     const end = offset + length.toNumber();
-    if (end > encoded.length || encoded[offset] !== 0x45 || length.toNumber() < 2) {
+    if (end > encoded.length || encoded[offset] !== GENERAL_EXTRINSIC_PREAMBLE || length.toNumber() < MIN_GENERAL_PAYLOAD_BYTES) {
       throw new Error("Invalid Asset Hub general extrinsic envelope");
     }
 
@@ -37,7 +41,7 @@ export const AssetHubGeneralExtrinsic = class {
 
     Object.defineProperties(decoded, {
       // GenericExtrinsic reads the preamble from the inner version on creation.
-      version: { value: 0x45 },
+      version: { value: GENERAL_EXTRINSIC_PREAMBLE },
       signature: { value: { isSigned: false } },
       method: { get: () => decoded.get("method") },
       era: { get: () => decoded.get("CheckMortality") },
@@ -63,9 +67,9 @@ export const AssetHubExtrinsic = class {
     const authorization = verification?.type === "Signed" ? verification.value as Struct : undefined;
     const signature = authorization?.get("signature") as Enum | undefined;
     Object.defineProperties(extrinsic, {
-      type: { value: 5 },
+      type: { value: EXTRINSIC_VERSION_V5 },
       // A v5 signature lives in VerifyMultiSignature, not the v4 signed bit.
-      version: { value: 0x45 },
+      version: { value: GENERAL_EXTRINSIC_PREAMBLE },
       isSigned: { value: !!authorization },
       signer: { get: () => registry.createType("Address", authorization?.get("account")?.toHex()) },
       signature: { get: () => (signature ?? registry.createType("ExtrinsicSignature")).value },

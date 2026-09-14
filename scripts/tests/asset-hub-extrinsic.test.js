@@ -2,11 +2,12 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const { createRequire } = require("node:module");
 const { test } = require("node:test");
+const { loadRuntime } = require("../lib/runtime");
 const { createRegistry, loadChainTypes } = require("../lib/decoder");
 const { fixture, snapshot, envelope, generalBytes } = require("./helpers/asset-hub");
 
 const projectRoot = process.env.PROJECT_ROOT || path.resolve(__dirname, "../..");
-const runtime = createRequire(path.resolve(process.env.SUBQL_ROOT || "/", "package.json"));
+const runtime = loadRuntime();
 const project = createRequire(path.resolve(projectRoot, "package.json"));
 const deps = { ...runtime("@polkadot/types"), ...runtime("@polkadot/types-known") };
 const account = "0x4c2545283514c51c1b5aeac53e68694cbd5913c14044657db192a3e014d8df66";

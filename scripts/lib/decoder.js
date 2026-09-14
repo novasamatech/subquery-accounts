@@ -1,5 +1,6 @@
 const path = require("node:path");
 const { createRequire } = require("node:module");
+const { loadRuntime } = require("./runtime");
 
 function dependencies(root, knownTypesRoot) {
   const from = root ? createRequire(path.resolve(root, "package.json")) : require;
@@ -10,8 +11,7 @@ function dependencies(root, knownTypesRoot) {
 function loadChainTypes(projectRoot, bundle, sandbox) {
   const file = path.resolve(projectRoot, "dist", `${bundle}.js`);
   if (!sandbox) return require(file).default;
-  const runtime = createRequire(path.resolve(process.env.SUBQL_ROOT || "/", "package.json"));
-  runtime("@subql/node-core/dist/logger").initLogger(undefined, "json", "error");
+  const runtime = loadRuntime();
   return runtime("./dist/utils/project").loadChainTypesFromJs(file, projectRoot);
 }
 

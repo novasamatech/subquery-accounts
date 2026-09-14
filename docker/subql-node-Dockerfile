@@ -1,13 +1,14 @@
-ARG NODE_JS_IMAGE_VERSION=24-alpine
-ARG SUBQL_NODE_IMAGE_VERSION=v6.4.6
+# Required build args come from versions.env; see doc/development/podman.md.
+ARG NODE_IMAGE
+ARG SUBQL_NODE_IMAGE
 
-FROM node:${NODE_JS_IMAGE_VERSION} AS build
+FROM ${NODE_IMAGE} AS build
 
-ADD . /project
+COPY . /project
 WORKDIR /project
 RUN corepack enable && yarn install --immutable && yarn codegen && yarn build
 
-FROM docker.io/onfinality/subql-node:${SUBQL_NODE_IMAGE_VERSION}
+FROM ${SUBQL_NODE_IMAGE}
 
 COPY --from=build /project /project
 RUN sh /project/scripts/tests/run.sh

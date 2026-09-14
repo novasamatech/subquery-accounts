@@ -20,3 +20,5 @@ Use the documented paths in external automation. There are no duplicate compatib
 
 Keep Makefile declarative. Add a diagnostic or offline test without adding an incident-specific Make target.
 Put runtime application code in `src/` or `chainTypes/`, not in the tooling library.
+Shared image pins belong in [versions.env](../versions.env). `lib/runtime.js` owns SubQuery runtime
+resolution and logger initialization; decoder candidate dependency roots remain independent.

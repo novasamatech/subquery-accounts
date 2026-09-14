@@ -33,6 +33,14 @@ expect_status 2 env USE_IMAGE_SPEC=1 bash "$ROOT/scripts/podman/block-test.sh" p
 expect_status 2 env BUILD_IPV4_ONLY=typo bash "$ROOT/scripts/podman/workspace.sh" build
 expect_status 0 env BUILD_IPV4_ONLY=1 bash "$ROOT/scripts/podman/workspace.sh" build
 grep -q 'run --rm --sysctl net.ipv6.conf.all.disable_ipv6=1' "$MOCK_LOG"
+expect_status 0 env -u SUBQL_NODE_IMAGE -u SUBQL_NODE_VERSION NODE_IMAGE=mock-build \
+  bash "$ROOT/scripts/podman/block-test.sh" project-polkadot-asset-hub.yaml 20494727
+default_runtime="$(unset SUBQL_NODE_IMAGE SUBQL_NODE_VERSION; source "$ROOT/versions.env"; printf '%s' "$SUBQL_NODE_IMAGE")"
+grep -Fq "$default_runtime /src/scripts/lib/block-spec.js" "$MOCK_LOG"
+grep -Fq 'mock-build -c test -f /work/dist/index.js' "$MOCK_LOG"
+expect_status 0 env NODE_IMAGE=mock-build SUBQL_NODE_IMAGE=mock-runtime \
+  bash "$ROOT/scripts/podman/block-test.sh" project-polkadot-asset-hub.yaml 20494727
+grep -Fq 'mock-runtime /src/scripts/lib/block-spec.js' "$MOCK_LOG"
 expect_status 17 env MOCK_EXIT=17 bash "$ROOT/scripts/podman/block-test.sh" project-polkadot-asset-hub.yaml 20494727
 grep -q '^rm -fv subql-node-test-' "$MOCK_LOG"
 grep -q '^network rm subql-test-net-' "$MOCK_LOG"
@@ -71,5 +79,6 @@ chmod +x "$tmp/bin/bash"
 expect_status 17 env MOCK_EXIT=17 "$REAL_BASH" "$ROOT/scripts/ci/run-tests.sh" polkadot-asset-hub
 project="$(awk '$1 == "compose" && / up / { print $3 }' "$MOCK_LOG")"
 [[ "$project" == subql-test-polkadot-asset-hub-* ]]
-grep -q "^compose --project-name $project -f docker-compose-test.yml down --volumes --remove-orphans$" "$MOCK_LOG"
+grep -q "^compose --project-name $project --env-file versions.env -f docker-compose-test.yml down --volumes --remove-orphans$" "$MOCK_LOG"
+grep -Fq 'mock-subql /project/scripts/tests/run.sh' "$MOCK_LOG"
 printf 'Host workflow tests passed (input validation, exit codes, Podman/CI cleanup, SIGTERM)\n'

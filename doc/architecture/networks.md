@@ -26,6 +26,20 @@ Kusama    (0xb0a8...) -> Kusama Asset Hub    (0x4823...)
 Westend   (0xe143...) -> Westend Asset Hub   (0x67f9...)
 ```
 
+### General-v5 Decoder Scope
+
+Only Polkadot Asset Hub registers `AssetHubExtrinsic` and `AssetHubGeneralExtrinsic`.
+The extension order and SCALE types are metadata-driven, but the adapter's signed-origin
+semantics specifically recognize `VerifyMultiSignature.Signed`; its fee/mortality accessors
+also expect named extensions. Successful v4 or bare-v5 decoding on another chain does not
+validate that chain's General-v5 pipeline or origin-changing extensions.
+
+Kusama and Westend Asset Hub deliberately retain the stock extrinsic codec until their own
+General-v5 snapshots and origin semantics are verified. Before enabling the adapter there,
+capture parent-runtime metadata and raw transactions, verify bytes/hash and signer through
+the SubQuery VM, assert indexed entities, and run historical decoding regressions. Reuse the
+[v5 diagnostic workflow](../runbooks/asset-hub-v5.md), rather than assuming identical upgrades.
+
 ---
 
 ## Asset Hub Spec Version Maps (RPC-Verified)

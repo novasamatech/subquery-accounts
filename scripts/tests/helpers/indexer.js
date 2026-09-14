@@ -1,11 +1,10 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { createRequire } = require("node:module");
+const { loadRuntime } = require("../../lib/runtime");
 
 const projectRoot = process.env.PROJECT_ROOT || path.resolve(__dirname, "../../..");
-const runtime = createRequire(path.resolve(process.env.SUBQL_ROOT || "/", "package.json"));
-runtime("@subql/node-core/dist/logger").initLogger(undefined, "json", "error");
+const runtime = loadRuntime();
 const { IndexerSandbox } = runtime("@subql/node-core/dist/indexer/sandbox");
 const { decorateEvents } = runtime("@polkadot/types/metadata/decorate/events");
 const { wrapExtrinsics, wrapEvents, filterExtrinsic, filterEvent } = runtime("./dist/utils/substrate");

@@ -11,6 +11,8 @@ Compares every entity (`pureProxies`, `proxieds`, `accounts`, `accountMultisigs`
 ids that exist only on one side, plus field-level diffs. Unlike the RPC scan scripts it talks to
 the **GraphQL API**, not RPC, so it needs no `asset-hub-spec-blocks.json` and no RPC URL — only
 network egress to the two endpoints (defaults: `subquery-accounts-stg/prod.novasama-tech.org`).
+`STG_ENDPOINT` / `PROD_ENDPOINT` environment variables override these defaults; explicit
+`--stg` / `--prod` flags take precedence over the environment.
 
 ```bash
 # Full default run (id-only, all entities, gentle on the backend) — ~8 min, ~470k rows
@@ -44,11 +46,13 @@ Modes & flags:
   advertised count is an error, not an equality verdict. Retry with `--refresh` after drift;
   additions seen during the scan are included in the reported counts.
 
-**Chain exclusion (`--exclude-chain`, important subtlety):** by default Westend Asset Hub is skipped
-only while its prod indexer is more than 1,000 blocks behind staging (otherwise its rows show up as
-"only in STG" noise). Once PROD catches up, the default exclusion automatically becomes inactive.
-An explicit `--exclude-chain=...` always applies. The filter can only be applied to entities whose
-chain is derivable:
+**Chain exclusion:** by default, derive lag for every chain from both endpoints' `_metadatas` and
+exclude chains where PROD trails STG by more than `--max-lag=N` blocks (default `1000`). No chain
+is hardcoded. The threshold is strict: a lag equal to N is included. Chains absent on one side stay
+visible, since absence is not a measured lag; malformed heights fail automatic comparison rather
+than hiding unknown state. `--exclude-chain=...` replaces automatic exclusions with the explicit
+list, and `--no-exclude-chain` disables all exclusions. JSON reports include the effective mode,
+threshold and chain list in `exclusions`. The filter only applies where the chain is derivable:
 - `pureProxies` / `proxieds` — id begins with the chainId (`{chainId}-…`), so it works in id-only mode.
 - `multisigOperations` — id begins with the **callHash**, not the chainId, so the script fetches the
   `chainId` column even in id-only mode to make the filter work.
@@ -64,7 +68,7 @@ are not a shared snapshot: same-count updates/deletions can still race a scan. F
 reconciliation compare aligned, stable database snapshots; do not automatically delete rows based
 on this diagnostic.
 
-Use `--no-exclude-chain` to compare every chain including Westend Asset Hub. Run it with the [Podman diagnostic runner](../development/diagnostics.md).
+Use `--no-exclude-chain` to compare every chain regardless of lag. Run it with the [Podman diagnostic runner](../development/diagnostics.md).
 
 ## Rootless Invocation
 

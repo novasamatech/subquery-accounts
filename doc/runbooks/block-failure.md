@@ -55,8 +55,8 @@ timeout --signal=TERM 45s bash scripts/podman/block-test.sh project-polkadot-ass
 - `USE_IMAGE_SPEC=1`: also reads the manifest from that image; requires image-project mode.
 - Without image-spec mode the source manifest comes from the current repository.
 - `IMAGE_PROJECT_ROOT`: bundled project directory, default `/project`.
-- `SUBQL_NODE_IMAGE`: runtime/image under test. This script still accepts the old `NODE_IMAGE`
-  alias, but new commands should use the unambiguous name.
+- `SUBQL_NODE_IMAGE`: runtime/image under test. `NODE_IMAGE` is only the build-tool image,
+  never a runtime alias; both defaults come from `versions.env`.
 - `PG_IMAGE`: optional PostgreSQL image; otherwise builds the standard test image.
 - `DB_PORT`: optional host forwarding, bound only to 127.0.0.1; not exposed by default.
 - `DB_USER`, `DB_PASS`, `DB_NAME`, `DB_SCHEMA`: disposable database settings, not production credentials.
