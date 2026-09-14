@@ -2,7 +2,7 @@
 -- No data is modified: the transaction ends with ROLLBACK.
 --
 -- 1. Set v_target_chain below to the exact `chain` string from app._metadata_*.chain
---    (run scripts/list-indexed-chains.sql first to see available values).
+--    (run scripts/db/list-indexed-chains.sql first to see available values).
 -- 2. Run this script and read row counts from NOTICE output.
 
 BEGIN;

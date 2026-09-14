@@ -1,0 +1,107 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const { spawnSync } = require("node:child_process");
+const { test } = require("node:test");
+
+const root = path.resolve(__dirname, "../..");
+const diagnostic = path.join(root, "scripts/diagnostics/debug-asset-hub-block.js");
+const { validateSnapshot } = require("../diagnostics/debug-asset-hub-block");
+const fixture = require("./fixtures/polkadot-ah-general-extrinsic.json");
+
+function snapshot() {
+  return { formatVersion: 1, chain: fixture.source.chain, hash: fixture.source.hash,
+    runtimeVersion: { specName: "statemint", specVersion: fixture.source.specVersion },
+    metadata: fixture.metadata, raw: { block: { header: { number: '0x' + fixture.source.block.toString(16), parentHash: '0x' + '00'.repeat(32) },
+      extrinsics: [fixture.extrinsic] } } };
+}
+
+test("single-block CLI rejects invalid selectors before contacting RPC", () => {
+  for (const args of [
+    ["polkadot"],
+    ["polkadot", "--hash="],
+    ["polkadot", "--hash=0x1234"],
+    ["polkadot", "--block=-1"],
+    ["polkadot", "--block=9007199254740992"],
+    ["polkadot", "--block=1", "--hash=0x" + "00".repeat(32)],
+    ["polkadot", "--block=1", "--compare", "--no-types"],
+    ["unknown", "--block=1"],
+  ]) {
+    const result = spawnSync(process.execPath, [diagnostic, ...args], { encoding: "utf8", timeout: 5000 });
+    assert.equal(result.status, 2, JSON.stringify(args) + result.stderr);
+    assert.doesNotMatch(result.stdout, /@polkadot\/api/);
+  }
+});
+
+test("snapshot validation rejects missing provenance and malformed bytes", () => {
+  validateSnapshot(snapshot());
+  for (const mutate of [s => { s.formatVersion = 2; }, s => { delete s.raw; },
+    s => { s.metadata = '0x123'; }, s => { s.raw.block.extrinsics[0] = 'invalid'; },
+    s => { s.runtimeVersion.specVersion = '2005000'; }]) {
+    const s = snapshot();
+    mutate(s);
+    assert.throws(() => validateSnapshot(s), /Invalid raw-block snapshot/);
+  }
+});
+
+test("single-block reports identify all dependency packages and refuse overwrite", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'decoder-report-'));
+  const input = path.join(dir, 'snapshot.json');
+  const output = path.join(dir, 'report.json');
+  try {
+    fs.writeFileSync(input, JSON.stringify(snapshot()));
+    const args = [diagnostic, 'polkadot', `--snapshot=${input}`, `--report=${output}`, '--no-types'];
+    const result = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: 10000 });
+    assert.equal(result.status, 1, result.stderr);
+    const report = JSON.parse(fs.readFileSync(output));
+    assert.ok(report.packages['@polkadot/types-known'].version);
+    assert.match(report.metadataSha256, /^[0-9a-f]{64}$/);
+    assert.match(report.decoders[0].extrinsics[0].error, /Mortal era/);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+    const again = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: 10000 });
+    assert.equal(again.status, 2);
+    assert.deepEqual(JSON.parse(fs.readFileSync(output)), report);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("single-block help does not load a decoder or connect to RPC", () => {
+  const result = spawnSync(process.execPath, [diagnostic, "--help"], { encoding: "utf8", timeout: 5000 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /--snapshot=FILE/);
+  assert.match(result.stdout, /--sandbox/);
+});
+
+function markdownFiles(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const file = path.join(directory, entry.name);
+    return entry.isDirectory() ? markdownFiles(file) : entry.name.endsWith(".md") ? [file] : [];
+  });
+}
+
+test("documentation navigation resolves local files and heading anchors", () => {
+  const files = ["AGENTS.md", "README.md", "scripts/README.md"].map(file => path.join(root, file));
+  files.push(...markdownFiles(path.join(root, "doc")));
+  let checked = 0;
+  for (const file of files) {
+    const content = fs.readFileSync(file, "utf8")
+      .replace(/^(\x60{3}|~{3}).*\n[\s\S]*?^\1\s*$/gm, "")
+      .replace(/\x60[^\x60]*\x60/g, "");
+    for (const [, target] of content.matchAll(/\[[^\]]+\]\(([^)\s]+)\)/g)) {
+      if (/^[a-z]+:/i.test(target)) continue;
+      const [relative, anchor] = target.split("#");
+      const destination = relative ? path.resolve(path.dirname(file), decodeURIComponent(relative)) : file;
+      assert.ok(fs.existsSync(destination), `${path.relative(root, file)} -> ${target}`);
+      if (anchor && destination.endsWith(".md")) {
+        const headings = [...fs.readFileSync(destination, "utf8").matchAll(/^#+\s+(.+)$/gm)].map(([, heading]) =>
+          heading.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, "").replace(/\s/g, "-"),
+        );
+        assert.ok(headings.includes(anchor), `${path.relative(root, file)} -> missing #${anchor}`);
+      }
+      checked++;
+    }
+  }
+  assert.ok(checked >= 50, "Check the documentation graph, not just one file");
+});

@@ -1,4 +1,5 @@
 import { OverrideBundleDefinition } from "@polkadot/types/types";
+import { AssetHubExtrinsic, AssetHubGeneralExtrinsic } from "./assetHubExtrinsic";
 
 const definitions: OverrideBundleDefinition = {
   types: [
@@ -18,8 +19,8 @@ const definitions: OverrideBundleDefinition = {
       //   1002000–1003003: staging_xcm::v3::multilocation::MultiLocation
       //   1004000–1007001: staging_xcm::v4::location::Location
       //   2000002+:        staging_xcm::v5::location::Location
-      // All three are structurally identical {parents: u8, interior: Junctions},
-      // so MultiLocationV3 decodes all of them correctly.
+      // Historical compatibility for sampled fee assets, not a guarantee for
+      // every nested XCM variant. General v5 uses metadata lookup types instead.
       minmax: [1002000, null],
       types: {
         NovaAssetId: "Option<MultiLocationV3>",
@@ -39,5 +40,9 @@ const definitions: OverrideBundleDefinition = {
 };
 
 export default {
+  types: {
+    Extrinsic: AssetHubExtrinsic,
+    GeneralExtrinsic: AssetHubGeneralExtrinsic,
+  },
   typesBundle: { spec: { statemint: definitions } },
 };

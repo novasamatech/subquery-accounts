@@ -21,7 +21,7 @@ services:
     build:
       context: .
     container_name: "node-${PROJECT_PATH}"
-    image: subquerynetwork/subql-node-substrate:v5.6.0
+    image: subquerynetwork/subql-node-substrate:v6.4.6
     depends_on:
       "postgres":
         condition: service_healthy
@@ -68,4 +68,3 @@ services:
       - --name=app
       - --playground
       - --indexer=http://subquery-node:3000
-  

@@ -40,4 +40,4 @@ jobs:
       - name: Build
         run: yarn build
       - name: Run subql-node test
-        run: scripts/run-tests.sh polkadot-asset-hub
+        run: bash scripts/ci/run-tests.sh polkadot-asset-hub

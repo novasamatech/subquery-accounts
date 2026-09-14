@@ -1,0 +1,181 @@
+{
+  "verifiedAt": "2026-09-14",
+  "block": {
+    "height": 20494727,
+    "hash": "0x4e321bc81810ce34496e8395ad6bb329f25ac972ad8aa9601b2aab9973d3aa86",
+    "specName": "statemint",
+    "specVersion": 2005000,
+    "metadataVersion": 16,
+    "metadataSha256": "fa06eeea4d9f9d0b4341328487f120af2d475a9019a780b5262a6ff8321d2cf1",
+    "extrinsicIndex": 2,
+    "extrinsicSha256": "be615db8c8b3cf9b87ea44f51d6e35074fef3fd1663dc9e54bb2b9d413130f9f"
+  },
+  "runtimeImage": {
+    "tag": "docker.io/subquerynetwork/subql-node-substrate:v6.4.6",
+    "id": "291374aa928f65eadd74e07ec7c3fb3ad22f23f7a605dca39f9e43b8f80bff67"
+  },
+  "upstream": {
+    "npmLatest": "16.5.6",
+    "npmBetaTag": "8.14.2-12",
+    "stableCommit": "dd76109c422f4f872d25c4939f11a3638b531eea",
+    "reviewedHead": "6b1eb761f4977509792868dc62e5ee52c800db30",
+    "sourceCheck": "GeneralExtrinsic.ts and types-known/src/spec/statemint.ts are byte-identical at these two commits. HEAD was source-reviewed, not built."
+  },
+  "runs": [
+    {
+      "case": "runtime",
+      "packages": {
+        "@polkadot/api": {
+          "version": "16.5.3",
+          "path": "/node_modules/@polkadot/api/cjs/index.js"
+        },
+        "@polkadot/types": {
+          "version": "16.5.3",
+          "path": "/node_modules/@polkadot/types/cjs/index.js"
+        },
+        "@polkadot/types-known": {
+          "version": "16.5.3",
+          "path": "/node_modules/@polkadot/types-known/cjs/index.js"
+        }
+      },
+      "results": [
+        {
+          "decoder": "Stock decoder",
+          "blockExtrinsicsPass": false,
+          "extrinsic": {
+            "index": 2,
+            "ok": false,
+            "preamble": 69,
+            "error": "createType(Extrinsic):: createType(GeneralExtrinsic):: decodeU8aStruct: failed at 0x0101e89a5ce385d8186d9649b75f8007… on era (index 2/7): {\"_enum\":{\"ImmortalEra\":\"GenericImmortalEra\",\"MortalEra\":\"GenericMortalEra\"}}:: Invalid data passed to Mortal era"
+          }
+        },
+        {
+          "decoder": "Project decoder",
+          "blockExtrinsicsPass": true,
+          "extrinsic": {
+            "index": 2,
+            "ok": true,
+            "preamble": 69,
+            "method": "utility.forceBatch",
+            "isSigned": true,
+            "signer": "12iqiE5Kb8fHd2io8wpBJ23tR27WVELkNMv5yQWLFe52zaUQ",
+            "hash": "0xb69ed69710cf90f42e17f9e3f4fff5e2abd7f93db8ce6cfc13dda3b4ab8d1111"
+          }
+        }
+      ]
+    },
+    {
+      "case": "project",
+      "packages": {
+        "@polkadot/api": {
+          "version": "16.5.4",
+          "path": "/work/node_modules/@polkadot/api/cjs/index.js"
+        },
+        "@polkadot/types": {
+          "version": "16.5.4",
+          "path": "/work/node_modules/@polkadot/types/cjs/index.js"
+        },
+        "@polkadot/types-known": {
+          "version": "16.5.4",
+          "path": "/work/node_modules/@polkadot/types-known/cjs/index.js"
+        }
+      },
+      "results": [
+        {
+          "decoder": "Stock decoder",
+          "blockExtrinsicsPass": false,
+          "extrinsic": {
+            "index": 2,
+            "ok": false,
+            "preamble": 69,
+            "error": "createType(Extrinsic):: createType(GeneralExtrinsic):: decodeU8aStruct: failed at 0x0101e89a5ce385d8186d9649b75f8007… on era (index 2/7): {\"_enum\":{\"ImmortalEra\":\"GenericImmortalEra\",\"MortalEra\":\"GenericMortalEra\"}}:: Invalid data passed to Mortal era"
+          }
+        },
+        {
+          "decoder": "Project decoder",
+          "blockExtrinsicsPass": true,
+          "extrinsic": {
+            "index": 2,
+            "ok": true,
+            "preamble": 69,
+            "method": "utility.forceBatch",
+            "isSigned": true,
+            "signer": "12iqiE5Kb8fHd2io8wpBJ23tR27WVELkNMv5yQWLFe52zaUQ",
+            "hash": "0xb69ed69710cf90f42e17f9e3f4fff5e2abd7f93db8ce6cfc13dda3b4ab8d1111"
+          }
+        }
+      ]
+    },
+    {
+      "case": "known-only",
+      "packages": {
+        "@polkadot/api": {
+          "version": "16.5.3",
+          "path": "/node_modules/@polkadot/api/cjs/index.js"
+        },
+        "@polkadot/types": {
+          "version": "16.5.3",
+          "path": "/node_modules/@polkadot/types/cjs/index.js"
+        },
+        "@polkadot/types-known": {
+          "version": "16.5.6",
+          "path": "/probe/node_modules/@polkadot/types-known/cjs/index.js"
+        }
+      },
+      "results": [
+        {
+          "decoder": "Stock decoder",
+          "blockExtrinsicsPass": false,
+          "extrinsic": {
+            "index": 2,
+            "ok": false,
+            "preamble": 69,
+            "error": "createType(Extrinsic):: createType(GeneralExtrinsic):: decodeU8aStruct: failed at 0x0101e89a5ce385d8186d9649b75f8007… on era (index 2/7): {\"_enum\":{\"ImmortalEra\":\"GenericImmortalEra\",\"MortalEra\":\"GenericMortalEra\"}}:: Invalid data passed to Mortal era"
+          }
+        }
+      ]
+    },
+    {
+      "case": "latest-fixed",
+      "packages": {
+        "@polkadot/api": {
+          "version": "16.5.6",
+          "path": "/probe/node_modules/@polkadot/api/cjs/index.js"
+        },
+        "@polkadot/types": {
+          "version": "16.5.6",
+          "path": "/probe/node_modules/@polkadot/types/cjs/index.js"
+        },
+        "@polkadot/types-known": {
+          "version": "16.5.6",
+          "path": "/probe/node_modules/@polkadot/types-known/cjs/index.js"
+        }
+      },
+      "results": [
+        {
+          "decoder": "Stock decoder",
+          "blockExtrinsicsPass": false,
+          "extrinsic": {
+            "index": 2,
+            "ok": false,
+            "preamble": 69,
+            "error": "createType(Extrinsic):: createType(GeneralExtrinsic):: decodeU8aStruct: failed at 0x0101e89a5ce385d8186d9649b75f8007… on era (index 2/7): {\"_enum\":{\"ImmortalEra\":\"GenericImmortalEra\",\"MortalEra\":\"GenericMortalEra\"}}:: Invalid data passed to Mortal era"
+          }
+        },
+        {
+          "decoder": "Project decoder",
+          "blockExtrinsicsPass": true,
+          "extrinsic": {
+            "index": 2,
+            "ok": true,
+            "preamble": 69,
+            "method": "utility.forceBatch",
+            "isSigned": true,
+            "signer": "12iqiE5Kb8fHd2io8wpBJ23tR27WVELkNMv5yQWLFe52zaUQ",
+            "hash": "0xb69ed69710cf90f42e17f9e3f4fff5e2abd7f93db8ce6cfc13dda3b4ab8d1111"
+          }
+        }
+      ]
+    }
+  ]
+}
