@@ -62,6 +62,8 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
 - `--fixture=FILE --extrinsic=N` exports one raw transaction plus reduced v16 metadata for
   indexer call/event tests. SCALE IDs and variant indices are retained. Unsupported metadata
   versions or missing required pallets/calls fail explicitly; the file is mode 0600, no overwrite.
+- `--metadata-fixture=FILE` exports reduced real metadata with chain/block/hash provenance,
+  without requiring or inventing a transaction. It has the same version, permission and overwrite checks.
 - `SUBQL_ROOT` identifies the runtime installation used for the VM loader; default `/`.
 - `--save` creates a new mode-0600 snapshot and refuses overwrite. It stores no endpoint.
 - Exit: `0` selected decoder passes, `1` decoding/round-trip/hash check fails, `2` invalid input or RPC/setup failure.
@@ -86,6 +88,30 @@ manifest filters and the built SubQuery VM mappings, then assert final records a
 boundary. Synthetic envelopes use copied signatures only as SCALE data and must never be
 submitted to a chain. Keep real-chain and synthetic evidence distinct in the incident runbook;
 see [v5 indexed-data verification](../runbooks/asset-hub-v5.md#indexed-data-not-just-decoding).
+
+### Test a Format Before Transactions Appear
+
+~~~bash
+bash scripts/podman/run.sh debug-asset-hub-block.js kusama --block=21390618 \
+  --sandbox --save=/out/kusama-21390618.json --metadata-fixture=/out/kusama-ah-metadata.json
+bash scripts/podman/run.sh debug-asset-hub-block.js westend --block=17469988 \
+  --sandbox --save=/out/westend-17469988.json --metadata-fixture=/out/westend-ah-metadata.json
+make podman-test-offline
+~~~
+
+Review the reduced metadata and provenance before updating the committed fixtures. Store real
+metadata only; generate hypothetical upgrades at test time, never label them on-chain metadata.
+`scripts/tests/helpers/transaction-pipeline.js` models a known extension pipeline from a reference
+runtime by importing its missing portable type graph. It preserves the target's existing types,
+call/event indices, extensions and pipeline 0, which the network matrix asserts independently.
+The encoder then builds synthetic envelopes from those SCALE types without using the decoder
+under test. Signatures are test bytes, not runtime-authorized transactions.
+
+`scripts/tests/helpers/asset-hub-cases.js` binds each fixture to its actual manifest and compiled
+chainTypes bundle. Both decoder and entity suites consume these cases. Extend them for a shared
+format bug even when only one network currently exposes it; keep native and modeled results separate.
+Replace a modeled case with real captured metadata when that pipeline is available, and retain
+historical fixtures when they protect a distinct compatibility boundary.
 
 ### Compare a Dependency Upgrade
 

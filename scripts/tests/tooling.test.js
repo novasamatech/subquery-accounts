@@ -28,6 +28,7 @@ test("single-block CLI rejects invalid selectors before contacting RPC", () => {
     ["polkadot", "--block=1", "--compare", "--no-types"],
     ["polkadot", "--block=1", "--fixture=/out/fixture.json"],
     ["polkadot", "--block=1", "--extrinsic=2", "--fixture="],
+    ["polkadot", "--block=1", "--metadata-fixture="],
     ["unknown", "--block=1"],
   ]) {
     const result = spawnSync(process.execPath, [diagnostic, ...args], { encoding: "utf8", timeout: 5000 });
@@ -75,6 +76,32 @@ test("single-block help does not load a decoder or connect to RPC", () => {
   assert.match(result.stdout, /--snapshot=FILE/);
   assert.match(result.stdout, /--sandbox/);
   assert.match(result.stdout, /--fixture=FILE/);
+  assert.match(result.stdout, /--metadata-fixture=FILE/);
+});
+
+test("metadata fixture export retains real provenance without inventing a transaction", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "metadata-fixture-"));
+  try {
+    const input = path.join(dir, "snapshot.json");
+    const output = path.join(dir, "metadata.json");
+    const raw = snapshot();
+    raw.raw.block.extrinsics = [];
+    fs.writeFileSync(input, JSON.stringify(raw));
+    const args = [diagnostic, "polkadot", `--snapshot=${input}`, `--metadata-fixture=${output}`, "--no-types"];
+    const result = spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 });
+    assert.equal(result.status, 0, result.stderr);
+    const reduced = JSON.parse(fs.readFileSync(output));
+    assert.equal(reduced.metadata, fixture.metadata);
+    assert.equal(reduced.source.hash, raw.hash);
+    assert.equal(reduced.source.parentHash, raw.raw.block.header.parentHash);
+    assert.equal(reduced.source.specName, "statemint");
+    assert.equal(reduced.extrinsic, undefined);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+    assert.equal(spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 }).status, 2);
+    assert.deepEqual(JSON.parse(fs.readFileSync(output)), reduced);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("fixture export preserves the transaction and metadata indices and refuses overwrite", () => {

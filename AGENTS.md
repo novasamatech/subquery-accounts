@@ -18,7 +18,7 @@ across Substrate networks. PostgreSQL stores the entities; GraphQL exposes them.
 | Build, run tests, choose an image or clean local resources | [Podman development](doc/development/podman.md) |
 | Find, reuse or extend a diagnostic tool | [Diagnostic catalog](doc/development/diagnostics.md) |
 | Indexer fails at a particular block | [Block triage and replay](doc/runbooks/block-failure.md) |
-| Polkadot AH v5 `GeneralExtrinsic` / `Mortal era` error | [v5 decode incident](doc/runbooks/asset-hub-v5.md) |
+| Asset Hub v5 `GeneralExtrinsic` / `Mortal era` error | [v5 decode incident](doc/runbooks/asset-hub-v5.md) |
 | Missing operations, wrong proxies or derived accounts | [Handler/data failures](doc/runbooks/handlers.md) |
 | Dependency upgrade, sandbox bytes, fee-asset decode failure | [Runtime compatibility](doc/runbooks/runtime-compatibility.md) |
 | Old Kusama utility-era multisig behavior | [Kusama history](doc/runbooks/kusama-multisig.md) |
@@ -44,6 +44,9 @@ Full index: [doc/README.md](doc/README.md). Tool ownership: [scripts/README.md](
   signed-origin semantics and the `assertCryptoIntegrity` canary; ordinary Node tests alone are insufficient.
 - For extrinsic-format changes, assert final entity fields and relationships through real mappings.
   A successful decode or an integration test with no expected entities does not prove indexed-data correctness.
+- For shared format bugs, cover every affected network before release. If real transactions are absent,
+  use the network's real metadata plus an explicitly modeled upgrade; retain provenance, test legacy
+  behavior and indexed entities, and distinguish synthetic coverage from on-chain evidence.
 - Do not bypass a failing block, disable integrity checks, wipe chain data or reset a checkpoint
   just to make indexing proceed. Production changes require explicit authorization.
 - In a per-network wipe, `accounts` and `account_multisigs` are global and must not be deleted.

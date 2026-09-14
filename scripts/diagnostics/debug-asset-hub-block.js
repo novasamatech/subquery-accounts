@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { dependencies, createRegistry, loadChainTypes } = require("../lib/decoder");
-const { createIndexerFixture } = require("../lib/metadata-fixture");
+const { createIndexerFixture, createMetadataFixture } = require("../lib/metadata-fixture");
 const { parseArgs } = require("node:util");
 const specData = require("../data/asset-hub-spec-blocks.json");
 
@@ -111,6 +111,7 @@ async function main() {
     options: {
       block: { type: "string" }, hash: { type: "string" }, snapshot: { type: "string" },
       save: { type: "string" }, report: { type: "string" }, fixture: { type: "string" }, "api-root": { type: "string" },
+      "metadata-fixture": { type: "string" },
       "known-types-root": { type: "string" },
       "project-root": { type: "string", default: process.env.PROJECT_ROOT || path.resolve(__dirname, "../..") },
       extrinsic: { type: "string" }, compare: { type: "boolean" },
@@ -126,6 +127,7 @@ async function main() {
     console.log("  --known-types-root=DIR  Change only @polkadot/types-known, keeping the selected decoder");
     console.log("  --report=FILE        Save versions, input fingerprints and decode results as JSON (no overwrite)");
     console.log("  --fixture=FILE       Reduce v16 metadata to indexer calls/events; requires --extrinsic=N (no overwrite)");
+    console.log("  --metadata-fixture=FILE  Export real reduced metadata without requiring a target transaction");
     console.log("  --sandbox            Load built chain types through the SubQuery VM (SUBQL_ROOT defaults to /)");
     console.log("  --project-root=DIR   Built project directory (default: repository root)");
     console.log("  --extrinsic=N        Inspect only this index (default: every extrinsic)");
@@ -140,7 +142,7 @@ async function main() {
   }
   if (values.compare && values["no-types"]) throw new Error("--compare and --no-types are mutually exclusive");
   if (values.fixture && values.extrinsic === undefined) throw new Error("--fixture requires --extrinsic=N");
-  for (const key of ["hash", "snapshot", "save", "report", "fixture", "api-root", "known-types-root", "project-root"]) {
+  for (const key of ["hash", "snapshot", "save", "report", "fixture", "metadata-fixture", "api-root", "known-types-root", "project-root"]) {
     if (values[key] !== undefined && values[key].trim() === "") throw new Error(`--${key} cannot be empty`);
   }
   if (values.hash && !/^0x[\da-f]{64}$/i.test(values.hash)) throw new Error("Invalid block hash");
@@ -165,6 +167,7 @@ async function main() {
   if (snapshot.runtimeVersion.specName !== config.spec) throw new Error("Snapshot/RPC runtime does not match the selected chain");
   if (values.save) fs.writeFileSync(values.save, JSON.stringify(snapshot) + "\n", { mode: 0o600, flag: "wx" });
   if (values.fixture) fs.writeFileSync(values.fixture, JSON.stringify(createIndexerFixture(snapshot, Number(values.extrinsic), deps), null, 2) + "\n", { mode: 0o600, flag: "wx" });
+  if (values["metadata-fixture"]) fs.writeFileSync(values["metadata-fixture"], JSON.stringify(createMetadataFixture(snapshot, deps), null, 2) + "\n", { mode: 0o600, flag: "wx" });
   const height = Number.parseInt(snapshot.raw.block.header.number, 16);
   const metadataVersion = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata).version;
   console.log(`${snapshot.chain} block=${height} hash=${snapshot.hash} spec=${snapshot.runtimeVersion.specVersion} metadata=v${metadataVersion}`);

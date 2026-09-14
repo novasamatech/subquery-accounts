@@ -72,6 +72,16 @@ const INDEXER_SELECTION = {
   Staking: { calls: ["payout_stakers"], events: [] },
 };
 
+function createMetadataFixture(snapshot, deps) {
+  return {
+    source: { chain: snapshot.chain, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
+      parentHash: snapshot.raw.block.header.parentHash, specName: snapshot.runtimeVersion.specName,
+      specVersion: snapshot.runtimeVersion.specVersion,
+      note: "Real parent-runtime metadata reduced to indexer calls/events and transaction extensions; SCALE IDs preserved. No synthetic pipeline is stored here." },
+    metadata: reduceMetadata(snapshot.metadata, INDEXER_SELECTION, deps),
+  };
+}
+
 function createIndexerFixture(snapshot, index, deps) {
   const extrinsic = snapshot.raw.block.extrinsics[index];
   if (extrinsic === undefined) throw new Error(`Extrinsic index ${index} is outside this block`);
@@ -85,4 +95,4 @@ function createIndexerFixture(snapshot, index, deps) {
   };
 }
 
-module.exports = { reduceMetadata, createIndexerFixture };
+module.exports = { reduceMetadata, createIndexerFixture, createMetadataFixture };

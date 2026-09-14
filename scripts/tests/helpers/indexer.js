@@ -8,13 +8,17 @@ const runtime = loadRuntime();
 const { IndexerSandbox } = runtime("@subql/node-core/dist/indexer/sandbox");
 const { decorateEvents } = runtime("@polkadot/types/metadata/decorate/events");
 const { wrapExtrinsics, wrapEvents, filterExtrinsic, filterEvent } = runtime("./dist/utils/substrate");
-const manifest = runtime("js-yaml").load(fs.readFileSync(path.join(projectRoot, "project-polkadot-asset-hub.yaml"), "utf8"));
-const handlers = manifest.dataSources.flatMap(source => source.mapping.handlers);
-const chainId = manifest.network.chainId;
+function loadManifest(chain = "polkadot") {
+  assert.ok(["polkadot", "kusama", "westend"].includes(chain), `Unknown Asset Hub: ${chain}`);
+  return runtime("js-yaml").load(fs.readFileSync(path.join(projectRoot, `project-${chain}-asset-hub.yaml`), "utf8"));
+}
 const entityNames = ["Account", "AccountMultisig", "MultisigOperation", "MultisigEvent", "PureProxy", "Proxied"];
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 
-function createIndexer(registry) {
+function createIndexer(registry, { chain = "polkadot", specVersion = 2005000 } = {}) {
+  const manifest = loadManifest(chain);
+  const handlers = manifest.dataSources.flatMap(source => source.mapping.handlers);
+  const chainId = manifest.network.chainId;
   const tables = Object.fromEntries(entityNames.map(name => [name, new Map()]));
   let writes = 0;
   function table(name) {
@@ -58,7 +62,7 @@ function createIndexer(registry) {
       phase: { ApplyExtrinsic: 0 }, event: e.toU8a(), topics: [],
     }));
     const block = { block: { header: { number: registry.createType("BlockNumber", height) }, extrinsics: [extrinsic] },
-      timestamp: new Date(timestamp * 1000), specVersion: 2005000 };
+      timestamp: new Date(timestamp * 1000), specVersion };
     const sources = wrapExtrinsics(block, records);
     const wrappedEvents = wrapEvents(sources, records, block);
     const invoked = [];
@@ -84,4 +88,4 @@ function createIndexer(registry) {
     snapshot() { return Object.fromEntries(entityNames.map(name => [name, this.rows(name)])); } };
 }
 
-module.exports = { projectRoot, runtime, chainId, entityNames, createIndexer };
+module.exports = { projectRoot, runtime, loadManifest, entityNames, createIndexer };

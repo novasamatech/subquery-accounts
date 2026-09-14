@@ -10,7 +10,7 @@ The transaction starts with the v5 general preamble `0x45` and selects transacti
 
 **Dependency verification (2026-09-14):** SubQuery `6.4.6` bundles polkadot-js `16.5.3`; the project's pinned version is `16.5.4`. The latest published `@polkadot/api`/`@polkadot/types` `16.5.6` also fails on the exact same raw transaction and metadata. Updating the project's `package.json` alone does not replace the separate decoder in the indexer image.
 
-**Fix:** `chainTypes/assetHubExtrinsic.ts`, registered only by `polkadotAssetHubChaintypes.ts`, selects each general extrinsic's extension pipeline and SCALE types from metadata. It preserves the original encoding/hash and exposes `VerifyMultiSignature`'s account/signature so `isSigned: true` filters and the call visitor process these transactions. v4 and bare v5 delegate to the stock codec. Codec constructors return instances created by the runtime registry to avoid cross-VM `Uint8Array` incompatibility.
+**Fix:** `chainTypes/assetHubExtrinsic.ts`, registered by all three Asset Hub chainTypes bundles, selects each general extrinsic's extension pipeline and SCALE types from metadata. It preserves the original encoding/hash and exposes `VerifyMultiSignature`'s account/signature so `isSigned: true` filters and the call visitor process these transactions. v4 and bare v5 delegate to the stock codec. Codec constructors return instances created by the runtime registry to avoid cross-VM `Uint8Array` incompatibility.
 
 **Verification:** use the [single-block diagnostic](../development/diagnostics.md#single-block-decode) and `make podman-test`. The failing call is `utility.forceBatch([staking.payoutStakers(...)])`. A dictionary HTTP 503 in the same logs is a separate service failure; it does not explain deterministic SCALE decoding errors.
 
@@ -69,6 +69,52 @@ The override is not the only theoretically possible solution, and it should be r
 a verified upstream version supplies equivalent decoding and signed-origin behavior. It is
 an indexing compatibility layer, not a general-purpose v5 transaction-signing implementation.
 
+## Cross-Network Coverage
+
+The fix is enabled for **Polkadot, Kusama and Westend Asset Hub in the same release**.
+The decision is backed by a failing-before/passing-after matrix, not by waiting for another incident.
+Real metadata captured on 2026-09-14:
+
+| Chain | Block / parent spec | Native pipelines | Committed fixture |
+|---|---|---|---|
+| Polkadot AH | `20494727` / `statemint 2005000` | 0, 1 | `polkadot-ah-general-extrinsic.json`: real incident transaction + reduced metadata |
+| Kusama AH | `21390618` / `statemine 2003002` | 0 | `kusama-ah-metadata.json`: reduced real metadata only |
+| Westend AH | `17469988` / `westmint 1025000` | 0 | `westend-ah-metadata.json`: reduced real metadata only |
+
+Kusama and Westend's captured blocks contain bare-v5 inherents, not signed General-v5 transactions.
+The tests model pipeline 1 by copying the known Polkadot extension order and missing type graph
+into each chain's own metadata. Existing target types, pallets, call/event indices, extensions and
+pipeline 0 are unchanged and asserted. Envelopes are encoded independently from those SCALE types.
+This models a specific shared-format upgrade; it does not assert an announced future runtime layout.
+
+| Executed check | Stock codec | Configured chainTypes through SubQuery VM |
+|---|---|---|
+| Signed pipeline 1, real Polkadot metadata and modeled Kusama/Westend metadata | `Invalid data passed to Mortal era` on all three | Signer, signature, nested call, fees, bytes and hash preserved on all three |
+| Synthetic General-v5 pipeline 0 with each chain's unmodified native metadata | Round-trip bytes change on all three | Exact bytes/hash; no invented signed origin |
+| Signed v4 and bare v5 with native metadata | Baseline | Identical decode/hash/signature behavior, also after the modeled upgrade |
+| Positive and negative entity scenarios with pipeline 1 | Cannot decode the signed input | Exact mapping outputs for all six entity types on all three manifests |
+
+The matrix additionally covers Ed25519/Sr25519/Ecdsa, fee payment with a non-None asset,
+metadata-hash mode, disabled verification, malformed lengths and unknown pipeline versions.
+The same cases load each chain's **actual compiled bundle**, so deleting either new registration
+makes the tests fail. Shared helpers and fixtures are in `scripts/tests/helpers/` and
+`scripts/tests/fixtures/`; no production metadata is modified to create these tests.
+
+Real historical checks through the VM also pass: Kusama block `318927` (spec 1, metadata v13,
+signed `multisig.asMulti`) and Westend block `1404005` (spec 600, metadata v14, signed `proxy.addProxy`).
+Both preserve the original bytes, hash and signer against the stock decoder. Reproduce with:
+
+```bash
+make podman-build
+make podman-test-offline
+bash scripts/podman/run.sh debug-asset-hub-block.js kusama --block=318927 --sandbox --compare
+bash scripts/podman/run.sh debug-asset-hub-block.js westend --block=1404005 --sandbox --compare
+```
+
+For regeneration, see [testing before transactions appear](../development/diagnostics.md#test-a-format-before-transactions-appear).
+Replace modeled pipeline metadata with a native fixture when available. Different authorization
+extensions still need their own origin review; no finite synthetic suite proves arbitrary future runtimes.
+
 ## Reproduce and Verify
 
 ```bash
@@ -87,7 +133,8 @@ The committed reduced fixture preserves the exact transaction and the referenced
 
 The incident transaction is a staking payout, not a multisig/proxy change. Its live test has
 no expected entities; that alone does **not** prove correct persisted multisig or proxy data.
-The offline [entity regression suite](../../scripts/tests/asset-hub-indexing.test.js) closes
+The offline [entity regression suite](../../scripts/tests/asset-hub-indexing.test.js), run against
+all three Asset Hub manifests and chainTypes bundles, closes
 the mapping-level coverage gap. It uses real runtime SCALE calls/events, SubQuery block/event
 wrappers, the actual manifest filters, and `IndexerSandbox` loading the built `dist/index.js`.
 Only the store is replaced; all fields passed to generated-model `save()` are inspected.
@@ -102,8 +149,9 @@ Only the store is replaced; all fields passed to generated-model `save()` are in
 | Pure proxy event | Both `PureProxy` and `Proxied`, with independently verified derivation coordinates and address |
 | Failed/unauthenticated calls and the original staking call | Zero store writes, not merely an empty expected-entity list |
 
-**Limits:** entity-producing v5 envelopes/events in this suite are synthetic. They preserve
-the real pipeline-1 metadata layout but are not cryptographically signed or executed by the
+**Limits:** entity-producing v5 envelopes/events in this suite are synthetic. Polkadot uses its
+real pipeline-1 metadata; Kusama and Westend use the explicitly modeled upgrade above. These
+envelopes are not cryptographically signed or executed by the
 Rust runtime. The pure-proxy case deliberately reuses a historic event/address vector.
 These tests prove mapping output at the store boundary, not a PostgreSQL replay of a real
 on-chain v5 multisig transaction. Such a transaction and its creation history have not yet

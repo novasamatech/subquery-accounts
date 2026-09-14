@@ -87,6 +87,9 @@ host artifacts from builds; dependencies, bundles and generated models are built
 - `scripts/tests/*.test.sh`: host-side lifecycle tests, auto-discovered by `run-host.sh` and
   run before the Node suite locally and in CI. These use fake Podman/Docker CLIs, not host Node.
 - `scripts/tests/fixtures/`: small reviewed raw inputs with chain/block provenance, no secrets.
+- `asset-hub-networks.test.js` and `asset-hub-indexing.test.js`: shared decoder and entity coverage
+  for all three Asset Hubs. Use native metadata for legacy/pipeline-0 checks and explicitly modeled
+  pipeline-1 upgrades where no real transaction exists; see the [v5 matrix](../runbooks/asset-hub-v5.md#cross-network-coverage).
 - `scripts/tests/helpers/`: shared fixture builders and the real SubQuery VM harness. The harness
   uses runtime codecs, manifest filters and the built mappings, replacing only the persistence boundary
   with an in-memory store so exact entity fields, relationships and absence of writes can be asserted.
