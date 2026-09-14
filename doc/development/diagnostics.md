@@ -59,10 +59,33 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
   Its transitive dependencies can produce mixed-version warnings; also test a coherent full upgrade.
 - `--report=FILE` saves actual versions/resolution paths, metadata/raw-transaction SHA-256
   fingerprints and per-extrinsic results as JSON. It creates a mode-0600 file without overwrite.
+- `--fixture=FILE --extrinsic=N` exports one raw transaction plus reduced v16 metadata for
+  indexer call/event tests. SCALE IDs and variant indices are retained. Unsupported metadata
+  versions or missing required pallets/calls fail explicitly; the file is mode 0600, no overwrite.
 - `SUBQL_ROOT` identifies the runtime installation used for the VM loader; default `/`.
 - `--save` creates a new mode-0600 snapshot and refuses overwrite. It stores no endpoint.
 - Exit: `0` selected decoder passes, `1` decoding/round-trip/hash check fails, `2` invalid input or RPC/setup failure.
   Each HTTP request is bounded to 20 seconds; snapshot replay needs no RPC.
+
+### Create a Mapping Fixture
+
+~~~bash
+bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
+  --snapshot=/out/polkadot-20494727.json --sandbox --extrinsic=2 \
+  --fixture=/out/polkadot-ah-indexer-fixture.json
+~~~
+
+Review the generated candidate before updating `scripts/tests/fixtures/`. The reducer in
+`scripts/lib/metadata-fixture.js` retains transaction extensions and the indexer's System,
+Utility, Multisig, Proxy and Staking call/event dependencies, without copying the full runtime
+metadata or editing SCALE hex manually. It does not fetch event values or execute mappings.
+The exit verdict still describes decoding; a stock failure can coexist with a successful raw export.
+
+Use `scripts/tests/helpers/indexer.js` to dispatch metadata-encoded calls/events through real
+manifest filters and the built SubQuery VM mappings, then assert final records at the store
+boundary. Synthetic envelopes use copied signatures only as SCALE data and must never be
+submitted to a chain. Keep real-chain and synthetic evidence distinct in the incident runbook;
+see [v5 indexed-data verification](../runbooks/asset-hub-v5.md#indexed-data-not-just-decoding).
 
 ### Compare a Dependency Upgrade
 

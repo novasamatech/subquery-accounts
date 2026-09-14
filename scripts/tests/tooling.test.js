@@ -26,6 +26,8 @@ test("single-block CLI rejects invalid selectors before contacting RPC", () => {
     ["polkadot", "--block=9007199254740992"],
     ["polkadot", "--block=1", "--hash=0x" + "00".repeat(32)],
     ["polkadot", "--block=1", "--compare", "--no-types"],
+    ["polkadot", "--block=1", "--fixture=/out/fixture.json"],
+    ["polkadot", "--block=1", "--extrinsic=2", "--fixture="],
     ["unknown", "--block=1"],
   ]) {
     const result = spawnSync(process.execPath, [diagnostic, ...args], { encoding: "utf8", timeout: 5000 });
@@ -72,6 +74,29 @@ test("single-block help does not load a decoder or connect to RPC", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /--snapshot=FILE/);
   assert.match(result.stdout, /--sandbox/);
+  assert.match(result.stdout, /--fixture=FILE/);
+});
+
+test("fixture export preserves the transaction and metadata indices and refuses overwrite", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "indexer-fixture-"));
+  const input = path.join(dir, "snapshot.json");
+  const output = path.join(dir, "fixture.json");
+  try {
+    fs.writeFileSync(input, JSON.stringify(snapshot()));
+    const args = [diagnostic, "polkadot", `--snapshot=${input}`, "--extrinsic=0", `--fixture=${output}`, "--no-types"];
+    const result = spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 });
+    assert.equal(result.status, 1, result.stderr); // Stock decode fails, raw fixture export succeeds.
+    const reduced = JSON.parse(fs.readFileSync(output));
+    assert.equal(reduced.extrinsic, fixture.extrinsic);
+    assert.equal(reduced.extrinsicHash, fixture.extrinsicHash);
+    assert.equal(reduced.metadata, fixture.metadata, "Reduction is idempotent and keeps SCALE IDs");
+    assert.equal(reduced.source.hash, fixture.source.hash);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+    assert.equal(spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 }).status, 2);
+    assert.deepEqual(JSON.parse(fs.readFileSync(output)), reduced);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 function markdownFiles(directory) {

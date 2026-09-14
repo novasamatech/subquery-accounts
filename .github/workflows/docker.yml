@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+      - "fix/polkadot-ah-v5-tooling" 
     tags:
       - "v*"
   pull_request:

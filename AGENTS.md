@@ -42,6 +42,8 @@ Full index: [doc/README.md](doc/README.md). Tool ownership: [scripts/README.md](
   and candidate dependencies on the same snapshot before choosing a compatibility workaround.
 - Verify chainTypes and crypto changes in the actual SubQuery VM. Preserve raw encoding/hash,
   signed-origin semantics and the `assertCryptoIntegrity` canary; ordinary Node tests alone are insufficient.
+- For extrinsic-format changes, assert final entity fields and relationships through real mappings.
+  A successful decode or an integration test with no expected entities does not prove indexed-data correctness.
 - Do not bypass a failing block, disable integrity checks, wipe chain data or reset a checkpoint
   just to make indexing proceed. Production changes require explicit authorization.
 - In a per-network wipe, `accounts` and `account_multisigs` are global and must not be deleted.

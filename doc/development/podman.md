@@ -62,12 +62,17 @@ CI workflows and manifest minimum versions.
 - `scripts/tests/*.test.sh`: host-side lifecycle tests, auto-discovered by `run-host.sh` and
   run before the Node suite locally and in CI. These use fake Podman/Docker CLIs, not host Node.
 - `scripts/tests/fixtures/`: small reviewed raw inputs with chain/block provenance, no secrets.
+- `scripts/tests/helpers/`: shared fixture builders and the real SubQuery VM harness. The harness
+  uses runtime codecs, manifest filters and the built mappings, replacing only the persistence boundary
+  with an in-memory store so exact entity fields, relationships and absence of writes can be asserted.
 - `src/test/<chain>/*.test.ts`: SubQuery handler/store contracts against real block heights.
 - Full replay: fetch, filters, handlers, storage and runtime loading together. A clean database may
   lack a multisig operation's earlier creation state; choose a start block with that dependency in mind.
 
 For chainTypes changes, test the actual VM boundary as well as a plain registry. Byte/hash round trips
 are necessary but not sufficient: signed origins and handler filtering must also be correct.
+For a changed extrinsic format, include positive entity assertions, not just a handler test with
+an empty expected-entity list. Distinguish synthetic-envelope tests from on-chain replay and SQL verification.
 
 ## Cleanup and Failures
 

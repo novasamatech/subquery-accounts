@@ -83,6 +83,40 @@ make podman-test-integration CHAIN=polkadot-asset-hub
 
 The committed reduced fixture preserves the exact transaction and the referenced SCALE types. Offline tests cover signature variants, both extension pipelines, unsigned verification, fee assets, malformed bytes, round trips, hashes and the real VM boundary. The live handler test additionally verifies fetching and dispatch through `handleNestedCalls`; the staking call deliberately creates no indexed entities.
 
+### Indexed Data, Not Just Decoding
+
+The incident transaction is a staking payout, not a multisig/proxy change. Its live test has
+no expected entities; that alone does **not** prove correct persisted multisig or proxy data.
+The offline [entity regression suite](../../scripts/tests/asset-hub-indexing.test.js) closes
+the mapping-level coverage gap. It uses real runtime SCALE calls/events, SubQuery block/event
+wrappers, the actual manifest filters, and `IndexerSandbox` loading the built `dist/index.js`.
+Only the store is replaced; all fields passed to generated-model `save()` are inspected.
+
+| Scenario | Assertions |
+|---|---|
+| v4 and v5 multisig creation, approval and proxied execution | Exact `Account`, `AccountMultisig`, `MultisigOperation`, `MultisigEvent` records; independent on-chain multisig address vector |
+| Operation cancellation and failed execution | Status, depositor, original timepoint, approval/rejection links and event timestamps |
+| Several multisigs and failed items in one batch | Each operation's own `callHash`/`callData`; no records from failed items |
+| Remark registration | Exact account membership; no invented operation |
+| Proxy creation and proxied removal | Chain/account/proxy/type/delay fields; removal uses inner real origin, not outer signer |
+| Pure proxy event | Both `PureProxy` and `Proxied`, with independently verified derivation coordinates and address |
+| Failed/unauthenticated calls and the original staking call | Zero store writes, not merely an empty expected-entity list |
+
+**Limits:** entity-producing v5 envelopes/events in this suite are synthetic. They preserve
+the real pipeline-1 metadata layout but are not cryptographically signed or executed by the
+Rust runtime. The pure-proxy case deliberately reuses a historic event/address vector.
+These tests prove mapping output at the store boundary, not a PostgreSQL replay of a real
+on-chain v5 multisig transaction. Such a transaction and its creation history have not yet
+been retained as a golden fixture. The existing live entity tests cover older transactions.
+Do not describe that remaining chain-to-database evidence as already verified.
+
+The signed-origin cases retain `AsPgas=None` and `AsDotnsGateway=None`, as in the incident.
+The [PGAS extension](https://github.com/paritytech/individuality-community/blob/53482baa337278c6c4c8115fb8d2b4b5def08ccb/pallets/pgas/src/extension.rs)
+and [dotNS extension](https://github.com/paritytech/individuality-community/blob/53482baa337278c6c4c8115fb8d2b4b5def08ccb/pallets/dotns-gateway/src/extension.rs)
+pass that origin through. Their active proof paths require an unsigned origin and specific
+PGAS/dotNS calls; they do not turn an accepted signed multisig into another signed account.
+This is source verification of the runtime dependency, not an executed proof-path test.
+
 A longer empty-DB replay on 2026-09-14 passed the original failure and reported current
 height `20495470`, then failed at `20495587` on an operation created at `20415702` (before
 the replay start). That is missing prior test state, not a remaining v5 decode failure;

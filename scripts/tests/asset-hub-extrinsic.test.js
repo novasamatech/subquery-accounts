@@ -3,39 +3,13 @@ const path = require("node:path");
 const { createRequire } = require("node:module");
 const { test } = require("node:test");
 const { createRegistry, loadChainTypes } = require("../lib/decoder");
-const fixture = require("./fixtures/polkadot-ah-general-extrinsic.json");
+const { fixture, snapshot, envelope, generalBytes } = require("./helpers/asset-hub");
 
 const projectRoot = process.env.PROJECT_ROOT || path.resolve(__dirname, "../..");
 const runtime = createRequire(path.resolve(process.env.SUBQL_ROOT || "/", "package.json"));
 const project = createRequire(path.resolve(projectRoot, "package.json"));
 const deps = { ...runtime("@polkadot/types"), ...runtime("@polkadot/types-known") };
-const snapshot = {
-  chain: fixture.source.chain,
-  runtimeVersion: { specName: "statemint", specVersion: fixture.source.specVersion },
-  metadata: fixture.metadata,
-};
 const account = "0x4c2545283514c51c1b5aeac53e68694cbd5913c14044657db192a3e014d8df66";
-
-function envelope(registry, data) {
-  return Buffer.concat([registry.createType("Compact<u32>", data.length).toU8a(), data]);
-}
-
-function generalBytes(registry, version, changes = {}) {
-  const original = registry.createType("Extrinsic", fixture.extrinsic);
-  const metadata = registry.metadata.extrinsic;
-  const [, indices] = [...metadata.transactionExtensionsByVersion].find(([v]) => v.eq(version));
-  const parts = [Buffer.from([0x45, version])];
-  for (const index of indices) {
-    const extension = metadata.transactionExtensions[index.toNumber()];
-    const name = extension.identifier.toString();
-    const value = Object.hasOwn(changes, name)
-      ? registry.createTypeUnsafe(registry.createLookupType(extension.type), [changes[name]])
-      : original.unwrap().get(name);
-    parts.push(value.toU8a());
-  }
-  parts.push(original.method.toU8a());
-  return envelope(registry, Buffer.concat(parts));
-}
 
 test("stock decoder reproduces the production Mortal era error", () => {
   const registry = createRegistry(snapshot, {}, deps);
