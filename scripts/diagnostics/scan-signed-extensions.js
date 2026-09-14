@@ -2,24 +2,24 @@
 //
 // Scan ChargeAssetTxPayment signed extension types across all spec versions
 // for an Asset Hub chain. Uses pre-built spec→block mappings from
-// scripts/asset-hub-spec-blocks.json (no slow binary search needed).
+// scripts/data/asset-hub-spec-blocks.json (no slow binary search needed).
 //
 // Usage:
-//   node scripts/scan-signed-extensions.js <chain>
+//   node scripts/diagnostics/scan-signed-extensions.js <chain>
 //
 // Where <chain> is one of: statemint, statemine, westmint
 // (or a unique prefix like "pol", "kus", "wes").
 //
 // You can also pass an explicit endpoint to override the default:
-//   node scripts/scan-signed-extensions.js statemint wss://my-custom-rpc.example.com
+//   node scripts/diagnostics/scan-signed-extensions.js statemint wss://my-custom-rpc.example.com
 //
 // Examples:
-//   node scripts/scan-signed-extensions.js statemint
-//   node scripts/scan-signed-extensions.js statemine
-//   node scripts/scan-signed-extensions.js westmint
+//   node scripts/diagnostics/scan-signed-extensions.js statemint
+//   node scripts/diagnostics/scan-signed-extensions.js statemine
+//   node scripts/diagnostics/scan-signed-extensions.js westmint
 
 const { ApiPromise, WsProvider, HttpProvider } = require("@polkadot/api");
-const specData = require("./asset-hub-spec-blocks.json");
+const specData = require("../data/asset-hub-spec-blocks.json");
 
 const CHAIN_ALIASES = {
   statemint: "statemint",
@@ -35,11 +35,11 @@ const CHAIN_ALIASES = {
 
 function usage() {
   console.error(
-    "Usage: node scripts/scan-signed-extensions.js <chain> [endpoint]"
+    "Usage: node scripts/diagnostics/scan-signed-extensions.js <chain> [endpoint]"
   );
   console.error("  chain: statemint | statemine | westmint (or alias: polkadot, kusama, westend)");
   console.error(
-    "\nExample: node scripts/scan-signed-extensions.js statemint"
+    "\nExample: node scripts/diagnostics/scan-signed-extensions.js statemint"
   );
   process.exit(1);
 }

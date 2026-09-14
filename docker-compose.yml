@@ -18,10 +18,8 @@ services:
       retries: 5
 
   subquery-node:
-    build:
-      context: .
     container_name: "node-${PROJECT_PATH}"
-    image: subquerynetwork/subql-node-substrate:v5.6.0
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       "postgres":
         condition: service_healthy
@@ -47,8 +45,6 @@ services:
       retries: 10
 
   graphql-engine:
-    build:
-      context: .
     image: subquerynetwork/subql-query:latest
     container_name: "query-${PROJECT_PATH}"
     ports:
@@ -70,7 +66,7 @@ services:
       - --playground
       - --indexer=http://subquery-node:3000
   subquery-node-project-westend:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,7 +92,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-aleph-zero:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,7 +118,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-avail:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,7 +144,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-hydradx:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,7 +170,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-kusama-asset-hub:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -200,7 +196,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-kusama-coretime:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -226,7 +222,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-kusama-people-chain:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -252,7 +248,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-kusama:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -278,7 +274,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-moonbeam:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -304,7 +300,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-moonriver:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -330,7 +326,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-mythos:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -356,7 +352,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-polkadot-asset-hub:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -382,7 +378,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-polkadot-coretime:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -408,7 +404,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-polkadot-people-chain:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -434,7 +430,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-testnet:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -460,7 +456,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-westend-asset-hub:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -486,7 +482,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-bittensor:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -512,7 +508,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-polkadot:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy
@@ -538,7 +534,7 @@ services:
       timeout: 5s
       retries: 10
   subquery-node-project-rococo:
-    image: subquerynetwork/subql-node-substrate:latest
+    image: ${SUBQL_NODE_IMAGE:?Use --env-file versions.env or export SUBQL_NODE_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy

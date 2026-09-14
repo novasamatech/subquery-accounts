@@ -3,19 +3,19 @@
 // Targeted scan for specific extrinsic kinds across all spec ranges.
 // Verifies decode + method parsing for calls you care about in every spec era.
 //
-// Uses spec→block mappings from scripts/asset-hub-spec-blocks.json.
+// Uses spec→block mappings from scripts/data/asset-hub-spec-blocks.json.
 //
 // Usage:
-//   node scripts/scan-methods-by-spec.js <chain> [--targets=section.method,...]
+//   node scripts/diagnostics/scan-methods-by-spec.js <chain> [--targets=section.method,...]
 //
 // Where <chain> is: polkadot | kusama | westend (or statemint | statemine | westmint)
 //
 // Examples:
-//   node scripts/scan-methods-by-spec.js polkadot
-//   node scripts/scan-methods-by-spec.js kusama --targets=multisig.asMulti,proxy.proxy
+//   node scripts/diagnostics/scan-methods-by-spec.js polkadot
+//   node scripts/diagnostics/scan-methods-by-spec.js kusama --targets=multisig.asMulti,proxy.proxy
 
 const { ApiPromise, WsProvider, HttpProvider } = require("@polkadot/api");
-const specData = require("./asset-hub-spec-blocks.json");
+const specData = require("../data/asset-hub-spec-blocks.json");
 
 const CHAIN_MAP = {
   polkadot: "statemint",
@@ -36,7 +36,7 @@ const MAX_BLOCKS_PER_ERA = 20000;
 const MAX_HITS_PER_TARGET = 3;
 
 function usage() {
-  console.error("Usage: node scripts/scan-methods-by-spec.js <chain> [--targets=section.method,...]");
+  console.error("Usage: node scripts/diagnostics/scan-methods-by-spec.js <chain> [--targets=section.method,...]");
   console.error("  chain: polkadot | kusama | westend");
   process.exit(1);
 }

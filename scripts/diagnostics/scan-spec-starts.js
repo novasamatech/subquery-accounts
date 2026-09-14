@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 // Auto-discover all spec version transitions for Asset Hub chains
-// and update scripts/asset-hub-spec-blocks.json.
+// and update scripts/data/asset-hub-spec-blocks.json.
 //
 // No hardcoded spec list needed — the script walks the chain from block 1,
 // binary-searching for each spec transition until it reaches head.
 //
 // Usage:
-//   node scripts/scan-spec-starts.js              # scan all 3 chains
-//   node scripts/scan-spec-starts.js polkadot     # scan one chain
-//   node scripts/scan-spec-starts.js --dry-run    # print results, don't write JSON
+//   node scripts/diagnostics/scan-spec-starts.js              # scan all 3 chains
+//   node scripts/diagnostics/scan-spec-starts.js polkadot     # scan one chain
+//   node scripts/diagnostics/scan-spec-starts.js --dry-run    # print results, don't write JSON
+//   node scripts/diagnostics/scan-spec-starts.js --output=/out/specs.json
 //
 // Chain aliases: polkadot|statemint, kusama|statemine, westend|westmint
 
@@ -17,7 +18,7 @@ const { ApiPromise, WsProvider, HttpProvider } = require("@polkadot/api");
 const fs = require("fs");
 const path = require("path");
 
-const JSON_PATH = path.join(__dirname, "asset-hub-spec-blocks.json");
+const JSON_PATH = path.join(__dirname, "../data/asset-hub-spec-blocks.json");
 
 const CHAINS = [
   { key: "statemint", aliases: ["polkadot", "statemint"] },
@@ -93,6 +94,9 @@ function resolveChains(args) {
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const outputArg = args.find(a => a.startsWith("--output="));
+  const outputPath = outputArg ? outputArg.slice("--output=".length) : JSON_PATH;
+  if (!outputPath) throw new Error("--output cannot be empty");
   const chains = resolveChains(args);
 
   const data = JSON.parse(fs.readFileSync(JSON_PATH, "utf8"));
@@ -163,8 +167,8 @@ async function main() {
   } else {
     const today = new Date().toISOString().slice(0, 10);
     data.description = `Asset Hub spec version → first block mappings. RPC-verified ${today}. Used by scan/debug scripts.`;
-    fs.writeFileSync(JSON_PATH, JSON.stringify(data, null, 2) + "\n");
-    console.log(`\nUpdated ${JSON_PATH}`);
+    fs.writeFileSync(outputPath, JSON.stringify(data, null, 2) + "\n");
+    console.log(`\nUpdated ${outputPath}`);
   }
 }
 

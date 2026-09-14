@@ -1,7 +1,7 @@
 -- Wipe all per-chain data for one chain and drop its metadata/checkpoint table.
 --
 -- 1. Stop the indexer process/container for the target project before running.
--- 2. Run scripts/wipe-chain-preview.sql first to confirm row counts.
+-- 2. Run scripts/db/wipe-chain-preview.sql first to confirm row counts.
 -- 3. Set v_target_chain below to the same value used in the preview.
 --
 -- Idempotent: a re-run after a successful wipe is a clean no-op (metadata table

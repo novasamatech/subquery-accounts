@@ -6,18 +6,19 @@
 // Compares current config against alternative NovaAssetId type configs to help
 // diagnose type boundary issues.
 //
-// Uses spec→block mappings from scripts/asset-hub-spec-blocks.json.
+// Uses spec→block mappings from scripts/data/asset-hub-spec-blocks.json.
 //
 // Usage:
-//   node scripts/scan-asset-hub-decode.js <chain>
+//   node scripts/diagnostics/scan-asset-hub-decode.js <chain>
 //
 // Where <chain> is: polkadot | kusama | westend (or statemint | statemine | westmint)
 //
 // Optional: pass specific block numbers to test:
-//   node scripts/scan-asset-hub-decode.js polkadot --extra=4176632,6172745
+//   node scripts/diagnostics/scan-asset-hub-decode.js polkadot --extra=4176632,6172745
 
 const { ApiPromise, WsProvider, HttpProvider } = require("@polkadot/api");
-const specData = require("./asset-hub-spec-blocks.json");
+const path = require("node:path");
+const specData = require("../data/asset-hub-spec-blocks.json");
 
 const CHAIN_MAP = {
   polkadot: { key: "statemint", chaintypes: "../dist/polkadotAssetHubChaintypes.js" },
@@ -29,7 +30,7 @@ const CHAIN_MAP = {
 };
 
 function usage() {
-  console.error("Usage: node scripts/scan-asset-hub-decode.js <chain> [--extra=block1,block2]");
+  console.error("Usage: node scripts/diagnostics/scan-asset-hub-decode.js <chain> [--extra=block1,block2]");
   console.error("  chain: polkadot | kusama | westend");
   process.exit(1);
 }
@@ -134,7 +135,8 @@ async function main() {
   const endpoint = chain.endpoint;
   const eras = buildEras(chain.specs);
 
-  const chainTypes = require(chainCfg.chaintypes).default;
+  const projectRoot = process.env.PROJECT_ROOT || path.resolve(__dirname, "../..");
+  const chainTypes = require(path.resolve(projectRoot, "dist", path.basename(chainCfg.chaintypes))).default;
   const signedExtensions = chainTypes.typesBundle.spec[specName].signedExtensions;
   const alternatives = buildAlternatives(specName, signedExtensions);
   const altNames = Object.keys(alternatives);
