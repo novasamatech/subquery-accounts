@@ -2,9 +2,8 @@ import { SubstrateExtrinsic } from "@subql/types";
 import { handleMultisigCall } from "./multisigCallHandler";
 import { handleRemarkCall } from "./multisigRemarkHandler";
 import { handleRemoveProxiesCall } from "./proxyCallHandler";
-import { CreateCallVisitorBuilder, CreateCallWalk } from "subquery-call-visitor";
-
-const callWalk = CreateCallWalk();
+import { CreateCallVisitorBuilder } from "subquery-call-visitor";
+import { callWalk } from "../../utils/callWalk";
 
 const visitor = CreateCallVisitorBuilder()
   .on("utility", ["batch", "batchAll", "forceBatch"], (extrinsic, context) => {

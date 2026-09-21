@@ -26,6 +26,9 @@ Use this runbook when fetching/decoding succeeds and a mapping fails or produces
 
 **Important:** In the Substrate ecosystem, pallets are periodically renamed or extracted into separate modules. When adding a new network, always verify which module hosted multisig functions at `startBlock`.
 
+If the execution timepoint is the current block/extrinsic, also inspect nested call wrappers.
+A threshold-one call inside `metaTx.dispatch` has no earlier creation event; see section 15.
+
 ### 2. "Call hash not found" or "call hash: 0x00" on Old Runtime Blocks
 
 **Symptoms:**
@@ -146,6 +149,71 @@ Additionally, on old `MultisigExecuted`, field index 3 is `DispatchResult`, not 
 **Fix:** In `extractPureProxyEventData`, read `data.at(4)` / `data.at(5)` first and only fall back to `eventParser.blockNumber(event)` / `eventParser.extrinsicIndex(event)` when those fields are absent (older `AnonymousCreated` runtimes). Covered by test `src/test/polkadot-asset-hub/pureProxyEventHandler-when.test.ts` (block 15,503,985).
 
 **Related but distinct:** §4 is the same family of "computed pure ≠ on-chain pure" symptoms; that section covers the parachain-relay-parent fallback. §14 is the migration-era `maybe_when` override which neither the parachain block nor the relay-parent block can reproduce.
+
+### 15. Westend Asset Hub MetaTx Dispatch Hides a Threshold-One Multisig
+
+**Observed:** Westend Asset Hub `17613388-2`, parent runtime `westmint/1025000`, metadata v16.
+Block hash: `0xb5636b1f2a3f04cfd2bfcb134c6dca34886e555e2614b508cb529fd99bfa9422`.
+Extrinsic hash: `0xcd9f5832daee5adb50460bd4c312061391a8bda6add4deb99a975f60f6cf7584`.
+
+The actual call is `metaTx.dispatch -> multisig.asMultiThreshold1 -> proxy.proxy -> balances.transferKeepAlive`.
+The runtime emits `MultisigExecuted` for call hash
+`0x5c82a16ae12509c4f8f9709d71cb333a0ee683959ff22c30aaa59d591c5bc60e`, account
+`0x9ed98e7b4dee915b7017956c574ad5899432623331241e8db3ae49370874e61e`, timepoint `(17613388, 2)`.
+There is no `NewMultisig` for this threshold-one execution.
+
+**Cause:** `subquery-call-visitor@1.4.4` does not unwrap MetaTx, so `isThreshold1` returns false
+and the execution handler searches for a nonexistent pending operation. The manifests also
+lacked a root MetaTx call handler, which would leave the account and signatory links missing.
+Using the outer signer would derive the wrong account: the fee payer is `0x93f0...529c`,
+while the authorized signer and approving account are `0xacf034...cb684`.
+
+**Fix:** Extend the library through its `NestedCallNode` API in `src/utils/callWalk.ts`. The node
+identifies the signature extension through portable metadata, takes its `Signed.account`,
+requires a successful `metaTx.Dispatched` result, and separates nested completion events.
+Other authorization extensions are rejected even if they expose a variant named `Signed`.
+The Asset Hub manifests omit `isSigned` on the MetaTx handler because the inner extension
+authorizes the call. Each multisig event handler collects calls once and uses a single match
+by call hash and derived account for classification and calldata, guarded by `assertCryptoIntegrity`.
+Walker errors propagate instead of being reported as missing operation history.
+The runtime may return outer success with inner failure; see the
+[MetaTx implementation](https://github.com/paritytech/polkadot-sdk/blob/master/substrate/frame/meta-tx/src/lib.rs).
+Missing threshold-two history still throws; the fix does not fabricate operations.
+
+**Reproduction and coverage:**
+
+~~~bash
+bash scripts/podman/run.sh debug-asset-hub-block.js westend --block=17613388 \
+  --sandbox --extrinsic=2 --calls --events --save=/out/westend-17613388-events.json \
+  --fixture=/out/westend-ah-meta-tx.json
+make podman-build
+make podman-test-offline
+PG_IMAGE=localhost/subql-pg-test:latest timeout --signal=TERM 90s \
+  bash scripts/podman/block-test.sh project-westend-asset-hub.yaml 17613388 --workers=1 --batch-size=5
+~~~
+
+`scripts/tests/fixtures/westend-ah-meta-tx.json` preserves the transaction and all eight event
+records for extrinsic 2. `meta-tx-indexing.test.js` checks the full persisted entity snapshot
+through actual SubQuery filters and the VM, including two membership links, original calldata,
+execution status, approving account and creation coordinates. The test timestamp `1789915488`
+comes from `timestamp.set` in the same block. It also covers inner/outer failure, unsupported
+authorization, nested MetaTx, batch boundaries, mixed thresholds, missing history and legacy calls.
+Polkadot/Kusama cases model a MetaTx upgrade on each network's real captured metadata;
+only the Westend incident is an on-chain MetaTx transaction.
+
+The captured Polkadot spec `2005000` and Kusama spec `2003002` metadata lack MetaTx. Their
+modeled upgrades import the Westend pallet while preserving native type IDs, calls, events and
+extension pipelines. These tests verify the configured bundles, filters and indexed entities;
+they do not prove compatibility with an unknown future authorization scheme.
+
+An empty-database replay from the incident block lacks earlier multisig history. Include the
+creation state when following later cancellations or executions; otherwise `Operation not found`
+can be an expected replay limitation. For historical SQL joins, filter `_block_range` to the
+height being inspected. Individual replay results belong in the PR verification notes.
+
+**Recovery:** Build and deploy the corrected image through the normal authorized release process,
+then resume the existing checkpoint. This incident requires neither a block skip nor a database wipe.
+Deployment to production is a separate explicitly authorized action.
 
 ## Derived Account Integrity
 

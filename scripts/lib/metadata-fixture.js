@@ -72,26 +72,50 @@ const INDEXER_SELECTION = {
   Staking: { calls: ["payout_stakers"], events: [] },
 };
 
+function fixtureSelection(snapshot, deps) {
+  const selection = { ...INDEXER_SELECTION };
+  const metadata = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata);
+  if (metadata.asLatest.pallets.some(pallet => pallet.name.eq("MetaTx"))) selection.MetaTx = {};
+  return selection;
+}
+
 function createMetadataFixture(snapshot, deps) {
   return {
     source: { chain: snapshot.chain, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
       parentHash: snapshot.raw.block.header.parentHash, specName: snapshot.runtimeVersion.specName,
       specVersion: snapshot.runtimeVersion.specVersion,
       note: "Real parent-runtime metadata reduced to indexer calls/events and transaction extensions; SCALE IDs preserved. No synthetic pipeline is stored here." },
-    metadata: reduceMetadata(snapshot.metadata, INDEXER_SELECTION, deps),
+    metadata: reduceMetadata(snapshot.metadata, fixtureSelection(snapshot, deps), deps),
   };
 }
 
 function createIndexerFixture(snapshot, index, deps) {
   const extrinsic = snapshot.raw.block.extrinsics[index];
   if (extrinsic === undefined) throw new Error(`Extrinsic index ${index} is outside this block`);
+  const selection = fixtureSelection(snapshot, deps);
+  let events;
+  if (snapshot.events) {
+    const { createRegistry } = require("./decoder");
+    const registry = createRegistry(snapshot, {}, deps);
+    const records = registry.createType("Vec<EventRecord>", snapshot.events)
+      .filter(record => record.phase.isApplyExtrinsic && record.phase.asApplyExtrinsic.eq(index));
+    events = records.map(record => record.toHex());
+    for (const record of records) {
+      const pallet = registry.metadata.pallets.find(pallet => pallet.index.eq(record.event.index[0]));
+      const name = pallet.name.toString();
+      // Keep every event from the selected extrinsic, including fee and balance events.
+      selection[name] = { ...selection[name], events: undefined };
+    }
+  }
   return {
     source: { chain: snapshot.chain, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
+      parentHash: snapshot.raw.block.header.parentHash, specName: snapshot.runtimeVersion.specName,
       specVersion: snapshot.runtimeVersion.specVersion, extrinsicIndex: index,
       note: "Metadata reduced to indexer calls/events and transaction extensions; SCALE type IDs and variant indices preserved. Regenerate with debug-asset-hub-block.js --fixture." },
     extrinsic,
     extrinsicHash: new deps.TypeRegistry().hash(Buffer.from(extrinsic.slice(2), "hex")).toHex(),
-    metadata: reduceMetadata(snapshot.metadata, INDEXER_SELECTION, deps),
+    ...(events ? { events } : {}),
+    metadata: reduceMetadata(snapshot.metadata, selection, deps),
   };
 }
 

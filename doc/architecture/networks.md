@@ -48,6 +48,12 @@ Capture native metadata with the [diagnostic workflow](../development/diagnostic
 model missing cases explicitly, and verify origins, bytes/hash, indexed entities and legacy behavior.
 New authorization semantics still require review; metadata-driven field decoding alone cannot prove them.
 
+### MetaTx Call Traversal
+
+All three Asset Hub manifests register `metaTx.dispatch`; the
+[handler runbook](../runbooks/handlers.md#15-westend-asset-hub-metatx-dispatch-hides-a-threshold-one-multisig)
+owns the authorization contract, fixture provenance and modeled-upgrade coverage limits.
+
 ---
 
 ## Asset Hub Spec Version Maps (RPC-Verified)

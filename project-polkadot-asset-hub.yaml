@@ -28,6 +28,13 @@ dataSources:
         - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:
+            module: metaTx
+            method: dispatch
+            success: true
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
             module: proxy
             method: proxy
             success: true
