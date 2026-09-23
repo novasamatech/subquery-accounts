@@ -7,6 +7,7 @@
 | Question | Tool in `scripts/diagnostics/` | Needed input | Verdict / output |
 |---|---|---|---|
 | Why can this block not decode? Would another dependency fix it? | `debug-asset-hub-block.js` | Chain + height/hash or saved snapshot | Per-extrinsic decode, origin, hash, byte checks; optional metadata pipelines |
+| Which nested call and events caused a mapping failure? | `debug-asset-hub-block.js --calls --events` | Asset Hub chain + block/extrinsic, or snapshot with events | Decoded call arguments and events; optional raw event fixture |
 | Did an Asset Hub runtime transition move? | `scan-spec-starts.js` | Optional chain; archive RPC | Candidate spec-to-first-block JSON |
 | Does fee-asset decoding work across historical eras? | `scan-asset-hub-decode.js` | Chain, built chainTypes, optional extra heights | Current and alternative type-boundary results |
 | What is the on-chain signed-extension type? | `scan-signed-extensions.js` | Chain and shared spec map | Metadata types, including `ChargeAssetTxPayment` |
@@ -49,6 +50,10 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
 - Chains: `polkadot`, `kusama`, `westend` or `statemint`, `statemine`, `westmint`.
 - Choose exactly one `--block=N`, `--hash=0x...`, `--snapshot=FILE`.
 - `--extrinsic=N` narrows output; `--extensions` shows the per-version extension pipeline and SCALE types.
+- `--calls` prints the full decoded arguments, including nested calls.
+- `--events` fetches `System.Events` at the selected block with the same 20-second request bound,
+  prints the selected events and includes their raw SCALE bytes in `--save`. Snapshot replay
+  requires events to have been captured already and never makes a supplementary RPC request.
 - `--compare` shows stock then project, with the exit verdict based on the project.
 - `--no-types` tests only the stock decoder; it is mutually exclusive with `--compare`.
 - `--sandbox` loads the compiled bundle via the actual SubQuery VM.
@@ -79,8 +84,11 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
 
 Review the generated candidate before updating `scripts/tests/fixtures/`. The reducer in
 `scripts/lib/metadata-fixture.js` retains transaction extensions and the indexer's System,
-Utility, Multisig, Proxy and Staking call/event dependencies, without copying the full runtime
-metadata or editing SCALE hex manually. It does not fetch event values or execute mappings.
+Utility, Multisig, Proxy and Staking call/event dependencies, plus MetaTx when present, without
+copying the full runtime metadata or editing SCALE hex manually. When the snapshot contains
+events, the fixture also retains every raw `EventRecord` belonging to the selected extrinsic,
+including its original phase and topics, and the metadata needed to decode those events.
+Without `--events`, no event values are fetched. The tool does not execute mappings.
 The exit verdict still describes decoding; a stock failure can coexist with a successful raw export.
 
 Use `scripts/tests/helpers/indexer.js` to dispatch metadata-encoded calls/events through real
@@ -88,6 +96,9 @@ manifest filters and the built SubQuery VM mappings, then assert final records a
 boundary. Synthetic envelopes use copied signatures only as SCALE data and must never be
 submitted to a chain. Keep real-chain and synthetic evidence distinct in the incident runbook;
 see [v5 indexed-data verification](../runbooks/asset-hub-v5.md#indexed-data-not-just-decoding).
+
+The [MetaTx runbook](../runbooks/handlers.md#15-westend-asset-hub-metatx-dispatch-hides-a-threshold-one-multisig)
+has a complete event-fixture capture and mapping-replay example.
 
 ### Test a Format Before Transactions Appear
 

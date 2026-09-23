@@ -16,7 +16,7 @@ const CHAINS = {
   westend: { spec: "westmint", bundle: "westendAssetHubChaintypes" },
 };
 
-async function capture(endpoint, block, deps) {
+async function capture(endpoint, block, deps, { events = false } = {}) {
   if (!/^https?:\/\//.test(endpoint)) throw new Error("Use an HTTP(S) endpoint in ASSET_HUB_ENDPOINT");
   let id = 0;
   async function rpc(method, params = []) {
@@ -50,13 +50,20 @@ async function capture(endpoint, block, deps) {
   }
   metadata ||= await rpc("state_getMetadata", [parent]);
   const chain = await rpc("system_chain");
-  return { formatVersion: 1, chain, hash, runtimeVersion, metadata, raw };
+  const snapshot = { formatVersion: 1, chain, hash, runtimeVersion, metadata, raw };
+  if (events) {
+    const { xxhashAsHex } = deps.from("@polkadot/util-crypto");
+    const key = xxhashAsHex("System", 128) + xxhashAsHex("Events", 128).slice(2);
+    snapshot.events = await rpc("state_getStorage", [key, hash]);
+    if (!snapshot.events) throw new Error("Block events not available");
+  }
+  return snapshot;
 }
 
-function inspect(snapshot, registry, label, index, showExtensions) {
+function inspect(snapshot, registry, label, { index, extensions = false, calls = false, events = false } = {}) {
   console.log(`\n${label}:`);
   const meta = registry.metadata.extrinsic;
-  if (showExtensions) {
+  if (extensions) {
     for (const [version, indices] of meta.transactionExtensionsByVersion) {
       console.log(`  Extensions v${version}: ${indices.map((i) => meta.transactionExtensions[i.toNumber()].identifier).join(", ")}`);
     }
@@ -83,12 +90,22 @@ function inspect(snapshot, registry, label, index, showExtensions) {
         isSigned: ex.isSigned, signer: ex.isSigned ? ex.signer.toString() : null, hash: ex.hash.toHex() });
       console.log(`  #${i} preamble=0x${result.preamble.toString(16)} OK ${result.method} signed=${result.isSigned}${result.signer ? ` signer=${result.signer}` : ""}`);
       console.log(`    hash=${result.hash}`);
+      if (calls) console.log(`    call=${JSON.stringify(ex.method.toHuman())}`);
     } catch (error) {
       ok = false;
       result.error = error.message;
       console.log(`  #${i} FAIL ${result.error}`);
     }
     extrinsics.push(result);
+  }
+  if (events) {
+    if (!snapshot.events) throw new Error("Snapshot has no events; capture again with --events");
+    const records = registry.createType("Vec<EventRecord>", snapshot.events);
+    records.forEach((record, eventIndex) => {
+      const extrinsicIndex = record.phase.isApplyExtrinsic ? record.phase.asApplyExtrinsic.toNumber() : null;
+      if (index !== undefined && index !== extrinsicIndex) return;
+      console.log(`  Event #${eventIndex} extrinsic=${extrinsicIndex} ${record.event.section}.${record.event.method} ${JSON.stringify(record.event.data.toHuman())}`);
+    });
   }
   return { label, ok, extrinsics };
 }
@@ -100,7 +117,8 @@ function validateSnapshot(snapshot) {
       !hash(snapshot.raw?.block?.header?.parentHash) || !/^0x[\da-f]+$/i.test(snapshot.raw?.block?.header?.number) ||
       !Number.isSafeInteger(Number(snapshot.raw.block.header.number)) || !hex(snapshot.metadata) ||
       !Array.isArray(snapshot.raw.block.extrinsics) || !snapshot.raw.block.extrinsics.every(hex) ||
-      typeof snapshot.runtimeVersion?.specName !== "string" || !Number.isSafeInteger(snapshot.runtimeVersion.specVersion)) {
+      typeof snapshot.runtimeVersion?.specName !== "string" || !Number.isSafeInteger(snapshot.runtimeVersion.specVersion) ||
+      (snapshot.events !== undefined && !hex(snapshot.events))) {
     throw new Error("Invalid raw-block snapshot (expected formatVersion=1, block, parent runtime and metadata)");
   }
 }
@@ -116,7 +134,7 @@ async function main() {
       "project-root": { type: "string", default: process.env.PROJECT_ROOT || path.resolve(__dirname, "../..") },
       extrinsic: { type: "string" }, compare: { type: "boolean" },
       "no-types": { type: "boolean" }, sandbox: { type: "boolean" },
-      extensions: { type: "boolean" }, help: { type: "boolean" },
+      extensions: { type: "boolean" }, calls: { type: "boolean" }, events: { type: "boolean" }, help: { type: "boolean" },
     },
   });
   if (values.help) {
@@ -132,6 +150,8 @@ async function main() {
     console.log("  --project-root=DIR   Built project directory (default: repository root)");
     console.log("  --extrinsic=N        Inspect only this index (default: every extrinsic)");
     console.log("  --extensions         Print metadata extension pipelines and their SCALE types");
+    console.log("  --calls              Print decoded call arguments, including nested calls");
+    console.log("  --events             Capture/print raw block events (also included in --save and --fixture)");
     console.log("  ASSET_HUB_ENDPOINT   HTTP(S) RPC override; pass private URLs via a Podman env-file");
     return;
   }
@@ -162,8 +182,9 @@ async function main() {
   const endpoint = process.env.ASSET_HUB_ENDPOINT || specData[config.spec].endpoint.replace(/^ws/, "http");
   const snapshot = values.snapshot
     ? JSON.parse(fs.readFileSync(values.snapshot, "utf8"))
-    : await capture(endpoint, values.hash || Number(values.block), deps);
+    : await capture(endpoint, values.hash || Number(values.block), deps, { events: values.events });
   validateSnapshot(snapshot);
+  if (values.events && !snapshot.events) throw new Error("Snapshot has no events; capture again with --events");
   if (snapshot.runtimeVersion.specName !== config.spec) throw new Error("Snapshot/RPC runtime does not match the selected chain");
   if (values.save) fs.writeFileSync(values.save, JSON.stringify(snapshot) + "\n", { mode: 0o600, flag: "wx" });
   if (values.fixture) fs.writeFileSync(values.fixture, JSON.stringify(createIndexerFixture(snapshot, Number(values.extrinsic), deps), null, 2) + "\n", { mode: 0o600, flag: "wx" });
@@ -176,9 +197,10 @@ async function main() {
     runtimeVersion: snapshot.runtimeVersion, metadataVersion, metadataSha256: sha256(snapshot.metadata),
     extrinsicSha256: snapshot.raw.block.extrinsics.map(sha256), decoders: [] };
   const index = values.extrinsic === undefined ? undefined : Number(values.extrinsic);
-  if (values.compare) report.decoders.push(inspect(snapshot, createRegistry(snapshot, {}, deps), "Stock decoder", index, values.extensions));
+  const options = { index, extensions: values.extensions, calls: values.calls, events: values.events };
+  if (values.compare) report.decoders.push(inspect(snapshot, createRegistry(snapshot, {}, deps), "Stock decoder", options));
   const types = values["no-types"] ? {} : loadChainTypes(values["project-root"], config.bundle, values.sandbox);
-  const result = inspect(snapshot, createRegistry(snapshot, types, deps), values["no-types"] ? "Stock decoder" : "Project decoder", index, values.extensions);
+  const result = inspect(snapshot, createRegistry(snapshot, types, deps), values["no-types"] ? "Stock decoder" : "Project decoder", options);
   report.decoders.push(result);
   if (values.report) fs.writeFileSync(values.report, JSON.stringify(report, null, 2) + "\n", { mode: 0o600, flag: "wx" });
   process.exitCode = result.ok ? 0 : 1;

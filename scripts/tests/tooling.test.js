@@ -41,7 +41,7 @@ test("snapshot validation rejects missing provenance and malformed bytes", () =>
   validateSnapshot(snapshot());
   for (const mutate of [s => { s.formatVersion = 2; }, s => { delete s.raw; },
     s => { s.metadata = '0x123'; }, s => { s.raw.block.extrinsics[0] = 'invalid'; },
-    s => { s.runtimeVersion.specVersion = '2005000'; }]) {
+    s => { s.runtimeVersion.specVersion = '2005000'; }, s => { s.events = '0x123'; }, s => { s.events = null; }]) {
     const s = snapshot();
     mutate(s);
     assert.throws(() => validateSnapshot(s), /Invalid raw-block snapshot/);
@@ -77,6 +77,43 @@ test("single-block help does not load a decoder or connect to RPC", () => {
   assert.match(result.stdout, /--sandbox/);
   assert.match(result.stdout, /--fixture=FILE/);
   assert.match(result.stdout, /--metadata-fixture=FILE/);
+  assert.match(result.stdout, /--events/);
+  assert.match(result.stdout, /--calls/);
+});
+
+test("event fixture export preserves raw records, MetaTx calls and their event metadata", () => {
+  const meta = require("./fixtures/westend-ah-meta-tx.json");
+  const { dependencies, createRegistry } = require("../lib/decoder");
+  const deps = dependencies();
+  const raw = { formatVersion: 1, chain: meta.source.chain, hash: meta.source.hash,
+    runtimeVersion: { specName: meta.source.specName, specVersion: meta.source.specVersion }, metadata: meta.metadata,
+    raw: { block: { header: { number: '0x' + meta.source.block.toString(16), parentHash: meta.source.parentHash },
+      extrinsics: [meta.extrinsic, meta.extrinsic, meta.extrinsic] } } };
+  const registry = createRegistry(raw, {}, deps);
+  raw.events = registry.createType("Vec<EventRecord>", meta.events).toHex();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "meta-tx-fixture-"));
+  try {
+    const input = path.join(dir, "snapshot.json");
+    const output = path.join(dir, "fixture.json");
+    fs.writeFileSync(input, JSON.stringify(raw));
+    const args = [diagnostic, "westend", `--snapshot=${input}`, "--extrinsic=2", `--fixture=${output}`, "--events", "--calls", "--no-types"];
+    const result = spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /metaTx\.dispatch/);
+    assert.match(result.stdout, /multisig\.MultisigExecuted/);
+    assert.match(result.stdout, /asMultiThreshold1/);
+    assert.deepEqual(JSON.parse(fs.readFileSync(output)), meta);
+    assert.equal(fs.statSync(output).mode & 0o777, 0o600);
+    assert.equal(spawnSync(process.execPath, args, { encoding: "utf8", timeout: 10000 }).status, 2);
+    delete raw.events;
+    fs.writeFileSync(input, JSON.stringify(raw));
+    const missing = spawnSync(process.execPath, [diagnostic, "westend", `--snapshot=${input}`, "--events", "--no-types"],
+      { encoding: "utf8", timeout: 10000 });
+    assert.equal(missing.status, 2);
+    assert.match(missing.stderr, /Snapshot has no events/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("metadata fixture export retains real provenance without inventing a transaction", () => {

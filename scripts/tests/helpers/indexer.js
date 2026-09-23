@@ -15,9 +15,10 @@ function loadManifest(chain = "polkadot") {
 const entityNames = ["Account", "AccountMultisig", "MultisigOperation", "MultisigEvent", "PureProxy", "Proxied"];
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 
-function createIndexer(registry, { chain = "polkadot", specVersion = 2005000 } = {}) {
+function createIndexer(registry, { chain = "polkadot", specVersion = 2005000, onlyHandlers } = {}) {
   const manifest = loadManifest(chain);
-  const handlers = manifest.dataSources.flatMap(source => source.mapping.handlers);
+  const handlers = manifest.dataSources.flatMap(source => source.mapping.handlers)
+    .filter(handler => !onlyHandlers || onlyHandlers.includes(handler.handler));
   const chainId = manifest.network.chainId;
   const tables = Object.fromEntries(entityNames.map(name => [name, new Map()]));
   let writes = 0;
@@ -56,19 +57,27 @@ function createIndexer(registry, { chain = "polkadot", specVersion = 2005000 } =
   }
 
   async function dispatch(hex, events, { height = 20494728, timestamp = 1800000000, success = true } = {}) {
-    const extrinsic = registry.createType("Extrinsic", hex);
     const terminal = success ? event("system", "ExtrinsicSuccess", [{}]) : event("system", "ExtrinsicFailed", ["BadOrigin", {}]);
     const records = [...events, terminal].map(e => registry.createType("EventRecord", {
       phase: { ApplyExtrinsic: 0 }, event: e.toU8a(), topics: [],
     }));
-    const block = { block: { header: { number: registry.createType("BlockNumber", height) }, extrinsics: [extrinsic] },
+    return dispatchRecords(hex, records, { height, timestamp });
+  }
+
+  async function dispatchRecords(hex, records, { height = 20494728, timestamp = 1800000000, extrinsicIndex = 0 } = {}) {
+    const extrinsic = registry.createType("Extrinsic", hex);
+    assert.ok(records.every(record => record.phase.isApplyExtrinsic && record.phase.asApplyExtrinsic.eq(extrinsicIndex)));
+    // Sparse positions preserve the real extrinsic index without inventing other transactions.
+    const extrinsics = [];
+    extrinsics[extrinsicIndex] = extrinsic;
+    const block = { block: { header: { number: registry.createType("BlockNumber", height) }, extrinsics },
       timestamp: new Date(timestamp * 1000), specVersion };
     const sources = wrapExtrinsics(block, records);
     const wrappedEvents = wrapEvents(sources, records, block);
     const invoked = [];
     for (const handler of handlers.filter(h => h.kind === "substrate/CallHandler")) {
-      if (filterExtrinsic(sources[0], handler.filter)) {
-        await sandbox.securedExec(handler.handler, [sources[0]]);
+      if (filterExtrinsic(sources[extrinsicIndex], handler.filter)) {
+        await sandbox.securedExec(handler.handler, [sources[extrinsicIndex]]);
         invoked.push(handler.handler);
       }
     }
@@ -80,10 +89,10 @@ function createIndexer(registry, { chain = "polkadot", specVersion = 2005000 } =
         }
       }
     }
-    return { source: sources[0], invoked };
+    return { source: sources[extrinsicIndex], invoked };
   }
 
-  return { event, dispatch, store, get writes() { return writes; },
+  return { event, dispatch, dispatchRecords, store, get writes() { return writes; },
     rows(name) { return clone([...table(name).values()].sort((a, b) => a.id.localeCompare(b.id))); },
     snapshot() { return Object.fromEntries(entityNames.map(name => [name, this.rows(name)])); } };
 }

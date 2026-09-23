@@ -33,7 +33,7 @@ src/
       assetHubMigrationHandler.ts # Migrates proxy data from relay chain to Asset Hub
   utils/
     operations.ts               # generateOperationId, getDataFromEvent/Call, timestamp
-    multisigHelpers.ts          # findExistingOperation, createMultisigEvent, isThreshold1
+    multisigHelpers.ts          # findExistingOperation, createMultisigEvent, event field parsing
     addressesDecode.ts          # createKeyMultiAccountId, decodeAddress
     cryptoIntegrity.ts          # assertCryptoIntegrity -- known-vector canary for derived ids
     pureAccountCalculation.ts   # calculatePureAccount, findPureBlockNumber
@@ -98,6 +98,8 @@ handleNestedCalls(extrinsic)           # generic.ts -- entry point
 ```
 
 The visitor automatically unwraps: `utility.batch*`, `proxy.proxy`, `proxy.proxyAnnounced`, `utility.asDerivative`.
+All mapping traversals use `src/utils/callWalk.ts`; its `metaTx.dispatch` extension is described
+in the [MetaTx runbook](../runbooks/handlers.md#15-westend-asset-hub-metatx-dispatch-hides-a-threshold-one-multisig).
 
 Safety limit: batches with >10,000 calls/events are skipped (`context.stop()`).
 
@@ -109,6 +111,11 @@ MultisigApproval    -> finds existing operation, adds MultisigEvent
 MultisigExecuted    -> finalizes (status: executed | error)
 MultisigCancelled   -> cancels (status: cancelled)
 ```
+
+An executed `asMultiThreshold1` has no preceding `NewMultisig`: its operation is created at
+execution. Each event handler collects successful multisig calls in one traversal and matches
+by call hash and derived account, using the same match for threshold classification and calldata.
+Account derivation is guarded by `assertCryptoIntegrity`; traversal errors propagate.
 
 Operation lookup (`findExistingOperation` in `multisigHelpers.ts`):
 1. Exact match: `callHash + blockCreated + indexCreated + accountId`

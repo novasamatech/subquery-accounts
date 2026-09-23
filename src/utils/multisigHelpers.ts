@@ -1,41 +1,8 @@
 import { SubstrateEvent } from "@subql/types";
 import { u8aToHex } from "@polkadot/util";
-import { CreateCallVisitorBuilder, CreateCallWalk } from "subquery-call-visitor";
 import { EventStatus, MultisigEvent, MultisigOperation, OperationStatus } from "../types";
 import { AccountId, DispatchResult, Timepoint } from "@polkadot/types/interfaces";
 import { generateEventId, getBlockCreated, getDataFromCall, getDataFromEvent, getIndexCreated, timestamp } from "./operations";
-
-const callWalk = CreateCallWalk();
-
-/**
- * Detects if the extrinsic contains an asMultiThreshold1 call using the visitor pattern
- * @param event - The Substrate event
- * @returns True if the extrinsic contains an asMultiThreshold1 call, false otherwise
- */
-export async function isThreshold1(event: SubstrateEvent): Promise<boolean> {
-  if (!event.extrinsic) return false;
-
-  let isThreshold1Call = false;
-
-  try {
-    const visitor = CreateCallVisitorBuilder()
-      .on("multisig", "asMultiThreshold1", () => {
-        isThreshold1Call = true;
-      })
-      .on("utility", "asMultiThreshold1", () => {
-        isThreshold1Call = true;
-      })
-      .ignoreFailedCalls(true)
-      .build();
-
-    await callWalk.walk(event.extrinsic, visitor);
-  } catch (error) {
-    logger.warn(`[isThreshold1] Error walking extrinsic: ${error}`);
-  }
-
-  logger.info(`[isThreshold1] Found asMultiThreshold1 call: ${isThreshold1Call}`);
-  return isThreshold1Call;
-}
 
 /**
  * Creates a multisig event

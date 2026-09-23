@@ -11,6 +11,19 @@ function projectPipeline(targetHex, referenceHex, version, { Metadata, TypeRegis
   const pipeline = reference.extrinsic.transactionExtensionsByVersion[version];
   if (!pipeline) throw new Error(`Reference has no pipeline ${version}`);
   if (target.extrinsic.transactionExtensionsByVersion[version]) throw new Error(`Target already has pipeline ${version}`);
+  const importType = typeImporter(target, reference);
+  target.extrinsic.transactionExtensionsByVersion[version] = pipeline.map(index => {
+    const extension = reference.extrinsic.transactionExtensions[index];
+    const existing = target.extrinsic.transactionExtensions.findIndex(e => e.identifier === extension.identifier);
+    if (existing !== -1) return existing;
+    target.extrinsic.transactionExtensions.push({ ...extension,
+      type: importType(extension.type), implicit: importType(extension.implicit) });
+    return target.extrinsic.transactionExtensions.length - 1;
+  });
+  return new Metadata(new TypeRegistry(), { magicNumber: 0x6174656d, metadata: { v16: target } }).toHex();
+}
+
+function typeImporter(target, reference) {
   const types = new Map(reference.lookup.types.map(entry => [entry.id, entry]));
   const imported = new Map();
   for (const key of ["addressType", "callType", "signatureType"]) {
@@ -40,14 +53,27 @@ function projectPipeline(targetHex, referenceHex, version, { Metadata, TypeRegis
     }
     return entry.id;
   }
-  target.extrinsic.transactionExtensionsByVersion[version] = pipeline.map(index => {
-    const extension = reference.extrinsic.transactionExtensions[index];
-    const existing = target.extrinsic.transactionExtensions.findIndex(e => e.identifier === extension.identifier);
-    if (existing !== -1) return existing;
-    target.extrinsic.transactionExtensions.push({ ...extension,
-      type: importType(extension.type), implicit: importType(extension.implicit) });
-    return target.extrinsic.transactionExtensions.length - 1;
-  });
+  return importType;
+}
+
+// Explicitly model the Westend pallet on a chain whose captured metadata lacks it.
+function projectMetaTx(targetHex, referenceHex, { Metadata, TypeRegistry }) {
+  const read = hex => new Metadata(new TypeRegistry(), hex).asLatest.toJSON();
+  const target = read(targetHex);
+  const reference = read(referenceHex);
+  const pallet = JSON.parse(JSON.stringify(reference.pallets.find(pallet => pallet.name === "MetaTx")));
+  if (target.pallets.some(existing => existing.name === "MetaTx" || existing.index === pallet.index)) {
+    throw new Error("Target already has MetaTx or its pallet index");
+  }
+  const importType = typeImporter(target, reference);
+  for (const kind of ["calls", "events", "errors"]) pallet[kind].type = importType(pallet[kind].type);
+  target.pallets.push(pallet);
+  for (const key of Object.keys(target.outerEnums)) {
+    const variants = metadata => metadata.lookup.types.find(type => type.id === metadata.outerEnums[key]).type.def.variant.variants;
+    const variant = JSON.parse(JSON.stringify(variants(reference).find(variant => variant.name === "MetaTx")));
+    variant.fields.forEach(field => { field.type = importType(field.type); });
+    variants(target).push(variant);
+  }
   return new Metadata(new TypeRegistry(), { magicNumber: 0x6174656d, metadata: { v16: target } }).toHex();
 }
 
@@ -72,4 +98,4 @@ function encodeGeneral(registry, version, values, call) {
   return envelope(registry, Buffer.concat(parts));
 }
 
-module.exports = { projectPipeline, envelope, encodeGeneral };
+module.exports = { projectPipeline, projectMetaTx, envelope, encodeGeneral };
