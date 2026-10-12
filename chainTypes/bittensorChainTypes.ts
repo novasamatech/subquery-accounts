@@ -1,3 +1,5 @@
+import { withMetadataExtrinsic } from "./metadataExtrinsic";
+
 const definitions = {
   types: [
     {
@@ -33,4 +35,4 @@ const definitions = {
   ],
 };
 
-export default { typesBundle: { spec: { bittensor: definitions } } };
+export default withMetadataExtrinsic({ typesBundle: { spec: { bittensor: definitions } } });

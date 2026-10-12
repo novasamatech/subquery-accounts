@@ -13,11 +13,12 @@ duplicating them in the agent entry point or Makefile.
 
 - [Build and test](development/podman.md): rootless containers, images, volumes, test layers and cleanup.
 - [Diagnostic catalog](development/diagnostics.md): choose a reusable tool, compare decoder versions, extend tools.
+- [Service redesign TODO](../TODO.md#indexer-runtime-and-service-redesign): staged runtime, origin and persistence migration gates.
 
 ## Runbooks
 
 - [Failing block](runbooks/block-failure.md): first triage, workspace/image replay, RPC comparison.
-- [Asset Hub v5](runbooks/asset-hub-v5.md): verified Mortal era incident, compatibility fix and recovery.
+- [General-v5 decoding](runbooks/asset-hub-v5.md): Asset Hub and People Mortal era incidents, all-network fix and recovery.
 - [Handler failures](runbooks/handlers.md): missing operations, proxy derivation, data issues and crypto integrity.
 - [Runtime compatibility](runbooks/runtime-compatibility.md): dependency, sandbox and historical fee-asset issues.
 - [Kusama multisig history](runbooks/kusama-multisig.md): event formats and migration evidence.

@@ -4,6 +4,7 @@
 /* eslint-disable sort-keys */
 
 import type { OverrideBundleDefinition } from "@polkadot/types/types";
+import { withMetadataExtrinsic } from "./metadataExtrinsic";
 
 // structs need to be in order
 /* eslint-disable sort-keys */
@@ -19,4 +20,4 @@ const definitions: OverrideBundleDefinition = {
   ],
 };
 
-export default { typesBundle: { spec: { "aleph-node": definitions } } };
+export default withMetadataExtrinsic({ typesBundle: { spec: { "aleph-node": definitions } } });

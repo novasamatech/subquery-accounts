@@ -69,19 +69,29 @@ const INDEXER_SELECTION = {
   Utility: { calls: ["batch", "batch_all", "force_batch"] },
   Multisig: {},
   Proxy: {},
+};
+// Retained only when the runtime has the pallet and calls (e.g. Hydration's Staking differs):
+// the Asset Hub incident call and the signed-dispatch wrappers.
+const OPTIONAL_SELECTION = {
   Staking: { calls: ["payout_stakers"], events: [] },
+  MetaTx: {},
+  PeopleLite: { calls: ["dispatch_as_signer"], events: [] },
 };
 
 function fixtureSelection(snapshot, deps) {
   const selection = { ...INDEXER_SELECTION };
-  const metadata = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata);
-  if (metadata.asLatest.pallets.some(pallet => pallet.name.eq("MetaTx"))) selection.MetaTx = {};
+  const metadata = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata).asLatest;
+  for (const [name, value] of Object.entries(OPTIONAL_SELECTION)) {
+    const pallet = metadata.pallets.find(pallet => pallet.name.eq(name));
+    const calls = pallet?.calls.isSome ? metadata.lookup.getSiType(pallet.calls.unwrap().type).def.asVariant.variants : [];
+    if (pallet && (value.calls || []).every(call => calls.some(variant => variant.name.eq(call)))) selection[name] = value;
+  }
   return selection;
 }
 
 function createMetadataFixture(snapshot, deps) {
   return {
-    source: { chain: snapshot.chain, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
+    source: { chain: snapshot.chain, genesisHash: snapshot.genesisHash, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
       parentHash: snapshot.raw.block.header.parentHash, specName: snapshot.runtimeVersion.specName,
       specVersion: snapshot.runtimeVersion.specVersion,
       note: "Real parent-runtime metadata reduced to indexer calls/events and transaction extensions; SCALE IDs preserved. No synthetic pipeline is stored here." },
@@ -108,7 +118,7 @@ function createIndexerFixture(snapshot, index, deps) {
     }
   }
   return {
-    source: { chain: snapshot.chain, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
+    source: { chain: snapshot.chain, genesisHash: snapshot.genesisHash, block: Number(snapshot.raw.block.header.number), hash: snapshot.hash,
       parentHash: snapshot.raw.block.header.parentHash, specName: snapshot.runtimeVersion.specName,
       specVersion: snapshot.runtimeVersion.specVersion, extrinsicIndex: index,
       note: "Metadata reduced to indexer calls/events and transaction extensions; SCALE type IDs and variant indices preserved. Regenerate with debug-asset-hub-block.js --fixture." },

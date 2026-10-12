@@ -29,11 +29,53 @@ test("single-block CLI rejects invalid selectors before contacting RPC", () => {
     ["polkadot", "--block=1", "--fixture=/out/fixture.json"],
     ["polkadot", "--block=1", "--extrinsic=2", "--fixture="],
     ["polkadot", "--block=1", "--metadata-fixture="],
+    ["polkadot", "--finalized", "--block=1"],
     ["unknown", "--block=1"],
+    ["project-unknown.yaml", "--block=1"],
+    ["project-polkadot-people-chain.yaml"],
+    ["project-polkadot-people-chain.yaml", "kusama", "--finalized"],
   ]) {
     const result = spawnSync(process.execPath, [diagnostic, ...args], { encoding: "utf8", timeout: 5000 });
     assert.equal(result.status, 2, JSON.stringify(args) + result.stderr);
     assert.doesNotMatch(result.stdout, /@polkadot\/api/);
+  }
+});
+
+test("manifest mode refuses a snapshot whose genesis is missing or belongs to another network", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "manifest-snapshot-"));
+  try {
+    const input = path.join(dir, "snapshot.json");
+    const people = require("./fixtures/polkadot-people-general-extrinsic.json");
+    const raw = { ...snapshot(), chain: people.source.chain, metadata: people.metadata,
+      runtimeVersion: { specName: people.source.specName, specVersion: people.source.specVersion } };
+    raw.raw.block.extrinsics = [people.extrinsic];
+    for (const genesisHash of [undefined, "0x" + "00".repeat(32)]) {
+      fs.writeFileSync(input, JSON.stringify({ ...raw, genesisHash }));
+      const result = spawnSync(process.execPath, [diagnostic, "project-polkadot-people-chain.yaml", `--snapshot=${input}`, "--no-types"],
+        { encoding: "utf8", timeout: 10000 });
+      assert.equal(result.status, 2, result.stderr);
+      assert.match(result.stderr, /genesis does not match the manifest chainId/);
+    }
+    fs.writeFileSync(input, JSON.stringify({ ...raw, genesisHash: "0x67fa177a097bfa18f77ea95ab56e9bcdfeb0e5b8a40e46298bb93e16b6fc5008" }));
+    const stock = spawnSync(process.execPath, [diagnostic, "project-polkadot-people-chain.yaml", `--snapshot=${input}`, "--no-types"],
+      { encoding: "utf8", timeout: 10000 });
+    assert.equal(stock.status, 1, stock.stderr);
+    assert.match(stock.stdout, /Invalid data passed to Mortal era/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("pipeline scanner validates manifests and override scope before contacting RPC", () => {
+  const scanner = path.join(root, "scripts/diagnostics/scan-extension-pipelines.js");
+  const help = spawnSync(process.execPath, [scanner, "--help"], { encoding: "utf8", timeout: 5000 });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /RPC_ENDPOINT_OVERRIDE/);
+  for (const [args, env] of [[["unknown-network"], {}], [["--report="], {}],
+    [["polkadot", "kusama"], { RPC_ENDPOINT_OVERRIDE: "http://127.0.0.1:9" }], [[], { RPC_ENDPOINT_OVERRIDE: "http://127.0.0.1:9" }]]) {
+    const result = spawnSync(process.execPath, [scanner, ...args], { encoding: "utf8", timeout: 5000, env: { ...process.env, ...env } });
+    assert.equal(result.status, 2, JSON.stringify(args) + result.stderr);
+    assert.equal(result.stdout, "");
   }
 });
 
@@ -67,6 +109,52 @@ test("single-block reports identify all dependency packages and refuse overwrite
     assert.deepEqual(JSON.parse(fs.readFileSync(output)), report);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("single-block compare fails when a project codec changes a successfully decoded legacy signer", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "decoder-parity-"));
+  try {
+    const legacy = require("./fixtures/westend-ah-meta-tx.json");
+    const input = path.join(dir, "snapshot.json");
+    const reportFile = path.join(dir, "report.json");
+    fs.writeFileSync(input, JSON.stringify({ ...snapshot(), chain: legacy.source.chain, metadata: legacy.metadata,
+      runtimeVersion: { specName: legacy.source.specName, specVersion: legacy.source.specVersion },
+      raw: { block: { header: { number: "0x" + legacy.source.block.toString(16), parentHash: legacy.source.parentHash },
+        extrinsics: [legacy.extrinsic] } } }));
+    fs.mkdirSync(path.join(dir, "dist"));
+    fs.writeFileSync(path.join(dir, "dist/westendAssetHubChaintypes.js"), `
+      exports.default = { types: { Extrinsic: class {
+        constructor(registry, value, options) {
+          const Base = registry.createClassUnsafe("GenericExtrinsic");
+          const ex = new Base(registry, value, options);
+          Object.defineProperty(ex, "signer", { value: registry.createType("Address", "0x" + "aa".repeat(32)) });
+          return ex;
+        }
+      } } };
+    `);
+    const result = spawnSync(process.execPath, [diagnostic, "westend", `--snapshot=${input}`, "--compare",
+      `--project-root=${dir}`, `--report=${reportFile}`], { encoding: "utf8", timeout: 10000 });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stdout, /#0 MISMATCH stock and project decoders disagree/);
+    const report = JSON.parse(fs.readFileSync(reportFile));
+    assert.equal(report.decoders[0].ok, true);
+    assert.equal(report.decoders[1].extrinsics[0].ok, true);
+    assert.equal(report.decoders[1].ok, false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("single-block RPC override takes precedence over the legacy variable and is redacted", () => {
+  const endpoint = "https:///?token=synthetic-primary-token";
+  for (const env of [{ RPC_ENDPOINT_OVERRIDE: endpoint, ASSET_HUB_ENDPOINT: "invalid-legacy-scheme" },
+    { RPC_ENDPOINT_OVERRIDE: "", ASSET_HUB_ENDPOINT: endpoint }]) {
+    const result = spawnSync(process.execPath, [diagnostic, "polkadot", "--finalized"],
+      { encoding: "utf8", timeout: 10000, env: { ...process.env, ...env } });
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(result.stderr, /\[RPC\]/);
+    assert.doesNotMatch(result.stdout + result.stderr, /synthetic-primary-token|invalid-legacy-scheme/);
   }
 });
 
@@ -171,7 +259,7 @@ function markdownFiles(directory) {
 }
 
 test("documentation navigation resolves local files and heading anchors", () => {
-  const files = ["AGENTS.md", "README.md", "scripts/README.md"].map(file => path.join(root, file));
+  const files = ["AGENTS.md", "README.md", "TODO.md", "scripts/README.md"].map(file => path.join(root, file));
   files.push(...markdownFiles(path.join(root, "doc")));
   let checked = 0;
   for (const file of files) {

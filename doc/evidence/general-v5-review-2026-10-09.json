@@ -1,0 +1,81 @@
+{
+  "verifiedAt": "2026-10-09",
+  "runtimeImage": "docker.io/subquerynetwork/subql-node-substrate:v6.4.6",
+  "diagnostic": "scripts/diagnostics/debug-asset-hub-block.js",
+  "scope": "Offline full-block snapshot replay; no production deployment or dependency change",
+  "packages": {
+    "runtime": {
+      "@polkadot/api": "16.5.3",
+      "@polkadot/types": "16.5.3",
+      "@polkadot/types-known": "16.5.3",
+      "root": "/"
+    },
+    "candidate": {
+      "@polkadot/api": "17.0.2",
+      "@polkadot/types": "17.0.2",
+      "@polkadot/types-known": "17.0.2",
+      "root": "/probe",
+      "volume": "subql-api-v5-review-1702"
+    }
+  },
+  "cases": [
+    {
+      "chain": "polkadot-asset-hub",
+      "height": 20494727,
+      "blockHash": "0x4e321bc81810ce34496e8395ad6bb329f25ac972ad8aa9601b2aab9973d3aa86",
+      "specName": "statemint",
+      "specVersion": 2005000,
+      "metadataSha256": "fa06eeea4d9f9d0b4341328487f120af2d475a9019a780b5262a6ff8321d2cf1",
+      "extrinsicIndex": 2,
+      "extrinsicSha256": "be615db8c8b3cf9b87ea44f51d6e35074fef3fd1663dc9e54bb2b9d413130f9f",
+      "snapshot": "subql-diagnostics:/polkadot-20494727.json",
+      "candidateStock": {
+        "exitCode": 1,
+        "passingExtrinsics": [0, 1],
+        "error": "Decoded extrinsic does not round-trip to the original bytes",
+        "report": "subql-diagnostics:/v5-review-1702-asset-hub.json"
+      },
+      "runtimeStock": {
+        "passingExtrinsics": [0, 1],
+        "error": "Invalid data passed to Mortal era"
+      },
+      "runtimeProjectVm": {
+        "exitCode": 0,
+        "passingExtrinsics": [0, 1, 2],
+        "isSigned": true,
+        "signer": "12iqiE5Kb8fHd2io8wpBJ23tR27WVELkNMv5yQWLFe52zaUQ",
+        "hash": "0xb69ed69710cf90f42e17f9e3f4fff5e2abd7f93db8ce6cfc13dda3b4ab8d1111",
+        "report": "subql-diagnostics:/v5-review-hardened-asset-hub.json"
+      }
+    },
+    {
+      "chain": "polkadot-people",
+      "height": 10709657,
+      "blockHash": "0x75311b63e16ccfcf97a50e8a57668f7600e4414d54f3c157b14e5f4929566925",
+      "specName": "people-polkadot",
+      "specVersion": 2005000,
+      "metadataSha256": "3b0f11f3e69a5ac6856c48e52c8405b5a69ffaba116b5f5ee1b27d29b44c15ae",
+      "extrinsicIndex": 2,
+      "extrinsicSha256": "ac792432d241f07c974f2178b0bd959ed1264d53d191a2f751b95a4e1016de0c",
+      "snapshot": "subql-diagnostics:/polkadot-people-10709657-review-genesis.json",
+      "candidateStock": {
+        "exitCode": 1,
+        "passingExtrinsics": [0, 1],
+        "error": "Decoded extrinsic does not round-trip to the original bytes",
+        "report": "subql-diagnostics:/v5-review-1702-people.json"
+      },
+      "runtimeStock": {
+        "passingExtrinsics": [0, 1],
+        "error": "Invalid data passed to Mortal era"
+      },
+      "runtimeProjectVm": {
+        "exitCode": 0,
+        "passingExtrinsics": [0, 1, 2],
+        "isSigned": true,
+        "signer": "15JeLvYi4kmE8dWXz9aAGsYhHcKUd1yWojdCf1NrpjcZxJiK",
+        "hash": "0xd254095caa53b7ba628e35aebe2e4df22f2baeff7bedfca7c4659510af8a0542",
+        "report": "subql-diagnostics:/v5-review-hardened-people.json"
+      }
+    }
+  ]
+}

@@ -66,4 +66,34 @@ class MetaTxNode implements NestedCallNode {
   }
 }
 
-export const callWalk = CreateCallWalk([...DefaultKnownNodes, new MetaTxNode()]);
+// People's PeopleLite.dispatch_as_signer re-dispatches its call as Signed(who). A LitePerson(who)
+// origin is created only by the AsLitePerson extension from the transaction's VerifyMultiSignature
+// signer, and only origin-preserving parents (batches) can pass it on, so the walked origin is
+// unchanged. Like utility.asDerivative it emits no event and returns the inner call's result.
+class DispatchAsSignerNode implements NestedCallNode {
+  canVisit(call: Call): boolean {
+    return call.section === "peopleLite" && call.method === "dispatchAsSigner";
+  }
+
+  endExclusiveToSkipInternalEvents(call: Call, context: EventCountingContext): number {
+    return context.endExclusiveToSkipInternalEvents(innerCall(call), context.endExclusive);
+  }
+
+  async visit(call: Call, context: NodeContext): Promise<void> {
+    await context.nestedVisit({
+      call: innerCall(call),
+      origin: context.origin,
+      success: context.callSucceeded,
+      events: context.callSucceeded ? context.eventQueue.all() : [],
+      extrinsic: context.extrinsic,
+    });
+  }
+}
+
+function innerCall(call: Call): Call {
+  const inner = getDataFromCall<Call>(call, "call");
+  if (!inner) throw new Error(`${call.section}.${call.method} has no call`);
+  return inner;
+}
+
+export const callWalk = CreateCallWalk([...DefaultKnownNodes, new MetaTxNode(), new DispatchAsSignerNode()]);

@@ -1,5 +1,5 @@
 import { OverrideBundleDefinition } from "@polkadot/types/types";
-import { AssetHubExtrinsic, AssetHubGeneralExtrinsic } from "./assetHubExtrinsic";
+import { withMetadataExtrinsic } from "./metadataExtrinsic";
 
 const definitions: OverrideBundleDefinition = {
   types: [
@@ -38,10 +38,4 @@ const definitions: OverrideBundleDefinition = {
   },
 };
 
-export default {
-  types: {
-    Extrinsic: AssetHubExtrinsic,
-    GeneralExtrinsic: AssetHubGeneralExtrinsic,
-  },
-  typesBundle: { spec: { statemine: definitions } },
-};
+export default withMetadataExtrinsic({ typesBundle: { spec: { statemine: definitions } } });

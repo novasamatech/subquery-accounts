@@ -215,6 +215,41 @@ height being inspected. Individual replay results belong in the PR verification 
 then resume the existing checkpoint. This incident requires neither a block skip nor a database wipe.
 Deployment to production is a separate explicitly authorized action.
 
+### 16. People `peopleLite.dispatchAsSigner` Wraps Multisig/Proxy Calls
+
+**Source review (2026-10-09, before any on-chain occurrence was found):** Polkadot People
+`people-polkadot/2005000` ([polkadot-fellows/runtimes v2.5.0](https://github.com/polkadot-fellows/runtimes/blob/3936c7e4d42b449b964e41bd7b69d5f1db1e3a1f/system-parachains/people/people-polkadot/src/lib.rs#L141-L180))
+adds pipeline 1 with the Individuality authorizers. `PeopleLiteAuth::AsLitePerson` turns the
+`VerifyMultiSignature` signer into a `LitePerson(signer)` origin, and
+[`PeopleLite.dispatch_as_signer(call)`](https://github.com/paritytech/individuality-community/blob/53482baa337278c6c4c8115fb8d2b4b5def08ccb/pallets/people-lite/src/lib.rs#L509-L526)
+re-dispatches its call as `Signed(signer)`. It emits no event and returns the inner result unchanged,
+so a failed inner call fails the extrinsic. No other Individuality call re-dispatches as `Signed`.
+
+**Risk without handling:** the call visitor treats the unknown wrapper as a leaf. A nested
+`asMultiThreshold1` then emits `MultisigExecuted` with no findable call, and the execution handler
+throws `Operation not found` (an indexer stop). Nested `asMulti` loses calldata and memberships.
+
+**Fix:** `DispatchAsSignerNode` in `src/utils/callWalk.ts` is a transparent wrapper, like
+`utility.asDerivative` but keeping the walked origin: only origin-preserving parents (batches)
+can pass a `LitePerson` origin, and its account is the extrinsic signer. Both People manifests
+register `peopleLite.dispatchAsSigner` with `success` and `isSigned`.
+
+**Other People authorizers:** `AsPerson`, `PeopleLiteAuth`, `AsCoinage` replace a `Signed` origin
+with a pallet-specific non-signed origin; `AsMember`, `AsResources`, proof variants and `AuthorizeCall`
+need an unauthorized origin. None yields `Signed` for another account, and multisig/proxy calls use
+`ensure_signed`, so under such origins they fail (`BadOrigin`) and write nothing. The decoder still
+reports `isSigned` for the authenticated signer, e.g. the real People incident transaction uses
+`AsCoinage::InfallibleUnpaidSigned` (see [v5 incidents](asset-hub-v5.md#polkadot-people-incident)).
+
+**Coverage:** `people-lite-indexing.test.js` checks exact persisted entities for wrapped threshold-one
+and threshold-two multisigs, batch event boundaries, remark registration, `removeProxies` and failed
+wrappers, through the actual manifests and VM, on real Polkadot People metadata and on Kusama People
+with a modeled pipeline 1 and PeopleLite pallet. Negative cases cover unwrapped `LitePerson` calls,
+failed batch items, and wrappers rejected under signed proxy/multisig origins. Although the top-level
+`remarkWithEvent` filter has no success constraint, the visitor's `ignoreFailedCalls(true)` prevents
+registration on failure. These are synthetic envelopes; no on-chain
+`dispatchAsSigner` multisig had been retained as a fixture at the time of writing.
+
 ## Derived Account Integrity
 
 `src/utils/cryptoIntegrity.ts` checks a real 4-of-7 multisig vector before the first derived account is stored. `createKeyMultiAccountId` returns raw hex and builds the multisig prefix from hex bytes in the sandbox realm. Preserve the canary and the on-chain signer checks when changing address derivation. A `Crypto integrity check failed` error must be investigated in the actual SubQuery VM; do not disable the check to resume indexing.

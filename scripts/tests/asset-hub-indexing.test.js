@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const { createRegistry, loadChainTypes } = require("../lib/decoder");
 const { fixture } = require("./helpers/asset-hub");
 const { encodeGeneral } = require("./helpers/transaction-pipeline");
-const { assetHubCases, extensionValues } = require("./helpers/asset-hub-cases");
+const { networkCases, extensionValues } = require("./helpers/network-cases");
 const { projectRoot, runtime, entityNames, createIndexer: createVmIndexer } = require("./helpers/indexer");
 const { decorateExtrinsics } = runtime("@polkadot/types/metadata/decorate/extrinsics");
 const deps = { ...runtime("@polkadot/types"), ...runtime("@polkadot/types-known") };
@@ -18,7 +18,8 @@ const HEIGHT = 20494728;
 const TIME = 1800000000;
 const weight = { refTime: 1000000000, proofSize: 10000 };
 
-for (const context of assetHubCases(deps)) {
+// Full multisig lifecycle assertions use 32-byte accounts; EVM proxy entities are checked below.
+for (const context of networkCases(deps).filter(network => !network.evm)) {
   const { chainId, snapshot, bundle, chain } = context;
   const registry = createRegistry(snapshot, loadChainTypes(projectRoot, bundle, true), deps);
   const tx = decorateExtrinsics(registry, registry.metadata, 16);
@@ -44,7 +45,7 @@ for (const context of assetHubCases(deps)) {
   }
 
   function operation(status = "pending") {
-    return { id: operationId, chainId, accountId: MULTI, callHash: hash, callData: "0x00001001020304",
+    return { id: operationId, chainId, accountId: MULTI, callHash: hash, callData: inner.toHex(),
       section: "system", method: "remark", depositor: S1, status, blockCreated: HEIGHT, indexCreated: 0, timestamp: TIME };
   }
 
@@ -150,7 +151,11 @@ for (const context of assetHubCases(deps)) {
     assert.deepEqual(indexer.rows("Proxied"), [other]);
   });
 
-  check("v5: pure proxy keeps event derivation coordinates rather than the new envelope coordinates", async () => {
+  // Older proxy pallets (e.g. Bittensor, Hydration) emit PureCreated without `at`/`extrinsic_index`;
+  // derivation then uses the block coordinates, which the transaction format does not change.
+  const proxyEvents = registry.lookup.getSiType(registry.metadata.pallets.find(p => p.name.eq("Proxy")).events.unwrap().type);
+  const eventCoordinates = proxyEvents.def.asVariant.variants.find(v => v.name.eq("PureCreated")).fields.length === 6;
+  if (eventCoordinates) check("v5: pure proxy keeps event derivation coordinates rather than the new envelope coordinates", async () => {
     const indexer = createIndexer(registry);
     const pure = "0x32b451ddfb7b71e4463c38a5bac29bd9679f4c04d853bae12bb1ee4440c1e1ac";
     const spawner = "0x40ff75e9f6e5eea6579fd37a8296c58b0ff0f0940ea873e5d26b701163b1b325";
@@ -175,11 +180,37 @@ for (const context of assetHubCases(deps)) {
     }
   });
 
-  if (chain === "polkadot") check("real incident staking call reaches the mapping but performs zero store writes", async () => {
+  if (chain === "polkadot-asset-hub") check("real incident staking call reaches the mapping but performs zero store writes", async () => {
     const indexer = createIndexer(registry);
     const result = await indexer.dispatch(fixture.extrinsic, [indexer.event("utility", "ItemCompleted"), indexer.event("utility", "BatchCompleted")]);
     assert.deepEqual(result.invoked, ["handleNestedCalls"]);
     assert.equal(indexer.writes, 0);
     assert.deepEqual(indexer.snapshot(), Object.fromEntries(entityNames.map(name => [name, []])));
+  });
+}
+
+for (const context of networkCases(deps).filter(network => network.evm)) {
+  test(`${context.chain}: native and modeled metadata preserve signed-v4 proxy entities with 20-byte accounts`, async () => {
+    const account = "0x" + "aa".repeat(20);
+    const delegate = "0x" + "bb".repeat(20);
+    for (const snapshot of [context.native, context.snapshot]) {
+      const registry = createRegistry(snapshot, loadChainTypes(projectRoot, context.bundle, true), deps);
+      const tx = decorateExtrinsics(registry, registry.metadata, 16);
+      const indexer = createVmIndexer(registry, { chain: context.chain, specVersion: snapshot.runtimeVersion.specVersion });
+      const signed = call => {
+        const ex = registry.createType("Extrinsic", { method: call }, { version: 4 });
+        ex.addSignature(account, "0x" + "11".repeat(65), { era: "0x00", nonce: 0, tip: 0, mode: 0 });
+        return ex.toHex();
+      };
+      await indexer.dispatch(signed(tx.utility.batchAll([tx.proxy.addProxy(delegate, "Any", 0)])), [
+        indexer.event("proxy", "ProxyAdded", [account, delegate, "Any", 0]),
+        indexer.event("utility", "ItemCompleted"), indexer.event("utility", "BatchCompleted"),
+      ], { height: HEIGHT });
+      assert.deepEqual(indexer.snapshot(), { Account: [], AccountMultisig: [], MultisigOperation: [], MultisigEvent: [], PureProxy: [],
+        Proxied: [{ id: `${context.chainId}-${account}-${delegate}-Any-0`, chainId: context.chainId, accountId: account,
+          proxyAccountId: delegate, type: "Any", delay: 0, blockNumber: HEIGHT, extrinsicIndex: 0, isPureProxy: false }] });
+      await indexer.dispatch(signed(tx.proxy.removeProxies()), []);
+      assert.deepEqual(indexer.rows("Proxied"), []);
+    }
   });
 }

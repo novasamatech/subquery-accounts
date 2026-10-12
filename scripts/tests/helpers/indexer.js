@@ -8,14 +8,15 @@ const runtime = loadRuntime();
 const { IndexerSandbox } = runtime("@subql/node-core/dist/indexer/sandbox");
 const { decorateEvents } = runtime("@polkadot/types/metadata/decorate/events");
 const { wrapExtrinsics, wrapEvents, filterExtrinsic, filterEvent } = runtime("./dist/utils/substrate");
-function loadManifest(chain = "polkadot") {
-  assert.ok(["polkadot", "kusama", "westend"].includes(chain), `Unknown Asset Hub: ${chain}`);
-  return runtime("js-yaml").load(fs.readFileSync(path.join(projectRoot, `project-${chain}-asset-hub.yaml`), "utf8"));
+// `chain` is a manifest slug: project-<chain>.yaml.
+function loadManifest(chain = "polkadot-asset-hub") {
+  assert.match(chain, /^[a-z0-9-]+$/, `Invalid manifest slug: ${chain}`);
+  return runtime("js-yaml").load(fs.readFileSync(path.join(projectRoot, `project-${chain}.yaml`), "utf8"));
 }
 const entityNames = ["Account", "AccountMultisig", "MultisigOperation", "MultisigEvent", "PureProxy", "Proxied"];
 const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 
-function createIndexer(registry, { chain = "polkadot", specVersion = 2005000, onlyHandlers } = {}) {
+function createIndexer(registry, { chain = "polkadot-asset-hub", specVersion = 2005000, onlyHandlers } = {}) {
   const manifest = loadManifest(chain);
   const handlers = manifest.dataSources.flatMap(source => source.mapping.handlers)
     .filter(handler => !onlyHandlers || onlyHandlers.includes(handler.handler));

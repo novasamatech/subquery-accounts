@@ -2,8 +2,8 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { createRegistry, loadChainTypes } = require("../lib/decoder");
 const fixture = require("./fixtures/westend-ah-meta-tx.json");
-const { assetHubCases, SIGNATURE } = require("./helpers/asset-hub-cases");
-const { projectMetaTx } = require("./helpers/transaction-pipeline");
+const { networkCases, SIGNATURE } = require("./helpers/network-cases");
+const { projectPallet } = require("./helpers/transaction-pipeline");
 const { projectRoot, runtime, createIndexer, loadManifest } = require("./helpers/indexer");
 const { decorateExtrinsics } = runtime("@polkadot/types/metadata/decorate/extrinsics");
 const { createKeyMulti } = runtime("@polkadot/util-crypto");
@@ -29,7 +29,7 @@ const native = { chain: fixture.source.chain, metadata: fixture.metadata,
 
 test("Westend 17613388-2: raw transaction and events persist the exact threshold-one operation and memberships in the VM", async () => {
   const registry = createRegistry(native, loadChainTypes(projectRoot, "westendAssetHubChaintypes", true), deps);
-  const indexer = createIndexer(registry, { chain: "westend", specVersion: fixture.source.specVersion });
+  const indexer = createIndexer(registry, { chain: "westend-asset-hub", specVersion: fixture.source.specVersion });
   const records = fixture.events.map(hex => registry.createType("EventRecord", hex));
   assert.deepEqual(records.map(record => record.toHex()), fixture.events);
   const result = await indexer.dispatchRecords(fixture.extrinsic, records, { height: HEIGHT, timestamp: TIME, extrinsicIndex: 2 });
@@ -38,7 +38,7 @@ test("Westend 17613388-2: raw transaction and events persist the exact threshold
   assert.deepEqual(result.invoked, ["handleNestedCalls", "handleMultisigExecutedEvent"]);
   const id = `${HASH}-${MULTI}-${HEIGHT}-2`;
   assert.deepEqual(indexer.snapshot(), { Account: accounts(), AccountMultisig: links(),
-    MultisigOperation: [{ id, chainId: loadManifest("westend").network.chainId, accountId: MULTI, callHash: HASH,
+    MultisigOperation: [{ id, chainId: loadManifest("westend-asset-hub").network.chainId, accountId: MULTI, callHash: HASH,
       callData: CALL, section: "proxy", method: "proxy", depositor: AUTHOR, status: "executed",
       blockCreated: HEIGHT, indexCreated: 2, timestamp: TIME }],
     MultisigEvent: [{ id: `${id}-${AUTHOR}-approve`, accountId: AUTHOR, status: "approve", multisigId: id,
@@ -58,15 +58,15 @@ test("a Signed variant from an unknown authorization extension is rejected in th
   const extension = registry.createType("Extrinsic", fixture.extrinsic).method.args[0].get("extension");
   assert.equal(extension[0].type, "Signed");
   assert.equal(extension[0].value.get("account").toHex(), AUTHOR);
-  const indexer = createIndexer(registry, { chain: "westend", specVersion: fixture.source.specVersion });
+  const indexer = createIndexer(registry, { chain: "westend-asset-hub", specVersion: fixture.source.specVersion });
   await assert.rejects(indexer.dispatchRecords(fixture.extrinsic, fixture.events.map(hex => registry.createType("EventRecord", hex)),
     { height: HEIGHT, timestamp: TIME, extrinsicIndex: 2 }), /Unsupported metaTx authorization/);
   assert.equal(indexer.writes, 0);
 });
 
-for (const context of assetHubCases(deps)) {
-  const projected = context.chain !== "westend";
-  const snapshot = projected ? { ...context.native, metadata: projectMetaTx(context.native.metadata, fixture.metadata, deps) } : native;
+for (const context of networkCases(deps, "asset-hub")) {
+  const projected = context.chain !== "westend-asset-hub";
+  const snapshot = projected ? { ...context.native, metadata: projectPallet(context.native.metadata, fixture.metadata, "MetaTx", deps) } : native;
   const registry = createRegistry(snapshot, loadChainTypes(projectRoot, context.bundle, true), deps);
   const tx = decorateExtrinsics(registry, registry.metadata, 16);
   const create = () => createIndexer(registry, { chain: context.chain, specVersion: snapshot.runtimeVersion.specVersion });

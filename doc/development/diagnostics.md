@@ -6,8 +6,9 @@
 
 | Question | Tool in `scripts/diagnostics/` | Needed input | Verdict / output |
 |---|---|---|---|
-| Why can this block not decode? Would another dependency fix it? | `debug-asset-hub-block.js` | Chain + height/hash or saved snapshot | Per-extrinsic decode, origin, hash, byte checks; optional metadata pipelines |
-| Which nested call and events caused a mapping failure? | `debug-asset-hub-block.js --calls --events` | Asset Hub chain + block/extrinsic, or snapshot with events | Decoded call arguments and events; optional raw event fixture |
+| Why can this block not decode? Would another dependency fix it? | `debug-asset-hub-block.js` | Asset Hub alias or `project-<slug>.yaml` + height/hash/`--finalized`, or saved snapshot | Per-extrinsic decode, origin, hash, byte checks; stock/project parity; optional metadata pipelines |
+| Which nested call and events caused a mapping failure? | `debug-asset-hub-block.js --calls --events` | Network + block/extrinsic, or snapshot with events | Decoded call arguments and events; optional raw event fixture |
+| Which networks advertise General-v5 pipelines, and can each configured decoder handle them? | `scan-extension-pipelines.js` | Optional manifest slugs; manifest RPCs | Per-network pipelines with stock/project verdicts; exit 1 on a decoder failure |
 | Did an Asset Hub runtime transition move? | `scan-spec-starts.js` | Optional chain; archive RPC | Candidate spec-to-first-block JSON |
 | Does fee-asset decoding work across historical eras? | `scan-asset-hub-decode.js` | Chain, built chainTypes, optional extra heights | Current and alternative type-boundary results |
 | What is the on-chain signed-extension type? | `scan-signed-extensions.js` | Chain and shared spec map | Metadata types, including `ChargeAssetTxPayment` |
@@ -29,8 +30,9 @@ comparison or metadata-only tools. Project decoding requires `make podman-build`
 
 Private RPC URLs belong in an ephemeral mode-0600 env-file outside the repository:
 `ENV_FILE=/tmp/subql-rpc.env bash scripts/podman/run.sh ...`.
-The single-block tool reads `ASSET_HUB_ENDPOINT` (HTTP/S); the full replay reads
-`RPC_ENDPOINT_OVERRIDE`. Do not put private URLs on the command line, in YAML defaults, in
+The single-block tool, the pipeline scanner and the full replay read `RPC_ENDPOINT_OVERRIDE` (HTTP/S
+for the first two; the single-block tool also accepts the legacy `ASSET_HUB_ENDPOINT`).
+Do not put private URLs on the command line, in YAML defaults, in
 permission allowlists, or in committed snapshots. Remove the env-file after use.
 Older scan tools print their configured endpoint; use them only with public endpoints.
 
@@ -47,14 +49,17 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
   --snapshot=/out/polkadot-20494727.json --sandbox --compare
 ~~~
 
-- Chains: `polkadot`, `kusama`, `westend` or `statemint`, `statemine`, `westmint`.
-- Choose exactly one `--block=N`, `--hash=0x...`, `--snapshot=FILE`.
+- Networks: Asset Hub aliases `polkadot`, `kusama`, `westend` (or `statemint`, `statemine`, `westmint`),
+  or any manifest as `project-<slug>.yaml`, which supplies the endpoint and chain types. Manifest mode
+  records the genesis hash in new snapshots and refuses a snapshot from another network or without one.
+- Choose exactly one `--block=N`, `--hash=0x...`, `--finalized` (current finalized block), `--snapshot=FILE`.
 - `--extrinsic=N` narrows output; `--extensions` shows the per-version extension pipeline and SCALE types.
 - `--calls` prints the full decoded arguments, including nested calls.
 - `--events` fetches `System.Events` at the selected block with the same 20-second request bound,
   prints the selected events and includes their raw SCALE bytes in `--save`. Snapshot replay
   requires events to have been captured already and never makes a supplementary RPC request.
-- `--compare` shows stock then project, with the exit verdict based on the project.
+- `--compare` shows stock then project, with the exit verdict based on the project. Every extrinsic the
+  stock codec decodes must decode identically (method, origin, hash); otherwise `MISMATCH` and exit 1.
 - `--no-types` tests only the stock decoder; it is mutually exclusive with `--compare`.
 - `--sandbox` loads the compiled bundle via the actual SubQuery VM.
 - `--project-root` defaults to `PROJECT_ROOT` (the runner sets `/work`).
@@ -84,7 +89,8 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
 
 Review the generated candidate before updating `scripts/tests/fixtures/`. The reducer in
 `scripts/lib/metadata-fixture.js` retains transaction extensions and the indexer's System,
-Utility, Multisig, Proxy and Staking call/event dependencies, plus MetaTx when present, without
+Utility, Multisig and Proxy call/event dependencies, plus `Staking.payout_stakers`, MetaTx and
+`PeopleLite.dispatch_as_signer` when the runtime has them, without
 copying the full runtime metadata or editing SCALE hex manually. When the snapshot contains
 events, the fixture also retains every raw `EventRecord` belonging to the selected extrinsic,
 including its original phase and topics, and the metadata needed to decode those events.
@@ -113,13 +119,19 @@ make podman-test-offline
 Review the reduced metadata and provenance before updating the committed fixtures. Store real
 metadata only; generate hypothetical upgrades at test time, never label them on-chain metadata.
 `scripts/tests/helpers/transaction-pipeline.js` models a known extension pipeline from a reference
-runtime by importing its missing portable type graph. It preserves the target's existing types,
-call/event indices, extensions and pipeline 0, which the network matrix asserts independently.
+runtime: its authorizers (extensions absent from the reference pipeline 0) and their portable type graph
+are prepended to the target's own pipeline 0, so the target keeps its fee extension and v4 decoding.
+It preserves the target's existing types, call/event indices, extensions and pipeline 0, which the
+network matrix asserts independently. People's zero-byte `AuthorizeCall` moves after `RestrictOrigins`
+in this model; the tests verify SCALE decoding, not the runtime's authorization execution.
+`projectPallet` models a missing pallet such as MetaTx or PeopleLite.
 The encoder then builds synthetic envelopes from those SCALE types without using the decoder
 under test. Signatures are test bytes, not runtime-authorized transactions.
 
-`scripts/tests/helpers/asset-hub-cases.js` binds each fixture to its actual manifest and compiled
-chainTypes bundle. Both decoder and entity suites consume these cases. Extend them for a shared
+`scripts/tests/helpers/network-cases.js` binds each fixture to its actual manifest and compiled
+chainTypes bundle, keyed by manifest slug. Both decoder and entity suites consume these cases. To refresh
+or add a network, capture its current runtime with
+`debug-asset-hub-block.js project-<slug>.yaml --finalized --save=... --metadata-fixture=...`. Extend them for a shared
 format bug even when only one network currently exposes it; keep native and modeled results separate.
 Replace a modeled case with real captured metadata when that pipeline is available, and retain
 historical fixtures when they protect a distinct compatibility boundary.
@@ -152,6 +164,30 @@ The tool prints actual `packageInfo.version` values for API, types and types-kno
 Runtime images may strip `package.json.version`;
 do not infer a runtime package version from the project's resolutions or from the image tag alone.
 For the verified September 2026 incident see the [v5 runbook](../runbooks/asset-hub-v5.md).
+
+## Transaction-Extension Pipelines
+
+~~~bash
+make podman-build
+bash scripts/podman/run.sh scan-extension-pipelines.js --sandbox --report=/out/pipelines.json
+ENV_FILE=/tmp/subql-rpc.env bash scripts/podman/run.sh scan-extension-pipelines.js kusama --sandbox
+~~~
+
+For each manifest (default: all; or the given slugs) the scanner checks that the RPC genesis equals
+the manifest `chainId`, reads the finalized runtime's metadata and, for metadata v16, encodes a synthetic
+`system.remark` for every advertised pipeline (signed through `VerifyMultiSignature` where present). It
+decodes each with the stock codec and with the manifest's chain types, requiring an exact round trip, hash
+and origin for both decoders, including stock-only runs. A native General-v5 codec reporting unsigned
+for a known authenticated probe fails the indexer-compatibility check even if its bytes are correct.
+`--no-types` reports the stock verdict only. `RPC_ENDPOINT_OVERRIDE` is accepted for exactly
+one manifest. `--report` writes a mode-0600 JSON file without overwrite. Each request is bounded to 20 seconds.
+
+Exit: `0` every advertised pipeline decodes, `1` a configured (or, with `--no-types`, stock) decoder fails,
+`2` invalid input, RPC/setup failure or an unsupported probe (unless a decoder failure already yields `1`).
+Signed probes require AccountId32; an AccountId20 runtime advertising `VerifyMultiSignature` fails
+explicitly until its authorization is reviewed and the probe is extended. It checks the current runtime only, synthetic
+envelopes only, and only `VerifyMultiSignature` signed origins; a new authorization extension still needs
+a source review. Run it after runtime upgrades; see the [v5 assessment](../runbooks/asset-hub-v5.md#all-network-assessment).
 
 ## Spec Transitions
 

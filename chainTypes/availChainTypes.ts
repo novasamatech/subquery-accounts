@@ -1,4 +1,5 @@
 import { OverrideBundleDefinition } from "@polkadot/types/types";
+import { withMetadataExtrinsic } from "./metadataExtrinsic";
 
 const definitions: OverrideBundleDefinition = {
   types: [
@@ -180,4 +181,4 @@ const definitions: OverrideBundleDefinition = {
   }
 };
 
-export default { typesBundle: { spec: { "avail": definitions } } };
+export default withMetadataExtrinsic({ typesBundle: { spec: { "avail": definitions } } });

@@ -22,6 +22,28 @@ for (const sandbox of [false, true]) {
   const types = loadChainTypes(projectRoot, "polkadotAssetHubChaintypes", sandbox);
   const registry = createRegistry(snapshot, types, deps);
 
+  test(`${mode}: explicit extension values reproduce the incident's golden bytes`, () => {
+    assert.equal("0x" + generalBytes(registry, 1).toString("hex"), fixture.extrinsic);
+  });
+
+  test(`${mode}: modeled extension type changes follow metadata, not a known-name alias`, () => {
+    const metadata = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata).asLatest.toJSON();
+    // Synthetic future layout: CheckNonce carries fixed-width u32 instead of Compact<Index>.
+    // No captured runtime advertises this change; it tests metadata-driven decoding only.
+    const u32 = metadata.lookup.types.find(entry => entry.type.def.primitive === "U32");
+    assert.ok(u32, "fixture has a portable u32 type");
+    metadata.extrinsic.transactionExtensions.find(extension => extension.identifier === "CheckNonce").type = u32.id;
+    const modeled = createRegistry({ ...snapshot, metadata: new deps.Metadata(new deps.TypeRegistry(),
+      { magicNumber: 0x6174656d, metadata: { v16: metadata } }).toHex() }, types, deps);
+    const method = registry.createType("Extrinsic", fixture.extrinsic).method;
+    const bytes = generalBytes(modeled, 1, { CheckNonce: 0x12345678 }, method);
+    const ex = modeled.createType("Extrinsic", bytes);
+    assert.equal(ex.nonce.toNumber(), 0x12345678);
+    assert.equal(ex.method.toHex(), method.toHex());
+    assert.equal(ex.toHex(), "0x" + bytes.toString("hex"));
+    assert.equal(ex.hash.toHex(), modeled.hash(bytes).toHex());
+  });
+
   test(`${mode}: real v5 forceBatch preserves origin, nested call, bytes and hash`, () => {
     const ex = registry.createType("Extrinsic", fixture.extrinsic);
     assert.equal(ex.isGeneral(), true);
@@ -92,6 +114,30 @@ for (const sandbox of [false, true]) {
     assert.deepEqual(Buffer.from(ex.toU8a()), bytes);
   });
 
+  test(`${mode}: pipelines without standard extensions expose safe codec defaults`, () => {
+    const metadata = new deps.Metadata(new deps.TypeRegistry(), snapshot.metadata).asLatest.toJSON();
+    metadata.extrinsic.transactionExtensionsByVersion[2] = [
+      metadata.extrinsic.transactionExtensions.findIndex(extension => extension.identifier === "VerifyMultiSignature"),
+    ];
+    metadata.extrinsic.transactionExtensionsByVersion[3] = [];
+    const minimal = createRegistry({ ...snapshot, metadata: new deps.Metadata(new deps.TypeRegistry(),
+      { magicNumber: 0x6174656d, metadata: { v16: metadata } }).toHex() }, types, deps);
+    for (const version of [2, 3]) {
+      const bytes = generalBytes(minimal, version);
+      const ex = minimal.createType("Extrinsic", bytes);
+      assert.equal(ex.isSigned, version === 2);
+      assert.equal(ex.era.isImmortalEra, true);
+      assert.equal(ex.nonce.toNumber(), 0);
+      assert.equal(ex.tip.toNumber(), 0);
+      assert.equal(ex.assetId, undefined);
+      assert.equal(ex.mode.toNumber(), 0);
+      assert.equal(ex.metadataHash.isNone, true);
+      assert.equal(ex.signature.encodedLength, 64);
+      assert.equal(ex.toHuman().isSigned, version === 2);
+      assert.equal(ex.toJSON(), "0x" + bytes.toString("hex"));
+    }
+  });
+
   for (const [kind, size] of [["Ed25519", 64], ["Ecdsa", 65]]) {
     test(`${mode}: ${kind} signatures use metadata-defined lengths`, () => {
       const signature = `0x${"11".repeat(size)}`;
@@ -141,9 +187,50 @@ for (const sandbox of [false, true]) {
     const offset = registry.createType("Compact<u32>", bytes).encodedLength;
     const unknown = Buffer.from(bytes);
     unknown[offset + 1] = 99;
-    assert.throws(() => registry.createType("Extrinsic", unknown), /Unknown Asset Hub transaction extension version: 99/);
-    assert.throws(() => registry.createType("Extrinsic", bytes.subarray(0, -1)), /length less than remainder|Invalid Asset Hub general extrinsic envelope/);
+    assert.throws(() => registry.createType("Extrinsic", unknown), /Unknown transaction extension version: 99/);
+    assert.throws(() => registry.createType("Extrinsic", bytes.subarray(0, -1)), /length less than remainder|Invalid general extrinsic envelope/);
     const trailing = envelope(registry, Buffer.concat([bytes.subarray(offset), Buffer.from([0])]));
     assert.throws(() => registry.createType("Extrinsic", trailing), /length does not match its metadata/);
+  });
+
+  test(`${mode}: non-canonical extension bytes cannot silently change the transaction hash`, () => {
+    const bytes = Buffer.from(fixture.extrinsic.slice(2), "hex");
+    const original = registry.createType("Extrinsic", bytes);
+    let offset = registry.createType("Compact<u32>", bytes).encodedLength + 1;
+    for (const [name, field] of original.unwrap()) {
+      if (name === "RestrictOrigins") break;
+      offset += field.encodedLength;
+    }
+    assert.equal(original.unwrap().get("RestrictOrigins").encodedLength, 1);
+    assert.equal(bytes[offset], 1);
+    bytes[offset] = 2; // The stock bool decoder accepts this as false and re-encodes it as 0.
+    assert.throws(() => registry.createType("Extrinsic", bytes), /Non-canonical general extrinsic payload/);
+  });
+
+  test(`${mode}: every truncated payload fails even with an adjusted envelope length`, () => {
+    const bytes = Buffer.from(fixture.extrinsic.slice(2), "hex");
+    const payload = bytes.subarray(registry.createType("Compact<u32>", bytes).encodedLength);
+    for (let length = 0; length < payload.length; length++) {
+      assert.throws(() => registry.createType("Extrinsic", envelope(registry, payload.subarray(0, length))),
+        `accepted truncated payload of ${length} bytes`);
+    }
+  });
+
+  test(`${mode}: mixed extrinsic vectors preserve per-item boundaries, origins and hashes`, () => {
+    const original = registry.createType("Extrinsic", fixture.extrinsic);
+    const Legacy = registry.createClassUnsafe("GenericExtrinsic");
+    const legacy = new Legacy(registry, { method: original.method }, { version: 4 });
+    const signature = original.unwrap().get("VerifyMultiSignature").value.get("signature");
+    legacy.addSignature(account, signature.toHex(), { era: original.era, nonce: 334, tip: 0, assetId: null, mode: 0 });
+    const items = [generalBytes(registry, 0), Buffer.from(fixture.extrinsic.slice(2), "hex"),
+      Buffer.from(legacy.toU8a()), envelope(registry, Buffer.concat([Buffer.from([5]), original.method.toU8a()]))];
+    const bytes = Buffer.concat([registry.createType("Compact<u32>", items.length).toU8a(), ...items]);
+    const decoded = registry.createType("Vec<Extrinsic>", bytes);
+    assert.deepEqual(Buffer.from(decoded.toU8a()), bytes);
+    assert.deepEqual([...decoded].map(ex => ex.isSigned), [false, true, true, false]);
+    for (const [index, ex] of decoded.entries()) {
+      assert.deepEqual(Buffer.from(ex.toU8a()), items[index]);
+      assert.equal(ex.hash.toHex(), registry.hash(items[index]).toHex());
+    }
   });
 }

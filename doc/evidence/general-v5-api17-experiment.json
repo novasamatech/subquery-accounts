@@ -1,0 +1,67 @@
+{
+  "verifiedAt": "2026-10-09",
+  "productionChanged": false,
+  "baseImage": {
+    "tag": "docker.io/subquerynetwork/subql-node-substrate:v6.4.6",
+    "id": "291374aa928f65eadd74e07ec7c3fb3ad22f23f7a605dca39f9e43b8f80bff67"
+  },
+  "candidateImages": {
+    "stock": "25803759f98f3a1a98385cf13251b99f10411cef8b7951c9a346bbdaff178a24",
+    "envelope": "2c82967c6ef661f34317e6f164c2eff91a471b74ea8b44424e0dfeb0145c4829"
+  },
+  "candidateApiVersion": "17.0.2",
+  "candidateUtilVersion": "14.0.3",
+  "projectApiVersion": "16.5.4",
+  "overlaidPackageCount": 62,
+  "candidateLockSha256": "af7cb207180a82cbf45ba5f66ac6b48c3f8a9d724768cb671d120126d7ef15c9",
+  "inventoryInsideImages": "/runtime-candidate.json",
+  "lockInsideImages": "/runtime-candidate-lock.json",
+  "envelopePatch": {
+    "reproduction": "TODO.md#reproducing-the-dependency-experiment",
+    "cjsBeforeSha256": "b60186229d2412a2f50747eca7e8f66d600b37739d88e69bcc3e9b4fb3a137e7",
+    "cjsAfterSha256": "396fde77a281122b0097672dd9a195b85b5b855d94aef2d5ec7eeef3d5bde2b6",
+    "esmBeforeSha256": "7dadec91b86e8ff95474bbda882c93062ade4b9f8c22a7801e9cddf7cbd7b8dc",
+    "esmAfterSha256": "2fb1524f5a84fd564471e06828be236e00056e433c2a67c43e63b4ed988d24ba"
+  },
+  "snapshotInputs": "general-v5-review-2026-10-09.json contains block, metadata and extrinsic fingerprints",
+  "snapshotResults": [
+    { "chain": "polkadot-asset-hub", "block": 20494727, "mode": "stock", "exitCode": 1,
+      "report": "subql-diagnostics:/api17-runtime-stock-ah.json", "generalRoundTrip": false },
+    { "chain": "polkadot-people", "block": 10709657, "mode": "stock", "exitCode": 1,
+      "report": "subql-diagnostics:/api17-runtime-stock-people.json", "generalRoundTrip": false },
+    { "chain": "polkadot-asset-hub", "block": 20494727, "mode": "envelope", "exitCode": 0,
+      "report": "subql-diagnostics:/api17-runtime-envelope-ah.json", "generalRoundTrip": true, "indexedSignerPresent": false },
+    { "chain": "polkadot-people", "block": 10709657, "mode": "envelope", "exitCode": 0,
+      "report": "subql-diagnostics:/api17-runtime-envelope-people.json", "generalRoundTrip": true, "indexedSignerPresent": false },
+    { "chain": "polkadot-asset-hub", "block": 20494727, "mode": "envelope-plus-origin", "exitCode": 0,
+      "report": "subql-diagnostics:/api17-runtime-origin-ah.json", "generalRoundTrip": true, "indexedSignerPresent": true },
+    { "chain": "polkadot-people", "block": 10709657, "mode": "envelope-plus-origin", "exitCode": 0,
+      "report": "subql-diagnostics:/api17-runtime-origin-people.json", "generalRoundTrip": true, "indexedSignerPresent": true }
+  ],
+  "offlineSuites": [
+    { "runtime": "baseline", "adapter": "full", "tests": 341, "pass": 341, "fail": 0 },
+    { "runtime": "stock-17.0.2", "adapter": "full", "tests": 341, "pass": 324, "fail": 17,
+      "classification": "All failures are historical stock Mortal-era assertions, including combined stock/project tests." },
+    { "runtime": "envelope-patched-17.0.2", "adapter": "full", "tests": 341, "pass": 306, "fail": 35,
+      "classification": "All failures are historical stock-error or stock-byte-drift assertions, including combined stock/project tests." },
+    { "runtime": "envelope-patched-17.0.2", "adapter": "origin-only", "tests": 341, "pass": 276, "fail": 65,
+      "classification": "35 historical stock assertions; 30 additional contract differences: modeled type 2, absent defaults 2, fee-asset shape 5, unknown-version errors 17, malformed input 4." }
+  ],
+  "modeledKnownTypeCase": {
+    "extension": "CheckNonce", "modeledWireType": "u32", "expectedValue": 305419896,
+    "nativeCandidateValue": 30, "metadataAdapterValue": 305419896,
+    "provenance": "Synthetic metadata mutation of the real AH fixture; not an observed on-chain runtime upgrade"
+  },
+  "originOnlyEntitySuite": { "tests": 169, "pass": 169, "fail": 0,
+    "files": ["asset-hub-indexing.test.js", "people-lite-indexing.test.js", "meta-tx-indexing.test.js"],
+    "boundary": "real SubQuery mappings with in-memory persistence; v5 entity envelopes are modeled" },
+  "peopleReplays": [
+    { "runtime": "stock-17.0.2", "adapter": "full", "startBlock": 10709657,
+      "lastBenchmarkHeight": 10711816, "timeoutSeconds": 120, "exitCode": 124 },
+    { "runtime": "envelope-patched-17.0.2", "adapter": "origin-only", "startBlock": 10709657,
+      "lastBenchmarkHeight": 10711756, "timeoutSeconds": 120, "exitCode": 124 }
+  ],
+  "replayNotes": "No decode/mapping failures before timeout. Worker-exit errors occur only during forced shutdown after cache flush. These replays do not prove a real on-chain v5 multisig entity result.",
+  "logsVolume": "subql-diagnostics",
+  "decision": "Retain production pins and the full metadata decoder; use this experiment to define upstream and service-redesign work."
+}

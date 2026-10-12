@@ -17,7 +17,7 @@ network:
   endpoint: >-
     wss://polkadot-mythos-rpc.polkadot.io
   chaintypes:
-    file: ./dist/kusamaAssetHubChaintypes.js
+    file: ./dist/metadataExtrinsicChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
