@@ -1,5 +1,6 @@
 const fs = require("node:fs");
-const { load, dump } = require("js-yaml");
+const { createRuntimeRequire } = require("./runtime");
+const { load, dump } = createRuntimeRequire()("js-yaml");
 
 function prepareBlockSpec(source, startBlock, endpoint) {
   if (!/^[0-9]+$/.test(String(startBlock)) || !Number.isSafeInteger(Number(startBlock))) {

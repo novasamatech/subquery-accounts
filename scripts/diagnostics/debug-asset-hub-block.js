@@ -7,50 +7,44 @@ const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { dependencies, createRegistry, loadChainTypes } = require("../lib/decoder");
 const { createIndexerFixture, createMetadataFixture } = require("../lib/metadata-fixture");
+const { createRpc, fetchMetadata } = require("../lib/rpc");
+const { verifyExtrinsic } = require("../lib/general-extrinsic");
+const { readManifest } = require("../lib/manifests");
 const { parseArgs } = require("node:util");
 const specData = require("../data/asset-hub-spec-blocks.json");
 
+// Asset Hub aliases read endpoints from the shared spec map. Any network can instead be
+// selected by its manifest (project-<slug>.yaml): endpoint, chain types and genesis from YAML.
 const CHAINS = {
-  polkadot: { spec: "statemint", bundle: "polkadotAssetHubChaintypes" },
-  kusama: { spec: "statemine", bundle: "kusamaAssetHubChaintypes" },
-  westend: { spec: "westmint", bundle: "westendAssetHubChaintypes" },
+  polkadot: "statemint",
+  kusama: "statemine",
+  westend: "westmint",
 };
 
-async function capture(endpoint, block, deps, { events = false } = {}) {
-  if (!/^https?:\/\//.test(endpoint)) throw new Error("Use an HTTP(S) endpoint in ASSET_HUB_ENDPOINT");
-  let id = 0;
-  async function rpc(method, params = []) {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!response.ok) throw new Error(`${method}: HTTP ${response.status}`);
-    const result = await response.json();
-    if (result.error) throw new Error(`${method}: ${result.error.message}`);
-    return result.result;
-  }
+function resolveTarget(name) {
+  const manifest = /^project-([a-z0-9-]+)\.yaml$/.exec(name ?? "");
+  if (manifest) return readManifest(manifest[1]);
+  const alias = Object.keys(CHAINS).find((key) => key === name || CHAINS[key] === name);
+  if (!alias) throw new Error(`Specify one Asset Hub alias (${Object.keys(CHAINS).join(", ")}) or project-<slug>.yaml; see --help`);
+  const spec = CHAINS[alias];
+  return { ...readManifest(`${alias}-asset-hub`), spec, allowMissingGenesis: true,
+    endpoint: specData[spec].endpoint.replace(/^ws/, "http") };
+}
 
-  const hash = typeof block === "number" ? await rpc("chain_getBlockHash", [block]) : block;
+async function capture(endpoint, block, deps, { events = false } = {}) {
+  const rpc = createRpc(endpoint);
+  const hash = block === "finalized" ? await rpc("chain_getFinalizedHead")
+    : typeof block === "number" ? await rpc("chain_getBlockHash", [block]) : block;
   if (!hash) throw new Error("Block not found");
   const raw = await rpc("chain_getBlock", [hash]);
   if (!raw) throw new Error("Block body not available");
   // Extrinsics were executed by the parent's runtime, including upgrade blocks.
   const parent = raw.block.header.parentHash;
   const runtimeVersion = await rpc("state_getRuntimeVersion", [parent]);
-  const registry = new deps.TypeRegistry();
-  let metadata;
-  try {
-    const bytes = await rpc("state_call", ["Metadata_metadata_at_version", "0x10000000", parent]);
-    const opaque = registry.createType("Option<OpaqueMetadata>", registry.createType("Raw", bytes).toU8a());
-    if (opaque.isSome) metadata = opaque.unwrap().toHex();
-  } catch (error) {
-    if (!/not found|not exported|not available|not supported|does not exist/i.test(error.message)) throw error;
-  }
-  metadata ||= await rpc("state_getMetadata", [parent]);
+  const metadata = await fetchMetadata(rpc, parent, deps);
   const chain = await rpc("system_chain");
-  const snapshot = { formatVersion: 1, chain, hash, runtimeVersion, metadata, raw };
+  const genesisHash = await rpc("chain_getBlockHash", [0]);
+  const snapshot = { formatVersion: 1, chain, genesisHash, hash, runtimeVersion, metadata, raw };
   if (events) {
     const { xxhashAsHex } = deps.from("@polkadot/util-crypto");
     const key = xxhashAsHex("System", 128) + xxhashAsHex("Events", 128).slice(2);
@@ -77,23 +71,15 @@ function inspect(snapshot, registry, label, { index, extensions = false, calls =
   if (index !== undefined && index >= rows.length) throw new Error(`Extrinsic index ${index} is outside this block`);
   for (let i = 0; i < rows.length; i++) {
     if (index !== undefined && index !== i) continue;
-    const hex = rows[i];
-    const result = { index: i, ok: false };
-    try {
-      const bytes = registry.createType("Raw", hex).toU8a();
-      const length = registry.createType("Compact<u32>", bytes);
-      result.preamble = bytes[length.encodedLength];
-      const ex = registry.createType("Extrinsic", hex);
-      if (ex.toHex() !== hex) throw new Error("Decoded extrinsic does not round-trip to the original bytes");
-      if (!ex.hash.eq(registry.hash(bytes))) throw new Error("Decoded extrinsic hash differs from the original bytes");
-      Object.assign(result, { ok: true, method: `${ex.method.section}.${ex.method.method}`,
-        isSigned: ex.isSigned, signer: ex.isSigned ? ex.signer.toString() : null, hash: ex.hash.toHex() });
+    const bytes = registry.createType("Raw", rows[i]).toU8a();
+    const { ex, ...checked } = verifyExtrinsic(registry, bytes);
+    const result = { index: i, preamble: bytes[registry.createType("Compact<u32>", bytes).encodedLength], ...checked };
+    if (result.ok) {
       console.log(`  #${i} preamble=0x${result.preamble.toString(16)} OK ${result.method} signed=${result.isSigned}${result.signer ? ` signer=${result.signer}` : ""}`);
       console.log(`    hash=${result.hash}`);
       if (calls) console.log(`    call=${JSON.stringify(ex.method.toHuman())}`);
-    } catch (error) {
+    } else {
       ok = false;
-      result.error = error.message;
       console.log(`  #${i} FAIL ${result.error}`);
     }
     extrinsics.push(result);
@@ -118,7 +104,8 @@ function validateSnapshot(snapshot) {
       !Number.isSafeInteger(Number(snapshot.raw.block.header.number)) || !hex(snapshot.metadata) ||
       !Array.isArray(snapshot.raw.block.extrinsics) || !snapshot.raw.block.extrinsics.every(hex) ||
       typeof snapshot.runtimeVersion?.specName !== "string" || !Number.isSafeInteger(snapshot.runtimeVersion.specVersion) ||
-      (snapshot.events !== undefined && !hex(snapshot.events))) {
+      (snapshot.events !== undefined && !hex(snapshot.events)) ||
+      (snapshot.genesisHash !== undefined && !hash(snapshot.genesisHash))) {
     throw new Error("Invalid raw-block snapshot (expected formatVersion=1, block, parent runtime and metadata)");
   }
 }
@@ -133,12 +120,14 @@ async function main() {
       "known-types-root": { type: "string" },
       "project-root": { type: "string", default: process.env.PROJECT_ROOT || path.resolve(__dirname, "../..") },
       extrinsic: { type: "string" }, compare: { type: "boolean" },
-      "no-types": { type: "boolean" }, sandbox: { type: "boolean" },
+      "no-types": { type: "boolean" }, sandbox: { type: "boolean" }, finalized: { type: "boolean" },
       extensions: { type: "boolean" }, calls: { type: "boolean" }, events: { type: "boolean" }, help: { type: "boolean" },
     },
   });
   if (values.help) {
-    console.log("Usage: node scripts/diagnostics/debug-asset-hub-block.js <polkadot|kusama|westend> (--block=N | --hash=0x... | --snapshot=FILE)");
+    console.log("Usage: node scripts/diagnostics/debug-asset-hub-block.js <polkadot|kusama|westend|project-<slug>.yaml> (--block=N | --hash=0x... | --finalized | --snapshot=FILE)");
+    console.log("  polkadot|kusama|westend  Asset Hub aliases; any network by manifest, e.g. project-polkadot-people-chain.yaml");
+    console.log("  --finalized          Capture the current finalized block, e.g. for a --metadata-fixture");
     console.log("  --save=FILE          Save raw block and parent metadata (no endpoint or credentials)");
     console.log("  --compare            Show stock decoder before project decoder; exit verdict uses project");
     console.log("  --no-types           Use only stock decoder, e.g. with --api-root=/probe for a candidate upgrade");
@@ -152,13 +141,13 @@ async function main() {
     console.log("  --extensions         Print metadata extension pipelines and their SCALE types");
     console.log("  --calls              Print decoded call arguments, including nested calls");
     console.log("  --events             Capture/print raw block events (also included in --save and --fixture)");
-    console.log("  ASSET_HUB_ENDPOINT   HTTP(S) RPC override; pass private URLs via a Podman env-file");
+    console.log("  RPC_ENDPOINT_OVERRIDE  HTTP(S) RPC override (legacy name: ASSET_HUB_ENDPOINT); pass private URLs via a Podman env-file");
     return;
   }
-  const name = Object.keys(CHAINS).find((key) => key === positionals[0] || CHAINS[key].spec === positionals[0]);
-  if (!name || positionals.length !== 1) throw new Error("Specify one Asset Hub chain; see --help");
-  if ([values.block, values.hash, values.snapshot].filter((v) => v !== undefined).length !== 1) {
-    throw new Error("Specify exactly one of --block, --hash or --snapshot");
+  if (positionals.length !== 1) throw new Error("Specify one Asset Hub alias or project-<slug>.yaml; see --help");
+  const config = resolveTarget(positionals[0]);
+  if ([values.block, values.hash, values.snapshot, values.finalized].filter((v) => v !== undefined).length !== 1) {
+    throw new Error("Specify exactly one of --block, --hash, --finalized or --snapshot");
   }
   if (values.compare && values["no-types"]) throw new Error("--compare and --no-types are mutually exclusive");
   if (values.fixture && values.extrinsic === undefined) throw new Error("--fixture requires --extrinsic=N");
@@ -178,14 +167,16 @@ async function main() {
     packages[name] = { version: from(`${name}/packageInfo`).packageInfo.version, path: from.resolve(name) };
     console.log(`${name} ${packages[name].version} (${packages[name].path})`);
   }
-  const config = CHAINS[name];
-  const endpoint = process.env.ASSET_HUB_ENDPOINT || specData[config.spec].endpoint.replace(/^ws/, "http");
+  const endpoint = overrideEndpoint() || config.endpoint;
   const snapshot = values.snapshot
     ? JSON.parse(fs.readFileSync(values.snapshot, "utf8"))
-    : await capture(endpoint, values.hash || Number(values.block), deps, { events: values.events });
+    : await capture(endpoint, values.finalized ? "finalized" : values.hash || Number(values.block), deps, { events: values.events });
   validateSnapshot(snapshot);
   if (values.events && !snapshot.events) throw new Error("Snapshot has no events; capture again with --events");
-  if (snapshot.runtimeVersion.specName !== config.spec) throw new Error("Snapshot/RPC runtime does not match the selected chain");
+  if (config.spec && snapshot.runtimeVersion.specName !== config.spec) throw new Error("Snapshot/RPC runtime does not match the selected chain");
+  if (config.chainId && (snapshot.genesisHash !== undefined || !config.allowMissingGenesis) && snapshot.genesisHash !== config.chainId) {
+    throw new Error("Snapshot/RPC genesis does not match the manifest chainId (older snapshots lack it; capture again)");
+  }
   if (values.save) fs.writeFileSync(values.save, JSON.stringify(snapshot) + "\n", { mode: 0o600, flag: "wx" });
   if (values.fixture) fs.writeFileSync(values.fixture, JSON.stringify(createIndexerFixture(snapshot, Number(values.extrinsic), deps), null, 2) + "\n", { mode: 0o600, flag: "wx" });
   if (values["metadata-fixture"]) fs.writeFileSync(values["metadata-fixture"], JSON.stringify(createMetadataFixture(snapshot, deps), null, 2) + "\n", { mode: 0o600, flag: "wx" });
@@ -199,18 +190,33 @@ async function main() {
   const index = values.extrinsic === undefined ? undefined : Number(values.extrinsic);
   const options = { index, extensions: values.extensions, calls: values.calls, events: values.events };
   if (values.compare) report.decoders.push(inspect(snapshot, createRegistry(snapshot, {}, deps), "Stock decoder", options));
-  const types = values["no-types"] ? {} : loadChainTypes(values["project-root"], config.bundle, values.sandbox);
-  const result = inspect(snapshot, createRegistry(snapshot, types, deps), values["no-types"] ? "Stock decoder" : "Project decoder", options);
+  const types = values["no-types"] || !config.bundle ? {} : loadChainTypes(values["project-root"], config.bundle, values.sandbox);
+  const label = values["no-types"] ? "Stock decoder" : "Project decoder";
+  const result = inspect(snapshot, createRegistry(snapshot, types, deps), label, options);
   report.decoders.push(result);
+  if (values.compare) {
+    // Whatever the stock codec decodes correctly must be unchanged: the project only adds General-v5.
+    for (const before of report.decoders[0].extrinsics.filter(row => row.ok)) {
+      const after = result.extrinsics.find(row => row.index === before.index);
+      if (after.ok && ["method", "isSigned", "signer", "hash"].every(key => before[key] === after[key])) continue;
+      console.log(`  #${before.index} MISMATCH stock and project decoders disagree`);
+      result.ok = false;
+    }
+  }
   if (values.report) fs.writeFileSync(values.report, JSON.stringify(report, null, 2) + "\n", { mode: 0o600, flag: "wx" });
   process.exitCode = result.ok ? 0 : 1;
+}
+
+// The same variable as the scanner and full replay; the Asset Hub name is kept for existing env-files.
+function overrideEndpoint() {
+  return process.env.RPC_ENDPOINT_OVERRIDE || process.env.ASSET_HUB_ENDPOINT;
 }
 
 module.exports = { capture, inspect, validateSnapshot };
 
 if (require.main === module) {
   main().catch((error) => {
-    const endpoint = process.env.ASSET_HUB_ENDPOINT;
+    const endpoint = overrideEndpoint();
     console.error(endpoint ? error.message.split(endpoint).join("[RPC]") : error.message);
     process.exitCode = 2;
   });

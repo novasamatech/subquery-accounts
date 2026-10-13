@@ -99,7 +99,9 @@ handleNestedCalls(extrinsic)           # generic.ts -- entry point
 
 The visitor automatically unwraps: `utility.batch*`, `proxy.proxy`, `proxy.proxyAnnounced`, `utility.asDerivative`.
 All mapping traversals use `src/utils/callWalk.ts`; its `metaTx.dispatch` extension is described
-in the [MetaTx runbook](../runbooks/handlers.md#15-westend-asset-hub-metatx-dispatch-hides-a-threshold-one-multisig).
+in the [MetaTx runbook](../runbooks/handlers.md#15-westend-asset-hub-metatx-dispatch-hides-a-threshold-one-multisig)
+and its People `peopleLite.dispatchAsSigner` extension in
+[handler section 16](../runbooks/handlers.md#16-people-peoplelitedispatchassigner-wraps-multisigproxy-calls).
 
 Safety limit: batches with >10,000 calls/events are skipped (`context.stop()`).
 

@@ -1,6 +1,10 @@
-# Polkadot Asset Hub v5 Decode Failure
+# General-v5 Decode Failures (Asset Hub, People, All Networks)
 
 [Documentation](../README.md) | [Agent Entry Point](../../AGENTS.md)
+
+Symptom on any network: `createType(GeneralExtrinsic):: ... on era ...: Invalid data passed to Mortal era`
+while fetching a block. Two incidents are recorded here; the fix and its verification now cover
+[every indexed network](#all-network-assessment).
 
 ## Incident
 
@@ -10,11 +14,130 @@ The transaction starts with the v5 general preamble `0x45` and selects transacti
 
 **Dependency verification (2026-09-14):** SubQuery `6.4.6` bundles polkadot-js `16.5.3`; the project's pinned version is `16.5.4`. The latest published `@polkadot/api`/`@polkadot/types` `16.5.6` also fails on the exact same raw transaction and metadata. Updating the project's `package.json` alone does not replace the separate decoder in the indexer image.
 
-**Fix:** `chainTypes/assetHubExtrinsic.ts`, registered by all three Asset Hub chainTypes bundles, selects each general extrinsic's extension pipeline and SCALE types from metadata. It preserves the original encoding/hash and exposes `VerifyMultiSignature`'s account/signature so `isSigned: true` filters and the call visitor process these transactions. v4 and bare v5 delegate to the stock codec. Codec constructors return instances created by the runtime registry to avoid cross-VM `Uint8Array` incompatibility.
+**Fix:** `chainTypes/metadataExtrinsic.ts` (originally `assetHubExtrinsic.ts`, registered by the three Asset Hub bundles; since the [People incident](#polkadot-people-incident) by every manifest through `withMetadataExtrinsic`) selects each general extrinsic's extension pipeline and SCALE types from metadata. It preserves the original encoding/hash and exposes `VerifyMultiSignature`'s account/signature so `isSigned: true` filters and the call visitor process these transactions. v4 and bare v5 delegate to the stock codec. Codec constructors return instances created by the runtime registry to avoid cross-VM `Uint8Array` incompatibility.
 
 **Verification:** use the [single-block diagnostic](../development/diagnostics.md#single-block-decode) and `make podman-test`. The failing call is `utility.forceBatch([staking.payoutStakers(...)])`. A dictionary HTTP 503 in the same logs is a separate service failure; it does not explain deterministic SCALE decoding errors.
 
 After an upstream decoder fix is released, replay the saved block with that dependency version before removing this compatibility layer. Restarting the fixed indexer from its existing checkpoint is sufficient for this fetch failure; do not skip the block or wipe chain data.
+
+## Polkadot People Incident
+
+**Verified incident (2026-10-09):** the production `project-polkadot-people-chain.yaml` indexer stopped
+at block `10709657`, hash `0x75311b63e16ccfcf97a50e8a57668f7600e4414d54f3c157b14e5f4929566925`,
+parent runtime `people-polkadot 2005000`, extrinsic `2`, with the same `Mortal era` error. The Asset Hub
+decoder existed, but the People manifest registered no chain types, so the stock codec was used.
+
+[polkadot-fellows/runtimes v2.5.0](https://github.com/polkadot-fellows/runtimes/blob/3936c7e4d42b449b964e41bd7b69d5f1db1e3a1f/system-parachains/people/people-polkadot/src/lib.rs#L141-L180)
+adds pipeline 1: `UnitTransactionExtension, VerifyMultiSignature, AsPerson, PeopleLiteAuth, AsMember,
+AsCoinage, AsResources, AuthorizeCall, RestrictOrigins`, then the standard checks. The transaction
+(hash `0xd254095caa53b7ba628e35aebe2e4df22f2baeff7bedfca7c4659510af8a0542`) is
+`coinage.loadRecyclerWithExternalAssetUnpaid`, `VerifyMultiSignature.Signed` by
+`5GNMCbHeCyVkh6W22WXA8iiYRzKpviRNjEtiViPWGeb3mz6K`, `AsCoinage::InfallibleUnpaidSigned`,
+`RestrictOrigins=true`. Its `coinage.RecyclerLoadedWithExternalAsset.who` event independently confirms the signer.
+
+**Fix:** the metadata-driven decoder is registered for every manifest (see below). Its `tip`/`assetId`/`mode`
+accessors no longer assume `ChargeAssetTxPayment` and `CheckMetadataHash`: on a pipeline paying with
+`ChargeTransactionPayment` (e.g. Kusama People) a signed v5 transaction's `tip` or `toHuman()` would have thrown.
+The new People authorizers and the `peopleLite.dispatchAsSigner` wrapper were reviewed in source;
+see [handler section 16](handlers.md#16-people-peoplelitedispatchassigner-wraps-multisigproxy-calls).
+
+**Verification:** `scripts/tests/fixtures/polkadot-people-general-extrinsic.json` keeps the raw transaction,
+its three event records and reduced metadata. `people-general-extrinsic.test.js` reproduces the stock error,
+decodes directly and through the SubQuery VM with exact bytes/hash and the event's signer, and dispatches the
+real records through the manifest filters with zero store writes (the call is not multisig/proxy related).
+A full replay passed the block and indexed beyond `10713172` without errors before its wall-clock limit:
+
+~~~bash
+bash scripts/podman/run.sh debug-asset-hub-block.js project-polkadot-people-chain.yaml --block=10709657 \
+  --sandbox --compare --events --calls --save=/out/polkadot-people-10709657.json
+make podman-build && make podman-test-offline
+timeout --signal=TERM 180s bash scripts/podman/block-test.sh project-polkadot-people-chain.yaml 10709657 --workers=1
+~~~
+
+**Recovery:** deploy the corrected image through the normal authorized release and resume the existing
+checkpoint. Neither a block skip nor a database wipe is needed.
+
+## All-Network Assessment
+
+polkadot-js 16.5.x decodes every General-v5 transaction (preamble `0x45`) with the v4 extension list
+and ignores the pipeline version byte:
+
+- a pipeline with authorizers before the standard checks (pipeline 1 on Polkadot AH and People) fails
+  at `era`, which stops the indexer;
+- pipeline 0 decodes, but re-encoding adds bytes, so the extrinsic hash is silently wrong.
+
+Any runtime with metadata v16 can add a pipeline in a later upgrade without a spec-name change, so every
+manifest registers the decoder through `withMetadataExtrinsic`. v4 and bare v5 keep the stock codec.
+`manifest-chaintypes.test.js` decodes the real Asset Hub and People pipeline-1 transactions through each
+manifest's VM bundle, so a new manifest without it fails the offline suite.
+
+Evidence combines the September Asset Hub captures, the People incident transaction, and metadata
+captured on 2026-10-09 (`--finalized --metadata-fixture` for the newly assessed networks).
+Mythos was checked separately on 2026-10-13 (see below).
+
+| Networks | Runtime / metadata | Pipelines | Coverage |
+|---|---|---|---|
+| Polkadot Asset Hub | `statemint 2005000`, v16 | 0, 1 (`AsPgas`, `AsDotnsGateway`) | Real incident transaction, modeled entities |
+| Polkadot People | `people-polkadot 2005000`, v16 | 0, 1 (Individuality) | Real incident transaction, entities, `dispatchAsSigner` |
+| Kusama AH, Kusama People, Polkadot/Kusama relay, Polkadot/Kusama Coretime, Polkadot Collectives | `2003002`–`2005000`, v16 | 0 | Real metadata + modeled pipeline 1, entities |
+| Westend AH, Westend relay | `1025000`, `1025001`, v16 | 0 | Real metadata + modeled pipeline 1, entities |
+| Bittensor, Hydration | `node-subtensor 475`, `hydradx 447`, v16 | 0 | Same; their 4-field `PureCreated` has no event coordinates to test |
+| Moonbeam, Moonriver | `4401`, v16 | 0 | Real metadata, unsigned v5 model; signed-v4 proxy entities with native and modeled metadata |
+| Avail, Aleph Zero | `avail 56`, `aleph-node 15000000`, v14 | none | Registration and real-block parity; v5 needs a runtime upgrade first |
+| Mythos | `mythos 1006`, `1021`, v14 | none | Registration and real-block parity: signed v4 proxy call, bare v5, AccountId20 |
+| Rococo, Novasama testnet | — | — | Registration only: no reachable RPC (Rococo is retired) |
+
+A modeled pipeline 1 prepends the reference family's authorizers (Polkadot People for People, Polkadot
+Asset Hub otherwise) to the network's own pipeline 0, preserving its fee extension and v4 decoding.
+On People this moves the zero-byte `AuthorizeCall` after `RestrictOrigins`; it is a SCALE decoding
+model, not an execution model of the reference runtime's authorization logic.
+`--compare --sandbox` on a finalized block of every reachable network, including 12 signed v4 Bittensor
+and 2 signed v4 Avail transactions, showed no stock/project difference. The live
+[pipeline scanner](../development/diagnostics.md#transaction-extension-pipelines) passed on all 17 reachable
+networks; the manifest endpoints of Kusama, Westend, Hydration, Moonbeam, Moonriver, Mythos and Rococo did
+not resolve from the verification host, so public alternatives were used through `RPC_ENDPOINT_OVERRIDE`.
+That scan was performed on 2026-10-09; Mythos became the 18th verified network in the review checks below.
+
+**Limits:** modeled pipelines and envelopes are synthetic. Signed-origin semantics recognize only
+`VerifyMultiSignature.Signed`; a different authorizer (for example an Ethereum-signature scheme on
+Moonbeam) would decode but be treated as unsigned, which loses data rather than stopping the indexer.
+Review such an upgrade as in [handler section 16](handlers.md#16-people-peoplelitedispatchassigner-wraps-multisigproxy-calls).
+Run the scanner after runtime upgrades; it exits 1 when a configured decoder fails on an advertised pipeline.
+
+**Codec contract:** this is a read-only block-decoding adapter, not a complete replacement for the
+General-v5 builder/signing API. Raw `Extrinsic` decoding and cloning an existing `GenericExtrinsic`
+are covered; creating General-v5 from a plain method object or directly cloning its inner `Struct`
+is not supported. Accessors recognize the named standard extensions, not arbitrary future semantics.
+The registry-created objects and property adapters are required by the current SubQuery VM integration;
+the `CodecClass` cast does not prove full API compatibility.
+
+The decoder now checks exact payload re-encoding, not only its length. The stock bool codec accepts
+byte `2` as false and emits `0`, which previously changed the transaction hash without a decode error.
+The regression rejects this non-canonical input both directly and in the VM. Every truncation of the
+incident payload (including with a rewritten envelope length) is rejected. Mixed `Vec<Extrinsic>` tests
+retain General-v5, signed-v4 and bare-v5 boundaries: bytes after one envelope belong to the next item
+and must not be rejected as trailing payload. These malformed-input tests do not imply that a valid
+on-chain transaction with this bool encoding exists.
+
+### Mythos Review Verification
+
+On **2026-10-13**, the DMarket RPC from the
+[polkadot-js provider list](https://github.com/polkadot-js/apps/blob/9d8e9469c490fac8a80e173bfd37534e9d7906ad/packages/apps-config/src/endpoints/productionRelayPolkadot.ts#L544-L555)
+was used through `RPC_ENDPOINT_OVERRIDE`. The manifest's genesis hash matched. Both captures used
+parent-runtime metadata and `--compare --sandbox`, loading `metadataExtrinsicChaintypes` in the real VM:
+
+- Finalized block **11685954**, `mythos 1021`, metadata v14: both bare-v5 inherents retain their bytes/hash.
+- Historical block **1078220**, `mythos 1006`, metadata v14: all three extrinsics match stock decoding,
+  including signed-v4 `proxy.createPure` at index 2. Its AccountId20 signer is
+  `0x6cb0779830b493717b00906989E84D4605BDCEf4`; its hash is
+  `0xdf7942179676289a9d27c1e2c458bac3213973eb979b564e1985557521c2db43`.
+- The pipeline scanner passes with metadata v14 and no advertised General-v5 pipelines. This closes
+  the real-block parity gap, not future General-v5 authorization or chain-to-PostgreSQL entity coverage.
+
+[Review evidence](../evidence/mythos-review-2026-10-13.json) records input fingerprints and results.
+Full snapshots and reports remain in `subql-diagnostics` as `mythos-review-2026-10-13-*.json`; both were
+also replayed offline with the same byte/hash and signer assertions.
+A future metadata/format upgrade on this AccountId20 network needs its own authorization review and tests.
 
 ## Override Versus Upgrade
 
@@ -69,9 +192,30 @@ The override is not the only theoretically possible solution, and it should be r
 a verified upstream version supplies equivalent decoding and signed-origin behavior. It is
 an indexing compatibility layer, not a general-purpose v5 transaction-signing implementation.
 
+### October Dependency Recheck
+
+On **2026-10-09**, a clean, isolated installation of `@polkadot/api`, `@polkadot/types` and
+`@polkadot/types-known` **17.0.2** was replayed against the same full Asset Hub snapshot and the
+People incident snapshot, without RPC or project types. Both stock runs decode the two bare-v5
+inherents, but fail the exact byte round-trip assertion on General-v5 extrinsic `2`. The error is
+no longer `Mortal era`; that change alone is not sufficient to replace the adapter.
+
+On the same inputs, the hardened project adapter through the SubQuery VM with the image's `16.5.3`
+passes all three extrinsics on both networks, including bytes, hash and authenticated signer.
+[Review evidence](../evidence/general-v5-review-2026-10-09.json) retains package versions, input
+fingerprints and the results. No production dependency or indexer image was upgraded for this probe.
+Full `--report` outputs and snapshots remain in the `subql-diagnostics` volume; candidate packages
+remain in the separate `subql-api-v5-review-1702` volume.
+
+The subsequent [actual-runtime experiment](runtime-compatibility.md#polkadot-js-1702-runtime-experiment)
+isolates envelope serialization from origin adaptation inside SubQuery. The smaller candidate passes
+the real incident snapshots, but strict-input and metadata-type contracts still prevent removing the
+current inner decoder. Production dependency pins remain unchanged.
+
 ## Cross-Network Coverage
 
-The fix is enabled for **Polkadot, Kusama and Westend Asset Hub in the same release**.
+The fix was first enabled for **Polkadot, Kusama and Westend Asset Hub in the same release**; the
+[all-network assessment](#all-network-assessment) extends the same matrix to every reachable network.
 The decision is backed by a failing-before/passing-after matrix, not by waiting for another incident.
 Real metadata captured on 2026-09-14:
 
@@ -82,8 +226,8 @@ Real metadata captured on 2026-09-14:
 | Westend AH | `17469988` / `westmint 1025000` | 0 | `westend-ah-metadata.json`: reduced real metadata only |
 
 Kusama and Westend's captured blocks contain bare-v5 inherents, not signed General-v5 transactions.
-The tests model pipeline 1 by copying the known Polkadot extension order and missing type graph
-into each chain's own metadata. Existing target types, pallets, call/event indices, extensions and
+The tests model pipeline 1 by importing the Polkadot authorizers and their type graph into each chain's
+own metadata, followed by that chain's pipeline 0. Existing target types, pallets, call/event indices, extensions and
 pipeline 0 are unchanged and asserted. Envelopes are encoded independently from those SCALE types.
 This models a specific shared-format upgrade; it does not assert an announced future runtime layout.
 

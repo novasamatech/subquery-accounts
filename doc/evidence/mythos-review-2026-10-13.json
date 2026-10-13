@@ -1,0 +1,74 @@
+{
+  "verifiedAt": "2026-10-13",
+  "productionChanged": false,
+  "manifest": "project-mythos.yaml",
+  "runtimeImage": "docker.io/subquerynetwork/subql-node-substrate:v6.4.6",
+  "decoderApiVersion": "16.5.3",
+  "chainTypes": "metadataExtrinsicChaintypes",
+  "genesisHash": "0xf6ee56e9c5277df5b4ce6ae9983ee88f3cbed27d31beeb98f9f84f997a1ab0b9",
+  "accountWidthBytes": 20,
+  "endpointSource": "https://github.com/polkadot-js/apps/blob/9d8e9469c490fac8a80e173bfd37534e9d7906ad/packages/apps-config/src/endpoints/productionRelayPolkadot.ts#L544-L555",
+  "snapshots": [
+    {
+      "chain": "Mythos",
+      "block": 11685954,
+      "hash": "0xc0c840afed394f99130b2c55d6386d18892f0c572a443d4c65178b13d6011502",
+      "parentHash": "0x617bf88b4c7ab8c5ab872379ad10f46c9b1dad095fd923e95545902abe6f6d27",
+      "specName": "mythos",
+      "specVersion": 1021,
+      "metadataVersion": 14,
+      "metadataSha256": "bdfc5d8cebb3a34146720934de3a68de5edec26853f1e50eaca3d14565c2c1c4",
+      "extrinsicSha256": [
+        "8322bba07648b3c95e03be9ea670db872dfe04b5aea6c6a6376d6f053a3bb166",
+        "2ae60c817df0f3cd1d2a8e37f5bc5d86eb0ebf4cb4baf2d89b0884e8d2213be6"
+      ],
+      "preambles": [5, 5],
+      "stockProjectParity": true,
+      "projectChainTypesLoadedInSubQueryVm": true,
+      "exitCode": 0,
+      "offlineReplayExitCode": 0,
+      "snapshot": "subql-diagnostics:/mythos-review-2026-10-13-dmarket.json",
+      "report": "subql-diagnostics:/mythos-review-2026-10-13-dmarket-report.json",
+      "offlineReport": "subql-diagnostics:/mythos-review-2026-10-13-dmarket-offline-report.json"
+    },
+    {
+      "chain": "Mythos",
+      "block": 1078220,
+      "hash": "0x01fe95c3e02d948923b2bfc43fadf87db6b3415763813b1093306210a182bf98",
+      "parentHash": "0x949cc066e7d627f196a3f9eaa1ed21345f81b2b628e7c77d4bb8b11fa063ba11",
+      "specName": "mythos",
+      "specVersion": 1006,
+      "metadataVersion": 14,
+      "metadataSha256": "f8429ef7d015c3bd8b0a53e6f9b268606fc8725e234760687be28b19fb0602a5",
+      "extrinsicSha256": [
+        "6851e350a615e7bd6375e358cea7373e552415a6ee7d70b8846964ed9193bd03",
+        "54486ce459dca53bca8b96d6d797cecd8b67b18ef3d5c1dd85dd151a335b2aa6",
+        "d53bfdc0efd91451888a5c572b54bb6de058088e9b46e46f69049348ad2ba2a2"
+      ],
+      "preambles": [4, 4, 132],
+      "signedExtrinsic": {
+        "index": 2,
+        "method": "proxy.createPure",
+        "signer": "0x6cb0779830b493717b00906989E84D4605BDCEf4",
+        "hash": "0xdf7942179676289a9d27c1e2c458bac3213973eb979b564e1985557521c2db43"
+      },
+      "stockProjectParity": true,
+      "projectChainTypesLoadedInSubQueryVm": true,
+      "exitCode": 0,
+      "offlineReplayExitCode": 0,
+      "snapshot": "subql-diagnostics:/mythos-review-2026-10-13-1078220.json",
+      "report": "subql-diagnostics:/mythos-review-2026-10-13-1078220-report.json",
+      "offlineReport": "subql-diagnostics:/mythos-review-2026-10-13-1078220-offline-report.json"
+    }
+  ],
+  "pipelineScan": {
+    "hash": "0x87052cfad8d9b4d3fbdfe2a83dab29659f79dae872ad29ed4d1f742fcb726e49",
+    "specName": "mythos",
+    "specVersion": 1021,
+    "metadataVersion": 14,
+    "pipelines": [],
+    "exitCode": 0,
+    "report": "subql-diagnostics:/mythos-review-2026-10-13-pipelines.json"
+  },
+  "limitations": "Real v4 and bare-v5 decoding parity only. Metadata v14 advertises no General-v5 pipelines; a future upgrade needs new metadata and authorization review. No General-v5 or chain-to-PostgreSQL entity proof is claimed."
+}

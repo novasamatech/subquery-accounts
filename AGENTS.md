@@ -18,7 +18,7 @@ across Substrate networks. PostgreSQL stores the entities; GraphQL exposes them.
 | Build, run tests, choose an image or clean local resources | [Podman development](doc/development/podman.md) |
 | Find, reuse or extend a diagnostic tool | [Diagnostic catalog](doc/development/diagnostics.md) |
 | Indexer fails at a particular block | [Block triage and replay](doc/runbooks/block-failure.md) |
-| Asset Hub v5 `GeneralExtrinsic` / `Mortal era` error | [v5 decode incident](doc/runbooks/asset-hub-v5.md) |
+| `GeneralExtrinsic` / `Mortal era` error on any network | [v5 decode incidents](doc/runbooks/asset-hub-v5.md) |
 | Missing operations, wrong proxies or derived accounts | [Handler/data failures](doc/runbooks/handlers.md) |
 | Dependency upgrade, sandbox bytes, fee-asset decode failure | [Runtime compatibility](doc/runbooks/runtime-compatibility.md) |
 | Old Kusama utility-era multisig behavior | [Kusama history](doc/runbooks/kusama-multisig.md) |

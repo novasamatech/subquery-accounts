@@ -16,6 +16,8 @@ network:
   chainId: "0xc1af4cb4eb3918e5db15086c0cc5ec17fb334f728b7c65dd44bfe1e174ff8b3f"
   endpoint: >-
     wss://kusama-people-rpc.polkadot.io
+  chaintypes:
+    file: ./dist/metadataExtrinsicChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
@@ -34,6 +36,14 @@ dataSources:
           filter:
             module: proxy
             method: AnonymousCreated
+
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: peopleLite
+            method: dispatchAsSigner
+            success: true
+            isSigned: true
 
         - handler: handleNestedCalls
           kind: substrate/CallHandler

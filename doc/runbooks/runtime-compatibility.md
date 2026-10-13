@@ -23,6 +23,8 @@ Use this for dependency, sandbox, address and historical Asset Hub type failures
 [scripts/lib/runtime.js](../../scripts/lib/runtime.js) resolves packages from `SUBQL_ROOT` (default `/`)
 and initializes logging before importing the sandbox. This root is independent of the project's
 dependencies and a diagnostic's `--api-root` / `--known-types-root` candidate installations.
+Manifest and replay-spec parsing use `createRuntimeRequire` to load `js-yaml` from that same runtime,
+without initializing the sandbox logger or relying on project dependency hoisting.
 
 | Path relative to the runtime installation | Contract used by tooling |
 |---|---|
@@ -36,6 +38,67 @@ dependencies and a diagnostic's `--api-root` / `--known-types-root` candidate in
 The last two are polkadot-js package entry points; the SubQuery `dist` paths are private implementation
 details. The offline decoder and entity tests exercise these contracts in both the test and final
 production runtime. A relocated entry point needs inspection, not a silent fallback to project packages.
+
+## Polkadot-js 17.0.2 Runtime Experiment
+
+**2026-10-09; local only, not a production upgrade.** Unlike a diagnostic's `--api-root`, this replaced
+the API dependency tree used by the actual SubQuery process. SubQuery stayed at 6.4.6; 62 packages from
+a clean API installation replaced their counterparts, including util/crypto 14.0.3 and shared transitive
+dependencies. The project kept its 16.5.4 build tree. This was not a fully aligned, peer-compatible release.
+
+The disposable images retain `/runtime-candidate.json` (package versions, resolution paths, patch hashes)
+and `/runtime-candidate-lock.json`. The experiment checked resolution from SubQuery, node-core and
+common-substrate, and restored uid 1000 after replacing packages. Source was mounted read-only;
+dependencies, caches and the separate origin-only workspace were kept in named volumes.
+The [machine-readable evidence](../evidence/general-v5-api17-experiment.json) records image identities,
+lock/patch fingerprints, snapshot reports, test verdicts and bounded replay heights.
+
+| Configuration | Real AH and People incident snapshots | Indexed origin |
+|---|---|---|
+| Native 17.0.2 | General-v5 round-trip fails on both | Not accepted |
+| Native 17.0.2 + envelope patch | Exact bytes/hash on both | `isSigned=false`, signer absent |
+| Patched native decoder + outer project origin adapter | Exact bytes/hash on both | Expected authenticated account on both |
+| 17.0.2 + full current override | Incident decoding and entity tests pass | Existing origin projection retained |
+
+Native GeneralExtrinsic adds its own preamble/length, then GenericExtrinsic wraps it again. The
+experimental CJS/ESM patch makes the outer codec reuse the native bare envelope; a `preamble` guard
+leaves payload-only custom codecs unchanged. This is a reproduction, not an approved upstream design.
+The smaller candidate also passes real-mapping entity tests. Both it and 17.0.2 with the full override
+replayed People past 10709657 in disposable PostgreSQL. These bounded replays do not establish a real
+General-v5 multisig chain-to-database result.
+
+### Remaining Gaps
+
+- 17.0.2 uses metadata types for unknown extension names, but keeps known-name aliases for standard
+  extensions. A modeled CheckNonce change from compact to fixed-width u32 passes with our decoder
+  and fails with the smaller candidate. This change is synthetic, not captured on-chain evidence.
+- Native decoding accepts a one-byte General payload and normalizes invalid bool bytes. It lacks
+  our envelope/canonical-payload checks and the safe accessor defaults for absent standard extensions.
+- Asset Hub fee-asset getters expose a different X1 shape through the native alias. An accessor
+  mismatch alone is not evidence that the valid fee bytes were corrupted.
+- Unknown pipeline versions fall back to legacy extension types instead of failing at version lookup.
+- Historical tests asserting that stock decoding fails with `Mortal era` or changes bytes become red
+  when that defect is fixed. Do not label every failure a production regression or silently skip it.
+
+The experiment also found a fixture-helper dependency on `unwrap()` field names: native flat `nonce`
+was copied into an encoder expecting `CheckNonce`, creating synthetic nonce 0. Explicit incident values
+and a golden-byte test now remove that coupling; this was not a native decoder nonce bug. Stock-only
+pipeline probes now validate the known authenticated account too, so byte parity cannot hide lost origin.
+
+Historical shared corpus (including two now-removed experiment-helper tests): baseline **341/341** passes;
+native 17.0.2 with the full override **324 pass / 17 fail**;
+envelope-patched 17.0.2 with the full override **306 / 35**; origin-only candidate **276 / 65**. The 17/35
+failures are historical stock-defect assertions, some inside combined stock/project tests. The additional
+30 origin-only differences comprise modeled field type (2), missing defaults (2), fee-asset API shape (5),
+unknown-version error contract (17), and malformed-input rejection (4). Not all are valid-data regressions.
+The separately run origin-only entity suite passes **169/169**. Full logs are retained in
+`subql-diagnostics` as `api17-*-final.log`, `api17-origin-entities.log` and `api17-*-replay.log`.
+
+One-off build and patch helpers have been removed. General reproduction instructions are kept in
+[TODO.md](../../TODO.md#reproducing-the-dependency-experiment); the snapshots and evidence remain available.
+
+**Decision:** retain the current temporary decoder. Migration gates and the larger service redesign
+are tracked separately in [TODO.md](../../TODO.md).
 
 ### 9. Type Errors After Updating @polkadot/* Dependencies
 

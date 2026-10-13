@@ -1,5 +1,4 @@
 import { typesBundlePre900 } from "moonbeam-types-bundle";
+import { withMetadataExtrinsic } from "./metadataExtrinsic";
 
-export default {
-  typesBundle: typesBundlePre900
-};
+export default withMetadataExtrinsic({ typesBundle: typesBundlePre900 });

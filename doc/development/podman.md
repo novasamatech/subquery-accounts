@@ -53,6 +53,8 @@ preserving generated directories. The `:Z` mount option handles SELinux. Do not 
 
 Updating project resolutions does not update dependencies bundled into the runtime image.
 For a decoder change verify both, and retain the exact image digest in incident evidence.
+General instructions for isolated dependency experiments live in
+[TODO.md](../../TODO.md#reproducing-the-dependency-experiment); candidate images are not defaults.
 The production Dockerfile runs the Node offline suite after copying the built project into
 the final runtime stage. Its build args are required so a stale fallback cannot silently override
 `versions.env`. `NODE_IMAGE` always means the build image, including during a replay;
@@ -88,8 +90,10 @@ host artifacts from builds; dependencies, bundles and generated models are built
   run before the Node suite locally and in CI. These use fake Podman/Docker CLIs, not host Node.
 - `scripts/tests/fixtures/`: small reviewed raw inputs with chain/block provenance, no secrets.
 - `asset-hub-networks.test.js` and `asset-hub-indexing.test.js`: shared decoder and entity coverage
-  for all three Asset Hubs. Use native metadata for legacy/pipeline-0 checks and explicitly modeled
-  pipeline-1 upgrades where no real transaction exists; see the [v5 matrix](../runbooks/asset-hub-v5.md#cross-network-coverage).
+  for every network in `helpers/network-cases.js` (despite the historical file names). Use native metadata
+  for legacy/pipeline-0 checks and explicitly modeled pipeline-1 upgrades where no real transaction exists;
+  see the [v5 assessment](../runbooks/asset-hub-v5.md#all-network-assessment). `manifest-chaintypes.test.js`
+  requires every manifest's chain types to decode real General-v5 transactions.
 - `scripts/tests/helpers/`: shared fixture builders and the real SubQuery VM harness. The harness
   uses runtime codecs, manifest filters and the built mappings, replacing only the persistence boundary
   with an in-memory store so exact entity fields, relationships and absence of writes can be asserted.

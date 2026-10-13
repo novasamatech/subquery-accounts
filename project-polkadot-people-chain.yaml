@@ -16,6 +16,8 @@ network:
   chainId: "0x67fa177a097bfa18f77ea95ab56e9bcdfeb0e5b8a40e46298bb93e16b6fc5008"
   endpoint: >-
     wss://polkadot-people-rpc.polkadot.io
+  chaintypes:
+    file: ./dist/metadataExtrinsicChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime
@@ -23,6 +25,14 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
+        - handler: handleNestedCalls
+          kind: substrate/CallHandler
+          filter:
+            module: peopleLite
+            method: dispatchAsSigner
+            success: true
+            isSigned: true
+
         - handler: handleNestedCalls
           kind: substrate/CallHandler
           filter:

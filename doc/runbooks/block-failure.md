@@ -15,7 +15,7 @@
 5. Reproduce in the actual SubQuery runtime before accepting the fix. A standalone ApiPromise or a
    build-container test does not exercise the chainTypes/mapping VM boundary.
 
-Known cases: [v5 Mortal era](asset-hub-v5.md), [runtime/fee asset compatibility](runtime-compatibility.md).
+Known cases: [v5 Mortal era on any network](asset-hub-v5.md), [runtime/fee asset compatibility](runtime-compatibility.md).
 
 ## Full Indexer Replay
 

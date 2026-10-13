@@ -16,6 +16,8 @@ network:
   chainId: "0x3dbb473ae9b2b77ecf077c03546f0f8670c020e453dddb457da155e6cc7cba42"
   endpoint: >-
     wss://rpc-test-network-1.novasama-tech.org
+  chaintypes:
+    file: ./dist/metadataExtrinsicChaintypes.js
 dataSources:
   - name: main
     kind: substrate/Runtime

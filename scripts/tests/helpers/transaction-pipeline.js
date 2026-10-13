@@ -1,5 +1,12 @@
+const { envelope, encodeGeneral } = require("../../lib/general-extrinsic");
+
 // Model a known pipeline upgrade using real portable types, without pretending
 // the target chain already advertises it. All existing target calls/IDs stay intact.
+// The model prepends the reference's authorization extensions (those absent from its pipeline 0)
+// to the target's own pipeline 0. People's zero-byte AuthorizeCall moves past RestrictOrigins;
+// this models SCALE decoding, not execution of the reference runtime's authorization logic.
+// Only authorizers are imported: a reference-only standard extension such as a different fee
+// payment would also change polkadot-js v4 decoding, which uses every advertised extension.
 function projectPipeline(targetHex, referenceHex, version, { Metadata, TypeRegistry }) {
   const read = hex => {
     const metadata = new Metadata(new TypeRegistry(), hex);
@@ -11,15 +18,20 @@ function projectPipeline(targetHex, referenceHex, version, { Metadata, TypeRegis
   const pipeline = reference.extrinsic.transactionExtensionsByVersion[version];
   if (!pipeline) throw new Error(`Reference has no pipeline ${version}`);
   if (target.extrinsic.transactionExtensionsByVersion[version]) throw new Error(`Target already has pipeline ${version}`);
+  const legacy = target.extrinsic.transactionExtensionsByVersion[0];
+  if (!legacy) throw new Error("Target has no pipeline 0");
+  const standard = new Set(reference.extrinsic.transactionExtensionsByVersion[0]);
   const importType = typeImporter(target, reference);
-  target.extrinsic.transactionExtensionsByVersion[version] = pipeline.map(index => {
+  const authorizers = pipeline.filter(index => !standard.has(index)).map(index => {
     const extension = reference.extrinsic.transactionExtensions[index];
-    const existing = target.extrinsic.transactionExtensions.findIndex(e => e.identifier === extension.identifier);
-    if (existing !== -1) return existing;
+    if (target.extrinsic.transactionExtensions.some(e => e.identifier === extension.identifier)) {
+      throw new Error(`Target already has ${extension.identifier}`);
+    }
     target.extrinsic.transactionExtensions.push({ ...extension,
       type: importType(extension.type), implicit: importType(extension.implicit) });
     return target.extrinsic.transactionExtensions.length - 1;
   });
+  target.extrinsic.transactionExtensionsByVersion[version] = [...authorizers, ...legacy];
   return new Metadata(new TypeRegistry(), { magicNumber: 0x6174656d, metadata: { v16: target } }).toHex();
 }
 
@@ -56,46 +68,27 @@ function typeImporter(target, reference) {
   return importType;
 }
 
-// Explicitly model the Westend pallet on a chain whose captured metadata lacks it.
-function projectMetaTx(targetHex, referenceHex, { Metadata, TypeRegistry }) {
+// Explicitly model a reference pallet (e.g. Westend MetaTx) on a chain whose captured metadata lacks it.
+function projectPallet(targetHex, referenceHex, name, { Metadata, TypeRegistry }) {
   const read = hex => new Metadata(new TypeRegistry(), hex).asLatest.toJSON();
   const target = read(targetHex);
   const reference = read(referenceHex);
-  const pallet = JSON.parse(JSON.stringify(reference.pallets.find(pallet => pallet.name === "MetaTx")));
-  if (target.pallets.some(existing => existing.name === "MetaTx" || existing.index === pallet.index)) {
-    throw new Error("Target already has MetaTx or its pallet index");
+  const pallet = JSON.parse(JSON.stringify(reference.pallets.find(pallet => pallet.name === name)));
+  if (target.pallets.some(existing => existing.name === name || existing.index === pallet.index)) {
+    throw new Error(`Target already has ${name} or its pallet index`);
   }
   const importType = typeImporter(target, reference);
-  for (const kind of ["calls", "events", "errors"]) pallet[kind].type = importType(pallet[kind].type);
+  for (const kind of ["calls", "events", "errors"]) {
+    if (pallet[kind]) pallet[kind].type = importType(pallet[kind].type);
+  }
   target.pallets.push(pallet);
   for (const key of Object.keys(target.outerEnums)) {
     const variants = metadata => metadata.lookup.types.find(type => type.id === metadata.outerEnums[key]).type.def.variant.variants;
-    const variant = JSON.parse(JSON.stringify(variants(reference).find(variant => variant.name === "MetaTx")));
+    const variant = JSON.parse(JSON.stringify(variants(reference).find(variant => variant.name === name)));
     variant.fields.forEach(field => { field.type = importType(field.type); });
     variants(target).push(variant);
   }
   return new Metadata(new TypeRegistry(), { magicNumber: 0x6174656d, metadata: { v16: target } }).toHex();
 }
 
-function envelope(registry, data) {
-  return Buffer.concat([registry.createType("Compact<u32>", data.length).toU8a(), data]);
-}
-
-// Encode directly from metadata, independently of the decoder under test.
-// These are SCALE test vectors, not cryptographically authorized transactions.
-function encodeGeneral(registry, version, values, call) {
-  const metadata = registry.metadata.extrinsic;
-  const pipeline = [...metadata.transactionExtensionsByVersion].find(([v]) => v.eq(version));
-  if (!pipeline) throw new Error(`Unknown test pipeline ${version}`);
-  const parts = [Buffer.from([0x45, version])];
-  for (const index of pipeline[1]) {
-    const extension = metadata.transactionExtensions[index.toNumber()];
-    const name = extension.identifier.toString();
-    const args = Object.hasOwn(values, name) ? [values[name]] : [];
-    parts.push(registry.createTypeUnsafe(registry.createLookupType(extension.type), args).toU8a());
-  }
-  parts.push(call.toU8a());
-  return envelope(registry, Buffer.concat(parts));
-}
-
-module.exports = { projectPipeline, projectMetaTx, envelope, encodeGeneral };
+module.exports = { projectPipeline, projectPallet, envelope, encodeGeneral };

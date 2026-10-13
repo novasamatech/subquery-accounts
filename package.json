@@ -70,6 +70,7 @@
     "kusamaAssetHubChaintypes": "./chainTypes/kusamaAssetHubChaintypes.ts",
     "polkadotAssetHubChaintypes": "./chainTypes/polkadotAssetHubChaintypes.ts",
     "westendAssetHubChaintypes": "./chainTypes/westendAssetHubChaintypes.ts",
+    "metadataExtrinsicChaintypes": "./chainTypes/metadataExtrinsicChaintypes.ts",
     "availChainTypes": "./chainTypes/availChainTypes.ts"
   }
 }
