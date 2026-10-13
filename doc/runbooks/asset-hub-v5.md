@@ -72,9 +72,10 @@ manifest registers the decoder through `withMetadataExtrinsic`. v4 and bare v5 k
 manifest's VM bundle, so a new manifest without it fails the offline suite.
 
 Evidence combines the September Asset Hub captures, the People incident transaction, and metadata
-captured on 2026-10-09 (`--finalized --metadata-fixture` for the newly assessed networks):
+captured on 2026-10-09 (`--finalized --metadata-fixture` for the newly assessed networks).
+Mythos was checked separately on 2026-10-13 (see below).
 
-| Networks | Runtime / metadata | Pipelines | Offline coverage |
+| Networks | Runtime / metadata | Pipelines | Coverage |
 |---|---|---|---|
 | Polkadot Asset Hub | `statemint 2005000`, v16 | 0, 1 (`AsPgas`, `AsDotnsGateway`) | Real incident transaction, modeled entities |
 | Polkadot People | `people-polkadot 2005000`, v16 | 0, 1 (Individuality) | Real incident transaction, entities, `dispatchAsSigner` |
@@ -83,7 +84,8 @@ captured on 2026-10-09 (`--finalized --metadata-fixture` for the newly assessed 
 | Bittensor, Hydration | `node-subtensor 475`, `hydradx 447`, v16 | 0 | Same; their 4-field `PureCreated` has no event coordinates to test |
 | Moonbeam, Moonriver | `4401`, v16 | 0 | Real metadata, unsigned v5 model; signed-v4 proxy entities with native and modeled metadata |
 | Avail, Aleph Zero | `avail 56`, `aleph-node 15000000`, v14 | none | Registration and real-block parity; v5 needs a runtime upgrade first |
-| Mythos, Rococo, Novasama testnet | — | — | Registration only: no reachable RPC (Rococo is retired) |
+| Mythos | `mythos 1006`, `1021`, v14 | none | Registration and real-block parity: signed v4 proxy call, bare v5, AccountId20 |
+| Rococo, Novasama testnet | — | — | Registration only: no reachable RPC (Rococo is retired) |
 
 A modeled pipeline 1 prepends the reference family's authorizers (Polkadot People for People, Polkadot
 Asset Hub otherwise) to the network's own pipeline 0, preserving its fee extension and v4 decoding.
@@ -94,6 +96,7 @@ and 2 signed v4 Avail transactions, showed no stock/project difference. The live
 [pipeline scanner](../development/diagnostics.md#transaction-extension-pipelines) passed on all 17 reachable
 networks; the manifest endpoints of Kusama, Westend, Hydration, Moonbeam, Moonriver, Mythos and Rococo did
 not resolve from the verification host, so public alternatives were used through `RPC_ENDPOINT_OVERRIDE`.
+That scan was performed on 2026-10-09; Mythos became the 18th verified network in the review checks below.
 
 **Limits:** modeled pipelines and envelopes are synthetic. Signed-origin semantics recognize only
 `VerifyMultiSignature.Signed`; a different authorizer (for example an Ethereum-signature scheme on
@@ -115,6 +118,26 @@ incident payload (including with a rewritten envelope length) is rejected. Mixed
 retain General-v5, signed-v4 and bare-v5 boundaries: bytes after one envelope belong to the next item
 and must not be rejected as trailing payload. These malformed-input tests do not imply that a valid
 on-chain transaction with this bool encoding exists.
+
+### Mythos Review Verification
+
+On **2026-10-13**, the DMarket RPC from the
+[polkadot-js provider list](https://github.com/polkadot-js/apps/blob/9d8e9469c490fac8a80e173bfd37534e9d7906ad/packages/apps-config/src/endpoints/productionRelayPolkadot.ts#L544-L555)
+was used through `RPC_ENDPOINT_OVERRIDE`. The manifest's genesis hash matched. Both captures used
+parent-runtime metadata and `--compare --sandbox`, loading `metadataExtrinsicChaintypes` in the real VM:
+
+- Finalized block **11685954**, `mythos 1021`, metadata v14: both bare-v5 inherents retain their bytes/hash.
+- Historical block **1078220**, `mythos 1006`, metadata v14: all three extrinsics match stock decoding,
+  including signed-v4 `proxy.createPure` at index 2. Its AccountId20 signer is
+  `0x6cb0779830b493717b00906989E84D4605BDCEf4`; its hash is
+  `0xdf7942179676289a9d27c1e2c458bac3213973eb979b564e1985557521c2db43`.
+- The pipeline scanner passes with metadata v14 and no advertised General-v5 pipelines. This closes
+  the real-block parity gap, not future General-v5 authorization or chain-to-PostgreSQL entity coverage.
+
+[Review evidence](../evidence/mythos-review-2026-10-13.json) records input fingerprints and results.
+Full snapshots and reports remain in `subql-diagnostics` as `mythos-review-2026-10-13-*.json`; both were
+also replayed offline with the same byte/hash and signer assertions.
+A future metadata/format upgrade on this AccountId20 network needs its own authorization review and tests.
 
 ## Override Versus Upgrade
 

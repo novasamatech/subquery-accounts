@@ -52,6 +52,8 @@ bash scripts/podman/run.sh debug-asset-hub-block.js polkadot \
 - Networks: Asset Hub aliases `polkadot`, `kusama`, `westend` (or `statemint`, `statemine`, `westmint`),
   or any manifest as `project-<slug>.yaml`, which supplies the endpoint and chain types. Manifest mode
   records the genesis hash in new snapshots and refuses a snapshot from another network or without one.
+  Asset Hub aliases also read chain types and genesis from their manifests, but still accept old
+  snapshots without a genesis hash; a recorded hash must match.
 - Choose exactly one `--block=N`, `--hash=0x...`, `--finalized` (current finalized block), `--snapshot=FILE`.
 - `--extrinsic=N` narrows output; `--extensions` shows the per-version extension pipeline and SCALE types.
 - `--calls` prints the full decoded arguments, including nested calls.

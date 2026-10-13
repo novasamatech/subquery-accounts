@@ -92,9 +92,12 @@ export const MetadataExtrinsic = class {
   }
 } as unknown as CodecClass;
 
-// Every manifest's chain types must pass through this: any polkadot-sdk runtime can
-// advertise a new transaction-extension pipeline in a later upgrade. v4 and bare v5
-// keep the stock codec, so only General-v5 transactions change.
+/**
+ * Register metadata-driven General-v5 decoding for each manifest's chain types.
+ * @param chainTypes Existing network types, bundles and signed-extension overrides.
+ * @returns A new configuration with the General-v5 codecs; v4 and bare v5 use the stock codec.
+ * Codec registration takes precedence over existing Extrinsic/GeneralExtrinsic types.
+ */
 export function withMetadataExtrinsic(chainTypes: RegisteredTypes): RegisteredTypes {
   return {
     ...chainTypes,

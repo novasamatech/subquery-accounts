@@ -8,7 +8,7 @@ const { test } = require("node:test");
 const { probe } = require("../diagnostics/scan-extension-pipelines");
 const { createRegistry, loadChainTypes } = require("../lib/decoder");
 const { pipelines } = require("../lib/general-extrinsic");
-const { createRpc, REQUEST_TIMEOUT_MS } = require("../lib/rpc");
+const { createRpc } = require("../lib/rpc");
 const { networkCases } = require("./helpers/network-cases");
 const { runtime, loadManifest, projectRoot } = require("./helpers/indexer");
 const people = require("./fixtures/polkadot-people-general-extrinsic.json");
@@ -45,7 +45,6 @@ test("stock-only probes reject lost authentication even when bytes and hash roun
 });
 
 test("RPC calls have a timeout signal and reject non-HTTP endpoints", async t => {
-  assert.equal(REQUEST_TIMEOUT_MS, 20000);
   assert.throws(() => createRpc("wss://example.invalid"), /HTTP\(S\)/);
   t.mock.method(global, "fetch", async (endpoint, options) => {
     assert.ok(options.signal instanceof AbortSignal);
@@ -54,6 +53,23 @@ test("RPC calls have a timeout signal and reject non-HTTP endpoints", async t =>
     return { ok: true, json: async () => ({ result: "People" }) };
   });
   assert.equal(await createRpc("https://example.invalid")("system_chain"), "People");
+});
+
+test("RPC timeout aborts a pending HTTP request", { timeout: 2000 }, async t => {
+  const timeout = AbortSignal.timeout.bind(AbortSignal);
+  t.mock.method(AbortSignal, "timeout", delay => {
+    assert.ok(Number.isFinite(delay) && delay > 0);
+    return timeout(100);
+  });
+  const server = http.createServer(() => {});
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+  try {
+    await assert.rejects(createRpc(`http://127.0.0.1:${server.address().port}`)("system_chain"),
+      { name: "TimeoutError" });
+  } finally {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
 });
 
 test("scanner CLI verifies genesis, reports securely, redacts overrides and returns 0/1/2", async () => {

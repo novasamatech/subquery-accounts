@@ -23,6 +23,8 @@ Use this for dependency, sandbox, address and historical Asset Hub type failures
 [scripts/lib/runtime.js](../../scripts/lib/runtime.js) resolves packages from `SUBQL_ROOT` (default `/`)
 and initializes logging before importing the sandbox. This root is independent of the project's
 dependencies and a diagnostic's `--api-root` / `--known-types-root` candidate installations.
+Manifest and replay-spec parsing use `createRuntimeRequire` to load `js-yaml` from that same runtime,
+without initializing the sandbox logger or relying on project dependency hoisting.
 
 | Path relative to the runtime installation | Contract used by tooling |
 |---|---|

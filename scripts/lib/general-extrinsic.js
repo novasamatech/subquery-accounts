@@ -1,5 +1,6 @@
 // Encode/verify General-v5 transactions directly from metadata, independently of the decoder
 // under test. Encoded values are SCALE test vectors, not cryptographically authorized transactions.
+// Keep the wire preamble here: importing it from chainTypes would couple the encoder to the decoder.
 const GENERAL_PREAMBLE = 0x45;
 
 function envelope(registry, data) {

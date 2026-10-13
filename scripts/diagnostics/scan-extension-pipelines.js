@@ -12,6 +12,7 @@ const { REPO_ROOT, manifestSlugs, readManifest } = require("../lib/manifests");
 
 const ACCOUNT = "0x" + "aa".repeat(32);
 const SIGNATURE = "0x" + "11".repeat(64);
+const ERROR_PREVIEW_CHARS = 160;
 
 // Synthetic remark for each pipeline: a signed one where VerifyMultiSignature exists.
 function probe(stock, project, pipeline) {
@@ -64,7 +65,7 @@ function print(result) {
   if (!result.pipelines.length) return console.log(`${head}\n  no transaction-extension pipelines (General-v5 not advertised)`);
   console.log(head);
   for (const p of result.pipelines) {
-    const verdict = r => r.ok ? `OK signed=${r.isSigned}` : `FAIL ${r.error.slice(0, 160)}`;
+    const verdict = r => r.ok ? `OK signed=${r.isSigned}` : `FAIL ${r.error.slice(0, ERROR_PREVIEW_CHARS)}`;
     console.log(`  v${p.version}${p.signed ? " (VerifyMultiSignature)" : ""}: ${p.extensions.join(", ")}`);
     console.log(`    stock:   ${verdict(p.stock)}`);
     if (p.project) console.log(`    project: ${verdict(p.project)}`);

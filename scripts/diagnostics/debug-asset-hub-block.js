@@ -16,17 +16,19 @@ const specData = require("../data/asset-hub-spec-blocks.json");
 // Asset Hub aliases read endpoints from the shared spec map. Any network can instead be
 // selected by its manifest (project-<slug>.yaml): endpoint, chain types and genesis from YAML.
 const CHAINS = {
-  polkadot: { spec: "statemint", bundle: "polkadotAssetHubChaintypes" },
-  kusama: { spec: "statemine", bundle: "kusamaAssetHubChaintypes" },
-  westend: { spec: "westmint", bundle: "westendAssetHubChaintypes" },
+  polkadot: "statemint",
+  kusama: "statemine",
+  westend: "westmint",
 };
 
 function resolveTarget(name) {
   const manifest = /^project-([a-z0-9-]+)\.yaml$/.exec(name ?? "");
   if (manifest) return readManifest(manifest[1]);
-  const alias = Object.keys(CHAINS).find((key) => key === name || CHAINS[key].spec === name);
+  const alias = Object.keys(CHAINS).find((key) => key === name || CHAINS[key] === name);
   if (!alias) throw new Error(`Specify one Asset Hub alias (${Object.keys(CHAINS).join(", ")}) or project-<slug>.yaml; see --help`);
-  return { ...CHAINS[alias], endpoint: specData[CHAINS[alias].spec].endpoint.replace(/^ws/, "http") };
+  const spec = CHAINS[alias];
+  return { ...readManifest(`${alias}-asset-hub`), spec, allowMissingGenesis: true,
+    endpoint: specData[spec].endpoint.replace(/^ws/, "http") };
 }
 
 async function capture(endpoint, block, deps, { events = false } = {}) {
@@ -172,7 +174,7 @@ async function main() {
   validateSnapshot(snapshot);
   if (values.events && !snapshot.events) throw new Error("Snapshot has no events; capture again with --events");
   if (config.spec && snapshot.runtimeVersion.specName !== config.spec) throw new Error("Snapshot/RPC runtime does not match the selected chain");
-  if (config.chainId && snapshot.genesisHash !== config.chainId) {
+  if (config.chainId && (snapshot.genesisHash !== undefined || !config.allowMissingGenesis) && snapshot.genesisHash !== config.chainId) {
     throw new Error("Snapshot/RPC genesis does not match the manifest chainId (older snapshots lack it; capture again)");
   }
   if (values.save) fs.writeFileSync(values.save, JSON.stringify(snapshot) + "\n", { mode: 0o600, flag: "wx" });

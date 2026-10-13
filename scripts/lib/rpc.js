@@ -1,6 +1,12 @@
 // Bounded JSON-RPC over HTTP(S). Endpoints may contain credentials: callers must not log them.
 const REQUEST_TIMEOUT_MS = 20000;
 
+/**
+ * Create an HTTP JSON-RPC client with a bounded timeout for each request.
+ * @param {string} endpoint HTTP(S) URL; callers must redact any credentials from errors.
+ * @returns {(method: string, params?: unknown[]) => Promise<unknown>} The JSON-RPC result.
+ * @throws {Error} For a non-HTTP endpoint; requests reject on timeout, HTTP or RPC errors.
+ */
 function createRpc(endpoint) {
   if (!/^https?:\/\//.test(endpoint)) throw new Error("Use an HTTP(S) RPC endpoint");
   let id = 0;
@@ -18,7 +24,14 @@ function createRpc(endpoint) {
   };
 }
 
-// Prefer metadata v16 (transaction extension pipelines); older runtimes fall back to the default.
+/**
+ * Fetch metadata v16 when available, falling back to the runtime's default metadata.
+ * @param {Function} rpc JSON-RPC client returned by createRpc.
+ * @param {string} hash Runtime context block hash; use the parent hash for block decoding.
+ * @param {{TypeRegistry: Function}} deps The selected decoder's registry constructor.
+ * @returns {Promise<string>} SCALE metadata as hex.
+ * @throws {Error} For RPC failures other than an unavailable versioned metadata API.
+ */
 async function fetchMetadata(rpc, hash, deps) {
   try {
     const bytes = await rpc("state_call", ["Metadata_metadata_at_version", "0x10000000", hash]);

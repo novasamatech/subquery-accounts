@@ -66,6 +66,48 @@ test("manifest mode refuses a snapshot whose genesis is missing or belongs to an
   }
 });
 
+test("Asset Hub aliases accept legacy snapshots but reject a wrong recorded genesis", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "alias-snapshot-"));
+  try {
+    const input = path.join(dir, "snapshot.json");
+    for (const alias of ["polkadot", "statemint"]) {
+      fs.writeFileSync(input, JSON.stringify(snapshot()));
+      const legacy = spawnSync(process.execPath, [diagnostic, alias, `--snapshot=${input}`, "--no-types"],
+        { encoding: "utf8", timeout: 10000 });
+      assert.equal(legacy.status, 1, legacy.stderr);
+      assert.match(legacy.stdout, /Invalid data passed to Mortal era/);
+      fs.writeFileSync(input, JSON.stringify({ ...snapshot(), genesisHash: "0x" + "00".repeat(32) }));
+      const wrong = spawnSync(process.execPath, [diagnostic, alias, `--snapshot=${input}`, "--no-types"],
+        { encoding: "utf8", timeout: 10000 });
+      assert.equal(wrong.status, 2, wrong.stderr);
+      assert.match(wrong.stderr, /genesis does not match the manifest chainId/);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("manifest YAML resolves from SUBQL_ROOT without initializing the runtime logger", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "runtime-yaml-"));
+  try {
+    fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    fs.mkdirSync(path.join(dir, "node_modules/js-yaml"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "node_modules/js-yaml/index.js"), `
+      exports.load = () => ({ network: { endpoint: "wss://selected-runtime.invalid",
+        chainId: "0x${"ab".repeat(32)}" } });
+    `);
+    const file = path.join(root, "scripts/lib/manifests.js");
+    const result = spawnSync(process.execPath, ["-e", `
+      const { readManifest } = require(${JSON.stringify(file)});
+      console.log(readManifest("polkadot-asset-hub").endpoint);
+    `], { encoding: "utf8", timeout: 5000, env: { ...process.env, SUBQL_ROOT: dir } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim(), "https://selected-runtime.invalid");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("pipeline scanner validates manifests and override scope before contacting RPC", () => {
   const scanner = path.join(root, "scripts/diagnostics/scan-extension-pipelines.js");
   const help = spawnSync(process.execPath, [scanner, "--help"], { encoding: "utf8", timeout: 5000 });

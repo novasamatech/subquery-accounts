@@ -2,6 +2,9 @@
 
 ## Indexer Runtime and Service Redesign
 
+Owner: [@kogeler](https://github.com/kogeler). Tracking: [#100](https://github.com/novasamatech/subquery-accounts/issues/100).
+The phases below are follow-up work; their implementation and release decisions are tracked in that issue.
+
 The General-v5 incidents expose two separate contracts: decoding transaction bytes and determining
 the authority under which a call executes. Do not extend an `isSigned` compatibility shim into a
 general authorization model. Preserve the existing GraphQL/entity contract while replacing internals
